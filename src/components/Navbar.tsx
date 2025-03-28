@@ -30,11 +30,15 @@ export default function Navbar() {
         {/* Brand text on the left */}
         <Typography
           variant="h6"
+          component={Link}
+          href="/home"
           sx={{
             fontFamily: 'Arial, sans-serif',
-            paddingLeft: '72px',
-            paddingRight: '72px',
-            fontSize: '1.5rem'
+            paddingLeft: '90px',
+            paddingRight: '90px',
+            fontSize: '1.5rem',
+            textDecoration: 'none',
+            color: 'inherit'
           }}
         >
           सूत्रं

@@ -1,5 +1,5 @@
 import StrategyForm from './new';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button } from '@mui/material';
 
 export default function StrategyDetail() {
   return (
@@ -11,36 +11,58 @@ export default function StrategyDetail() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Instrument</TableCell>
-              <TableCell>LTP</TableCell>
-              <TableCell>P&L</TableCell>
-              <TableCell>W | L</TableCell>
-              <TableCell>Trades</TableCell>
-              <TableCell>WS</TableCell>
-              <TableCell>LS</TableCell>
-              <TableCell>Max DD</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>Instrument</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>LTP</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>P&L</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>W | L</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>Trades</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>WS</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>LS</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>Max DD</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>Deploy</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             <TableRow>
-              <TableCell>ADANIENT</TableCell>
-              <TableCell>NSE</TableCell>
-              <TableCell style={{ color: 'green' }}>+84.40 (+3.47%)</TableCell>
-              <TableCell>6 | 13</TableCell>
-              <TableCell>20</TableCell>
-              <TableCell>2</TableCell>
-              <TableCell>4</TableCell>
-              <TableCell>-0.9800</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>Total</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}></TableCell>
+              <TableCell sx={{ fontSize: '0.875rem', color: 'green' }}>+110.55 (+5.57%)</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>12 | 27</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>41</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>4</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>9</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>-0.9800</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}></TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>ADANIPORTS</TableCell>
-              <TableCell>NSE</TableCell>
-              <TableCell style={{ color: 'green' }}>+26.15 (+2.1%)</TableCell>
-              <TableCell>6 | 14</TableCell>
-              <TableCell>21</TableCell>
-              <TableCell>2</TableCell>
-              <TableCell>5</TableCell>
-              <TableCell>0.0000</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>ADANIENT</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>NSE</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem', color: 'green' }}>+84.40 (+3.47%)</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>6 | 13</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>20</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>2</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>4</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>-0.9800</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>
+                <Button variant="contained" color="primary" size="small">
+                  Deploy
+                </Button>
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell sx={{ fontSize: '0.875rem' }}>ADANIPORTS</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>NSE</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem', color: 'green' }}>+26.15 (+2.1%)</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>6 | 14</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>21</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>2</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>5</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>0.0000</TableCell>
+              <TableCell sx={{ fontSize: '0.875rem' }}>
+                <Button variant="contained" color="primary" size="small">
+                  Deploy
+                </Button>
+              </TableCell>
             </TableRow>
           </TableBody>
         </Table>
