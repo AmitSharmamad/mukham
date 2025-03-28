@@ -8,7 +8,7 @@ export default function StrategyList() {
   return (
     <Container sx={{ marginTop: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4">Strategy List</Typography>
+        <Typography variant="h4">My Strategies</Typography>
         {strategies.length > 0 && (
           <Link href="/strategy/new" passHref style={{ textDecoration: 'none' }}>
             <Button variant="contained">
