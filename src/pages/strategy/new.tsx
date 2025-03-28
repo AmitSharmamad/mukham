@@ -26,14 +26,26 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 export default function NewStrategy() {
   const [expanded, setExpanded] = useState<string | false>('name');
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [trailingStopLoss, setTrailingStopLoss] = useState<string>('');
   const [entryStartTime, setEntryStartTime] = useState<Dayjs | null>(dayjs());
   const [entryEndTime, setEntryEndTime] = useState<Dayjs | null>(dayjs());
   const [startDate, setStartDate] = useState<Dayjs | null>(dayjs());
   const [endDate, setEndDate] = useState<Dayjs | null>(dayjs());
 
+  const sections = ['name', 'positions', 'entry', 'exit', 'backtest'];
+
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
+  };
+
+  const handleCollapseAll = () => {
+    if (isAllExpanded) {
+      setExpanded(false);
+      setIsAllExpanded(false);
+    } else {
+      setIsAllExpanded(true);
+    }
   };
 
   const handleTrailingStopLossChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,11 +62,20 @@ export default function NewStrategy() {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Container sx={{ marginTop: 4 }}>
-        <Typography variant="h4" gutterBottom>Strategy Builder</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h4" gutterBottom>Strategy Builder</Typography>
+          <Button 
+            variant="outlined" 
+            onClick={handleCollapseAll}
+            size="small"
+          >
+            {isAllExpanded ? 'Collapse All' : 'Expand All'}
+          </Button>
+        </Box>
         <form>
           {/* Name Section */}
           <Accordion 
-            expanded={expanded === 'name'} 
+            expanded={isAllExpanded || expanded === 'name'} 
             onChange={handleAccordionChange('name')}
             sx={{ mb: 2, borderRadius: 2, '&:before': { display: 'none' } }}
           >
@@ -70,10 +91,15 @@ export default function NewStrategy() {
             <AccordionDetails sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
-                  <TextField fullWidth label="Name" />
+                  <TextField fullWidth label="Name" required />
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <TextField fullWidth label="Description" multiline rows={3} />
+                  <TextField 
+                    fullWidth 
+                    label="Description (Optional)" 
+                    multiline 
+                    rows={3} 
+                  />
                 </Grid>
               </Grid>
             </AccordionDetails>
@@ -81,7 +107,7 @@ export default function NewStrategy() {
 
           {/* Positions Section */}
           <Accordion 
-            expanded={expanded === 'positions'} 
+            expanded={isAllExpanded || expanded === 'positions'} 
             onChange={handleAccordionChange('positions')}
             sx={{ mb: 2, borderRadius: 2, '&:before': { display: 'none' } }}
           >
@@ -138,11 +164,19 @@ export default function NewStrategy() {
               </Grid>
 
               <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={2} md={6}>
-                  <TextField fullWidth label="Max Allocation" type="number" />
+                <Grid item xs={12} md={6}>
+                  <TextField 
+                    fullWidth 
+                    label="Max Allocation (Optional)" 
+                    type="number" 
+                  />
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <TextField fullWidth label="Max Quantity" type="number" />
+                  <TextField 
+                    fullWidth 
+                    label="Max Quantity (Optional)" 
+                    type="number" 
+                  />
                 </Grid>
               </Grid>
             </AccordionDetails>
@@ -150,7 +184,7 @@ export default function NewStrategy() {
 
           {/* Entry Condition Section */}
           <Accordion 
-            expanded={expanded === 'entry'} 
+            expanded={isAllExpanded || expanded === 'entry'} 
             onChange={handleAccordionChange('entry')}
             sx={{ mb: 2, borderRadius: 2, '&:before': { display: 'none' } }}
           >
@@ -170,7 +204,7 @@ export default function NewStrategy() {
 
           {/* Exit Condition Section */}
           <Accordion 
-            expanded={expanded === 'exit'} 
+            expanded={isAllExpanded || expanded === 'exit'} 
             onChange={handleAccordionChange('exit')}
             sx={{ mb: 2, borderRadius: 2, '&:before': { display: 'none' } }}
           >
@@ -184,15 +218,14 @@ export default function NewStrategy() {
               <Typography variant="h6">Exit Condition</Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
-              <TextField fullWidth label="Indicator Expression Builder" sx={{ mb: 2 }} />
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
-                      <TextField fullWidth label="Stop Loss" type="number" />
+                      <TextField fullWidth label="Target Profit" type="number" required />
                     </Grid>
                     <Grid item xs={6}>
-                      <FormControl fullWidth>
+                      <FormControl fullWidth required>
                         <InputLabel>Type</InputLabel>
                         <Select label="Type" defaultValue="percentage">
                           <MenuItem value="absolute">Absolute</MenuItem>
@@ -205,12 +238,19 @@ export default function NewStrategy() {
                 <Grid item xs={12} md={6}>
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
-                      <TextField fullWidth label="Target Profit" type="number" />
+                      <TextField 
+                        fullWidth 
+                        label="Stop Loss (Optional)" 
+                        type="number"
+                      />
                     </Grid>
                     <Grid item xs={6}>
                       <FormControl fullWidth>
                         <InputLabel>Type</InputLabel>
-                        <Select label="Type" defaultValue="percentage">
+                        <Select 
+                          label="Type" 
+                          defaultValue="percentage"
+                        >
                           <MenuItem value="absolute">Absolute</MenuItem>
                           <MenuItem value="percentage">Percentage</MenuItem>
                         </Select>
@@ -218,7 +258,7 @@ export default function NewStrategy() {
                     </Grid>
                   </Grid>
                 </Grid>
-                <Grid item xs={12} md={12}>
+                <Grid item xs={12} md={6}>
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
                       <TextField 
@@ -235,7 +275,6 @@ export default function NewStrategy() {
                         <Select 
                           label="Type" 
                           defaultValue="percentage"
-                          disabled={!trailingStopLoss}
                         >
                           <MenuItem value="absolute">Absolute</MenuItem>
                           <MenuItem value="percentage">Percentage</MenuItem>
@@ -244,13 +283,20 @@ export default function NewStrategy() {
                     </Grid>
                   </Grid>
                 </Grid>
+                <Grid item xs={12} md={12}>
+                  <TextField 
+                    fullWidth 
+                    label="Indicator Expression Builder (Optional)" 
+                    sx={{ mb: 2 }} 
+                  />
+                </Grid>
               </Grid>
             </AccordionDetails>
           </Accordion>
 
           {/* Backtest Parameters Section */}
           <Accordion 
-            expanded={expanded === 'backtest'} 
+            expanded={isAllExpanded || expanded === 'backtest'} 
             onChange={handleAccordionChange('backtest')}
             sx={{ mb: 2, borderRadius: 2, '&:before': { display: 'none' } }}
           >
@@ -266,11 +312,18 @@ export default function NewStrategy() {
             <AccordionDetails sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
-                  <TextField fullWidth label="Initial Capital" type="number" />
+                  <TextField 
+                    fullWidth 
+                    label="Initial Capital" 
+                    type="number" 
+                    required
+                  />
                 </Grid>
-                <Grid item xs={12} md={4}>
+              </Grid>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} md={6}>
                   <TimePicker
-                    label="Entry Start Time"
+                    label="Entry Start Time (Optional)"
                     value={entryStartTime}
                     onChange={(newValue) => setEntryStartTime(newValue)}
                     sx={{ width: '100%' }}
@@ -285,9 +338,9 @@ export default function NewStrategy() {
                     }}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={6}>
                   <TimePicker
-                    label="Entry End Time"
+                    label="Entry End Time (Optional)"
                     value={entryEndTime}
                     onChange={(newValue) => setEntryEndTime(newValue)}
                     sx={{ width: '100%' }}
@@ -336,9 +389,12 @@ export default function NewStrategy() {
             </AccordionDetails>
           </Accordion>
 
-          <Box sx={{ mt: 3, mb: 3, display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ mt: 3, mb: 3, display: 'flex', justifyContent: 'center', gap: 2 }}>
             <Button variant="contained" type="submit" size="large">
-              Create Strategy
+              Save
+            </Button>
+            <Button variant="outlined" size="large">
+              Backtest
             </Button>
           </Box>
         </form>

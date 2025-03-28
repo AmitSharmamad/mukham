@@ -1,4 +1,4 @@
-import { Container, Typography, Button, List, ListItem } from '@mui/material';
+import { Container, Typography, Button, List, ListItem, Box, Paper } from '@mui/material';
 import Link from 'next/link';
 
 export default function StrategyList() {
@@ -7,29 +7,50 @@ export default function StrategyList() {
   
   return (
     <Container sx={{ marginTop: 4 }}>
-      <Typography variant="h4">Strategy List</Typography>
-      {strategies.length > 0 ? (
-        <Link href="/strategy/new" passHref style={{ textDecoration: 'none' }}>
-          <Button variant="contained" sx={{ float: 'right' }}>
-            Create Strategy
-          </Button>
-        </Link>
-      ) : (
-        <Link href="/strategy/new" passHref style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-          <Button variant="contained" sx={{ margin: 'auto' }}>
-            Create Strategy
-          </Button>
-        </Link>
-      )}
-      <List>
-        {strategies.map((strat) => (
-          <Link key={strat.id} href={`/strategy/${strat.id}`} passHref style={{ textDecoration: 'none' }}>
-            <ListItem button>
-              {strat.name}
-            </ListItem>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4">Strategy List</Typography>
+        {strategies.length > 0 && (
+          <Link href="/strategy/new" passHref style={{ textDecoration: 'none' }}>
+            <Button variant="contained">
+              Create Strategy
+            </Button>
           </Link>
-        ))}
-      </List>
+        )}
+      </Box>
+
+      {strategies.length === 0 ? (
+        <Box sx={{ textAlign: 'center', mt: 8 }}>
+          <Link href="/strategy/new" passHref style={{ textDecoration: 'none' }}>
+            <Button variant="contained" size="large">
+              Create Strategy
+            </Button>
+          </Link>
+        </Box>
+      ) : (
+        <List sx={{ mt: 2 }}>
+          {strategies.map((strat) => (
+            <Paper
+              key={strat.id}
+              elevation={1}
+              sx={{ mb: 2 }}
+            >
+              <Link href={`/strategy/${strat.id}`} passHref style={{ textDecoration: 'none' }}>
+                <ListItem 
+                  button 
+                  sx={{ 
+                    borderRadius: 1,
+                    '&:hover': {
+                      backgroundColor: 'action.hover'
+                    }
+                  }}
+                >
+                  <Typography color="text.primary">{strat.name}</Typography>
+                </ListItem>
+              </Link>
+            </Paper>
+          ))}
+        </List>
+      )}
     </Container>
   );
 }

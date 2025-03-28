@@ -17,29 +17,81 @@ export default function Navbar() {
   
   return (
     <AppBar 
-      position="static" 
+      position="fixed" 
       sx={{ 
         backgroundColor: theme.palette.mode === 'dark' 
-          ? theme.palette.background.paper // Use paper color in dark mode
-          : theme.palette.primary.dark, // Use primary dark in light mode
-        boxShadow: 1
+          ? theme.palette.background.paper
+          : theme.palette.primary.dark,
+        boxShadow: 1,
+        zIndex: theme.zIndex.drawer + 1
       }}
     >
       <Toolbar>
-        {/* Left spacer */}
-        <Box sx={{ flexGrow: 1 }} />
+        {/* Brand text on the left */}
+        <Typography
+          variant="h6"
+          sx={{
+            fontFamily: 'Arial, sans-serif',
+            paddingLeft: '72px',
+            paddingRight: '72px',
+            fontSize: '1.5rem'
+          }}
+        >
+          सूत्रं
+        </Typography>
         
         {/* Centered navigation items */}
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button color="inherit" component={Link} href="/home">Home</Button>
-          <Button color="inherit" component={Link} href="/strategy">Strategy</Button>
-          <Button color="inherit" component={Link} href="/reports">Reports</Button>
-          <Button color="inherit" component={Link} href="/docs">Docs</Button>
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 2,
+          flexGrow: 1,
+          justifyContent: 'center'
+        }}>
+          <Button 
+            color="inherit" 
+            component={Link} 
+            href="/home"
+            sx={{ fontSize: '1.1rem' }}
+          >
+            Home
+          </Button>
+          <Button 
+            color="inherit" 
+            component={Link} 
+            href="/strategy"
+            sx={{ fontSize: '1.1rem' }}
+          >
+            Strategy
+          </Button>
+          <Button 
+            color="inherit" 
+            component={Link} 
+            href="/reports"
+            sx={{ fontSize: '1.1rem' }}
+          >
+            Reports
+          </Button>
+          <Button 
+            color="inherit" 
+            component={Link} 
+            href="/docs"
+            sx={{ fontSize: '1.1rem' }}
+          >
+            Docs
+          </Button>
         </Box>
         
-        {/* Right spacer and profile icon */}
-        <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>
-          <IconButton size="large" onClick={handleMenu} color="inherit">
+        {/* Profile icon with further increased spacing */}
+        <Box sx={{ 
+          paddingLeft: '72px',
+          paddingRight: '72px'
+        }}>
+          <IconButton 
+            size="large" 
+            onClick={handleMenu} 
+            color="inherit"
+            sx={{ fontSize: '1.75rem' }}
+          >
             <AccountCircle />
           </IconButton>
         </Box>

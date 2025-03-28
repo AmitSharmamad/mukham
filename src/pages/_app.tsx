@@ -1,6 +1,6 @@
 import { createContext, useMemo, useState, useContext } from 'react';
 import { AppProps } from 'next/app';
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import { ThemeProvider, CssBaseline, Toolbar } from '@mui/material';
 import { light, dark } from '../theme';
 import Navbar from '../components/Navbar';
 import '../styles/globals.css';
@@ -31,6 +31,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Navbar />
+        <Toolbar /> {/* This creates the spacing */}
         <Component {...pageProps} />
       </ThemeProvider>
     </ColorModeContext.Provider>
