@@ -14,7 +14,14 @@ import {
   Grid, 
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  SelectChangeEvent,
+  Autocomplete,
+  Chip
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useState } from 'react';
@@ -32,6 +39,10 @@ export default function NewStrategy() {
   const [entryEndTime, setEntryEndTime] = useState<Dayjs | null>(dayjs());
   const [startDate, setStartDate] = useState<Dayjs | null>(dayjs());
   const [endDate, setEndDate] = useState<Dayjs | null>(dayjs());
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [exchange, setExchange] = useState('All');
+  const [segment, setSegment] = useState('All');
+  const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
 
   const sections = ['name', 'positions', 'entry', 'exit', 'backtest'];
 
@@ -58,6 +69,28 @@ export default function NewStrategy() {
     }
     setEndDate(newValue);
   };
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleExchangeChange = (event: SelectChangeEvent<string>) => {
+    setExchange(event.target.value);
+  };
+
+  const handleSegmentChange = (event: SelectChangeEvent<string>) => {
+    setSegment(event.target.value);
+  };
+
+  const handleRemoveInstrument = (instrument: string) => {
+    setSelectedInstruments((prev) => prev.filter((item) => item !== instrument));
+  };
+
+  const allInstruments = ['amit', 'ajit', 'narendra'];
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -129,9 +162,85 @@ export default function NewStrategy() {
                   </RadioGroup>
                 </Grid>
                 <Grid item xs={12} md={8}>
-                  <Button variant="outlined">Add Instrument</Button>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                    {selectedInstruments.map((instrument, index) => (
+                      <Chip
+                        key={index}
+                        label={instrument}
+                        onDelete={() => handleRemoveInstrument(instrument)}
+                        color="primary"
+                      />
+                    ))}
+                    <Button variant="outlined" onClick={handleOpenModal}>Add Instrument</Button>
+                  </Box>
                 </Grid>
               </Grid>
+
+              {/* Modal for Search Instruments */}
+              <Dialog open={isModalOpen} onClose={handleCloseModal} fullWidth maxWidth="sm">
+                <DialogTitle>Search Instruments</DialogTitle>
+                <DialogContent>
+                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Exchange</InputLabel>
+                      <Select value={exchange} onChange={handleExchangeChange} label="Exchange">
+                        <MenuItem value="All">All</MenuItem>
+                        <MenuItem value="NSE">NSE</MenuItem>
+                        <MenuItem value="BSE">BSE</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth>
+                      <InputLabel>Segment</InputLabel>
+                      <Select value={segment} onChange={handleSegmentChange} label="Segment">
+                        <MenuItem value="All">All</MenuItem>
+                        <MenuItem value="Equity">Equity</MenuItem>
+                        <MenuItem value="Futures">Futures</MenuItem>
+                        <MenuItem value="Options">Options</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  <Autocomplete
+                    multiple
+                    options={allInstruments}
+                    getOptionLabel={(option) => option}
+                    filterSelectedOptions
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Search for an instrument"
+                        placeholder="Type to search..."
+                      />
+                    )}
+                    onChange={(event, value) => setSelectedInstruments(value)}
+                    value={selectedInstruments}
+                    sx={{ mb: 2 }}
+                  />
+                  <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {selectedInstruments.map((instrument, index) => (
+                      <Chip
+                        key={index}
+                        label={instrument}
+                        onDelete={() => handleRemoveInstrument(instrument)}
+                        color="primary"
+                      />
+                    ))}
+                  </Box>
+                </DialogContent>
+                <DialogActions>
+                  <Button
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      // Add selected instruments to the list before the "Add Instrument" button
+                      setSelectedInstruments((prev) => [...prev]);
+                    }}
+                    color="primary"
+                    variant="contained"
+                  >
+                    Select
+                  </Button>
+                  <Button onClick={handleCloseModal} color="primary">Close</Button>
+                </DialogActions>
+              </Dialog>
 
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12} md={4}>
