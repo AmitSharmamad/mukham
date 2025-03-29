@@ -31,18 +31,48 @@ import dayjs, { Dayjs } from 'dayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
-export default function NewStrategy() {
+export default function NewStrategy({ initialData }: { initialData?: any }) {
   const [expanded, setExpanded] = useState<string | false>('name');
   const [isAllExpanded, setIsAllExpanded] = useState(false);
-  const [trailingStopLoss, setTrailingStopLoss] = useState<string>('');
-  const [entryStartTime, setEntryStartTime] = useState<Dayjs | null>(dayjs());
-  const [entryEndTime, setEntryEndTime] = useState<Dayjs | null>(dayjs());
-  const [startDate, setStartDate] = useState<Dayjs | null>(dayjs());
-  const [endDate, setEndDate] = useState<Dayjs | null>(dayjs());
+  const [name, setName] = useState(initialData?.name || '');
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [positionType, setPositionType] = useState(initialData?.position_type === 'LONG' ? 'buy' : initialData?.position_type === 'SHORT' ? 'sell' : '');
+  const [instruments, setInstruments] = useState<string[]>(initialData?.instruments || []);
+  const [chartType, setChartType] = useState('candlestick');
+  const timeframeOptions = [
+    { id: '1m', label: '1 Minute' },
+    { id: '3m', label: '3 Minutes' },
+    { id: '5m', label: '5 Minutes' },
+    { id: '10m', label: '10 Minutes' },
+    { id: '15m', label: '15 Minutes' },
+    { id: '30m', label: '30 Minutes' },
+    { id: '1h', label: '1 Hour' },
+    { id: '1d', label: '1 Day' },
+  ];
+
+  const [chartTimeframe, setChartTimeframe] = useState(
+    initialData?.chart_timeframe
+      ? timeframeOptions.find(option => option.id === initialData.chart_timeframe)?.label || ''
+      : ''
+  );
+  const [tradeType, setTradeType] = useState(initialData?.trade_type || 'MIS');
+  const [qty, setQty] = useState(initialData?.qty || 0);
+  const [entryExpression, setEntryExpression] = useState(initialData?.entry_expression || '');
+  const [exitExpression, setExitExpression] = useState(initialData?.exit_expression || '');
+  const [targetProfit, setTargetProfit] = useState(initialData?.target_profit || 0);
+  const [stopLoss, setStopLoss] = useState(initialData?.stop_loss || 0);
+  const [trailingStopLoss, setTrailingStopLoss] = useState(initialData?.trailing_stop_loss || 0);
+  const [exitType, setExitType] = useState(initialData?.exit_type || '');
+  const [capital, setCapital] = useState(initialData?.capital || 0);
+  const [maxTrades, setMaxTrades] = useState(initialData?.max_trades || 0);
+  const [entryStartTime, setEntryStartTime] = useState<Dayjs | null>(initialData?.entry_start_time ? dayjs(initialData.entry_start_time) : dayjs());
+  const [entryEndTime, setEntryEndTime] = useState<Dayjs | null>(initialData?.entry_end_time ? dayjs(initialData.entry_end_time) : dayjs());
+  const [startDate, setStartDate] = useState<Dayjs | null>(initialData?.start_date ? dayjs(initialData.start_date) : dayjs());
+  const [endDate, setEndDate] = useState<Dayjs | null>(initialData?.end_date ? dayjs(initialData.end_date) : dayjs());
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [exchange, setExchange] = useState('All');
-  const [segment, setSegment] = useState('All');
-  const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
+  const [exchange, setExchange] = useState(initialData?.exchange || 'All');
+  const [segment, setSegment] = useState(initialData?.segment || 'All');
+  const [selectedInstruments, setSelectedInstruments] = useState<string[]>(initialData?.instruments || []);
 
   const sections = ['name', 'positions', 'entry', 'exit', 'backtest'];
 
@@ -60,7 +90,7 @@ export default function NewStrategy() {
   };
 
   const handleTrailingStopLossChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setTrailingStopLoss(event.target.value);
+    setTrailingStopLoss(Number(event.target.value));
   };
 
   const handleEndDateChange = (newValue: Dayjs | null) => {
@@ -124,7 +154,13 @@ export default function NewStrategy() {
             <AccordionDetails sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
-                  <TextField fullWidth label="Name" required />
+                  <TextField 
+                    fullWidth 
+                    label="Name" 
+                    required 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <TextField 
@@ -132,6 +168,8 @@ export default function NewStrategy() {
                     label="Description (Optional)" 
                     multiline 
                     rows={3} 
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                   />
                 </Grid>
               </Grid>
@@ -156,7 +194,11 @@ export default function NewStrategy() {
             <AccordionDetails sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
-                  <RadioGroup row>
+                  <RadioGroup 
+                    row 
+                    value={positionType}
+                    onChange={(e) => setPositionType(e.target.value)}
+                  >
                     <FormControlLabel value="buy" control={<Radio />} label="Buy" />
                     <FormControlLabel value="sell" control={<Radio />} label="Sell" />
                   </RadioGroup>
@@ -230,7 +272,6 @@ export default function NewStrategy() {
                   <Button
                     onClick={() => {
                       setIsModalOpen(false);
-                      // Add selected instruments to the list before the "Add Instrument" button
                       setSelectedInstruments((prev) => [...prev]);
                     }}
                     color="primary"
@@ -246,7 +287,11 @@ export default function NewStrategy() {
                 <Grid item xs={12} md={4}>
                   <FormControl fullWidth>
                     <InputLabel>Candlestick Type</InputLabel>
-                    <Select label="Candlestick Type">
+                    <Select 
+                      label="Candlestick Type" 
+                      value={chartType}
+                      onChange={(e) => setChartType(e.target.value)}
+                    >
                       <MenuItem value="candlestick">Candlestick</MenuItem>
                     </Select>
                   </FormControl>
@@ -254,9 +299,13 @@ export default function NewStrategy() {
                 <Grid item xs={12} md={4}>
                   <FormControl fullWidth>
                     <InputLabel>Timeframe</InputLabel>
-                    <Select label="Timeframe">
-                      {["1 Minute", "3 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "1 Day"].map(option => (
-                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                    <Select 
+                      label="Timeframe" 
+                      value={chartTimeframe}
+                      onChange={(e) => setChartTimeframe(e.target.value)}
+                    >
+                      {timeframeOptions.map(option => (
+                        <MenuItem key={option.id} value={option.label}>{option.label}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
@@ -264,7 +313,11 @@ export default function NewStrategy() {
                 <Grid item xs={12} md={4}>
                   <FormControl fullWidth>
                     <InputLabel>Trade Type</InputLabel>
-                    <Select label="Trade Type">
+                    <Select 
+                      label="Trade Type" 
+                      value={tradeType}
+                      onChange={(e) => setTradeType(e.target.value)}
+                    >
                       <MenuItem value="MIS">MIS</MenuItem>
                       <MenuItem value="CNC/NRML">CNC/NRML</MenuItem>
                     </Select>
@@ -278,6 +331,8 @@ export default function NewStrategy() {
                     fullWidth 
                     label="Max Allocation (Optional)" 
                     type="number" 
+                    value={capital}
+                    onChange={(e) => setCapital(Number(e.target.value))}
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -285,6 +340,8 @@ export default function NewStrategy() {
                     fullWidth 
                     label="Max Quantity (Optional)" 
                     type="number" 
+                    value={qty}
+                    onChange={(e) => setQty(Number(e.target.value))}
                   />
                 </Grid>
               </Grid>
@@ -307,7 +364,12 @@ export default function NewStrategy() {
               <Typography variant="h6">Entry Condition</Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
-              <TextField fullWidth label="Indicator Expression Builder" />
+              <TextField 
+                fullWidth 
+                label="Indicator Expression Builder" 
+                value={entryExpression}
+                onChange={(e) => setEntryExpression(e.target.value)}
+              />
             </AccordionDetails>
           </Accordion>
 
@@ -331,12 +393,23 @@ export default function NewStrategy() {
                 <Grid item xs={12} md={6}>
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
-                      <TextField fullWidth label="Target Profit" type="number" required />
+                      <TextField 
+                        fullWidth 
+                        label="Target Profit" 
+                        type="number" 
+                        required 
+                        value={targetProfit}
+                        onChange={(e) => setTargetProfit(Number(e.target.value))}
+                      />
                     </Grid>
                     <Grid item xs={6}>
                       <FormControl fullWidth required>
                         <InputLabel>Type</InputLabel>
-                        <Select label="Type" defaultValue="percentage">
+                        <Select 
+                          label="Type" 
+                          value={exitType}
+                          onChange={(e) => setExitType(e.target.value)}
+                        >
                           <MenuItem value="absolute">Absolute</MenuItem>
                           <MenuItem value="percentage">Percentage</MenuItem>
                         </Select>
@@ -351,6 +424,8 @@ export default function NewStrategy() {
                         fullWidth 
                         label="Stop Loss (Optional)" 
                         type="number"
+                        value={stopLoss}
+                        onChange={(e) => setStopLoss(Number(e.target.value))}
                       />
                     </Grid>
                     <Grid item xs={6}>
@@ -358,7 +433,8 @@ export default function NewStrategy() {
                         <InputLabel>Type</InputLabel>
                         <Select 
                           label="Type" 
-                          defaultValue="percentage"
+                          value={exitType}
+                          onChange={(e) => setExitType(e.target.value)}
                         >
                           <MenuItem value="absolute">Absolute</MenuItem>
                           <MenuItem value="percentage">Percentage</MenuItem>
@@ -383,7 +459,8 @@ export default function NewStrategy() {
                         <InputLabel>Type</InputLabel>
                         <Select 
                           label="Type" 
-                          defaultValue="percentage"
+                          value={exitType}
+                          onChange={(e) => setExitType(e.target.value)}
                         >
                           <MenuItem value="absolute">Absolute</MenuItem>
                           <MenuItem value="percentage">Percentage</MenuItem>
@@ -396,6 +473,8 @@ export default function NewStrategy() {
                   <TextField 
                     fullWidth 
                     label="Indicator Expression Builder (Optional)" 
+                    value={exitExpression}
+                    onChange={(e) => setExitExpression(e.target.value)}
                     sx={{ mb: 2 }} 
                   />
                 </Grid>
@@ -426,6 +505,8 @@ export default function NewStrategy() {
                     label="Initial Capital" 
                     type="number" 
                     required
+                    value={capital}
+                    onChange={(e) => setCapital(Number(e.target.value))}
                   />
                 </Grid>
               </Grid>
