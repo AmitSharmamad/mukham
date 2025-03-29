@@ -1,10 +1,20 @@
-import StrategyForm from './new';
+import { useEffect, useState } from 'react';
+import NewStrategy from './new';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button } from '@mui/material';
 
 export default function StrategyDetail() {
+  const [strategyData, setStrategyData] = useState(null);
+
+  useEffect(() => {
+    const storedStrategy = localStorage.getItem('selectedStrategy');
+    if (storedStrategy) {
+      setStrategyData(JSON.parse(storedStrategy));
+    }
+  }, []);
+
   return (
     <>
-      <StrategyForm />
+      {strategyData && <NewStrategy initialData={strategyData} />}
       <h2 style={{ textAlign: 'center', marginTop: '20px' }}>Backtesting Results</h2>
       <br />
       <TableContainer component={Paper} style={{ marginTop: '20px', maxWidth: '800px', margin: '0 auto' }}>
