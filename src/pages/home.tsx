@@ -24,7 +24,7 @@ export default function Home() {
     <Grid container spacing={4} justifyContent="center" alignItems="center" style={{ minHeight: '70vh' }}>
       <Grid item xs={12}>
         <Typography variant="h4" align="center" gutterBottom>
-          Welcome to सुत्रम्
+          Welcome to सूत्रम्
         </Typography>
       </Grid>
       
