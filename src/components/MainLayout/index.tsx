@@ -5,6 +5,7 @@ import { AccountCircle, Brightness4, Brightness7 } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Button } from '../Button';
+import { Footer } from '../Footer';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -70,7 +71,7 @@ export const MainLayout = ({ children, onToggleTheme, isDarkMode }: MainLayoutPr
               color: 'inherit'
             }}
           >
-            सुत्रम्
+            सूत्रम्
           </Typography>
           
           {/* Centered navigation items */}
@@ -143,6 +144,7 @@ export const MainLayout = ({ children, onToggleTheme, isDarkMode }: MainLayoutPr
       <Container component="main" sx={{ flex: 1, py: 4, mt: 8 }}>
         {children}
       </Container>
+      <Footer />
     </Box>
   );
 };

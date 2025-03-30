@@ -42,7 +42,7 @@ export default function Docs() {
           Documentation
         </Typography>
         <Typography variant="body1" color="textSecondary">
-          Everything you need to know about using सुत्रम्
+          Everything you need to know about using सूत्रम्
         </Typography>
       </Box>
 

@@ -153,3 +153,26 @@ the api response is as below
 
 use the id to navigate to the strategy builder page of the respective strategy
 auto fill the values in the strategy builder form while rendering strategy/{strategy_id} page
+
+add a "Backtest" button at the bottom the the builder and add a table below the that to display the backtesting results with some metrics
+
+make sure that there is a total column to aggregate all the results
+add "Deploy" button against each instrument against which the strategy is run
+also add "Deploy All" button to deploy all the instruments against the strategy at once
+
+
+make the following color themes
+1. default branded
+2. bullish 
+3. bearish
+
+make the following fonts configurable
+1. ubuntu
+2. ...
+
+Add footer with links to Terms and Conditions, Privary Policy, Docs, Careers
+Don't create the pages, create only the footer
+
+Add filters to Select Instruments with the following fields
+1. Exchange
+2. Segment

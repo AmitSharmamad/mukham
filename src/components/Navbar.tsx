@@ -41,7 +41,7 @@ export default function Navbar() {
             color: 'inherit'
           }}
         >
-          सुत्रम्
+          सूत्रम्
         </Typography>
         
         {/* Centered navigation items */}
