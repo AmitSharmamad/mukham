@@ -161,44 +161,47 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
 };
 
 export const IndicatorExpressionBuilder = ({
-  value = [],
+  value,
   onChange,
   label,
   required,
   error,
   helperText
 }: IndicatorExpressionBuilderProps) => {
+  // Ensure value is always an array
+  const conditions = Array.isArray(value) ? value : [];
+
   const handleAddCondition = () => {
     onChange([
-      ...value,
+      ...conditions,
       {
         indicator1: { name: '', config: {} },
         operator: '',
         indicator2: { name: '', config: {} },
-        logicalOperator: value.length > 0 ? 'AND' : undefined,
+        logicalOperator: conditions.length > 0 ? 'AND' : undefined,
       },
     ]);
   };
 
   const handleConditionChange = (index: number) => (newValue: any) => {
-    const newConditions = [...value];
+    const newConditions = [...conditions];
     newConditions[index] = newValue;
     onChange(newConditions);
   };
 
   const handleLogicalOperatorChange = (index: number) => (newValue: string) => {
-    const newConditions = [...value];
+    const newConditions = [...conditions];
     newConditions[index] = { ...newConditions[index], logicalOperator: newValue };
     onChange(newConditions);
   };
 
   const handleDeleteCondition = (index: number) => () => {
-    const newConditions = value.filter((_: any, i: number) => i !== index);
+    const newConditions = conditions.filter((_: any, i: number) => i !== index);
     onChange(newConditions);
   };
 
   const getExpressionString = () => {
-    return value
+    return conditions
       .map((condition: any, index: number) => {
         const exp1 = condition.indicator1.name === 'Number'
           ? condition.indicator1.config?.value
@@ -210,7 +213,7 @@ export const IndicatorExpressionBuilder = ({
 
         let expression = `${exp1} ${condition.operator} ${exp2}`;
         
-        if (index < value.length - 1 && condition.logicalOperator) {
+        if (index < conditions.length - 1 && condition.logicalOperator) {
           expression += ` ${condition.logicalOperator}`;
         }
         
@@ -227,15 +230,15 @@ export const IndicatorExpressionBuilder = ({
         </Typography>
       )}
       
-      {value.map((condition: any, index: number) => (
+      {conditions.map((condition: any, index: number) => (
         <Box key={index} sx={{ mb: 2 }}>
           <IndicatorComponent
             value={condition}
             onChange={handleConditionChange(index)}
-            onDelete={value.length > 1 ? handleDeleteCondition(index) : undefined}
-            showDelete={value.length > 1}
+            onDelete={conditions.length > 1 ? handleDeleteCondition(index) : undefined}
+            showDelete={conditions.length > 1}
           />
-          {index < value.length - 1 && (
+          {index < conditions.length - 1 && (
             <Box sx={{ my: 1, display: 'flex', justifyContent: 'center' }}>
               <Select
                 options={LOGICAL_OPERATORS}
@@ -257,7 +260,7 @@ export const IndicatorExpressionBuilder = ({
           <AddIcon />
         </IconButton>
 
-        {value.length > 0 && (
+        {conditions.length > 0 && (
           <Typography
             variant="body2"
             sx={{
