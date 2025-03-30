@@ -1,93 +1,108 @@
-import { Container, Typography, Button, List, ListItem, Box, Paper } from '@mui/material';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useState } from 'react';
+import { Box, Grid, Typography, useTheme } from '@mui/material';
+import { Add as AddIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
+import { Button } from '../../components/Button';
+import { Card } from '../../components/Card';
 
-// Define the type for a strategy
-interface Strategy {
-  id: string;
-  name: string;
-  description: string;
-}
+// This would come from an API in a real application
+const mockStrategies = [
+  {
+    id: '1',
+    name: 'EMA Crossover',
+    description: 'A strategy based on EMA crossover signals',
+    isActive: true,
+  },
+  {
+    id: '2',
+    name: 'RSI Reversal',
+    description: 'RSI-based mean reversion strategy',
+    isActive: false,
+  },
+];
 
-export default function StrategyList() {
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
+export default function Strategy() {
   const router = useRouter();
+  const theme = useTheme();
+  const [strategies] = useState(mockStrategies);
 
-  useEffect(() => {
-    async function fetchStrategies() {
-      try {
-        const response = await axios.get('http://localhost:9090/strategy');
-        if (response.data.result) {
-          setStrategies(response.data.data);
-        } else {
-          console.error('Failed to fetch strategies');
-        }
-      } catch (error) {
-        console.error('Error fetching strategies:', error);
-      }
-    }
+  const handleCreateStrategy = () => {
+    router.push('/strategy/new');
+  };
 
-    fetchStrategies();
-  }, []);
-
-  const handleStrategyClick = (strategy: Strategy) => {
-    // Pass the strategy data to the builder page via state
-    router.push({
-      pathname: `/strategy/${strategy.id}`,
-    }, undefined, { shallow: true });
-    localStorage.setItem('selectedStrategy', JSON.stringify(strategy));
+  const handleStrategyClick = (id: string) => {
+    router.push(`/strategy/${id}`);
   };
 
   return (
-    <Container sx={{ marginTop: 4 }}>
+    <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4">My Strategies</Typography>
-        {strategies.length > 0 && (
-          <Link href="/strategy/new" passHref style={{ textDecoration: 'none' }}>
-            <Button variant="contained">
-              Create Strategy
-            </Button>
-          </Link>
-        )}
+        <Typography variant="h4">Strategies</Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleCreateStrategy}
+        >
+          Create Strategy
+        </Button>
       </Box>
 
       {strategies.length === 0 ? (
-        <Box sx={{ textAlign: 'center', mt: 8 }}>
-          <Link href="/strategy/new" passHref style={{ textDecoration: 'none' }}>
-            <Button variant="contained" size="large">
-              Create Strategy
-            </Button>
-          </Link>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          minHeight: '50vh',
+          gap: 2
+        }}>
+          <Typography variant="h6" color="textSecondary">
+            No strategies yet
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateStrategy}
+          >
+            Create Your First Strategy
+          </Button>
         </Box>
       ) : (
-        <List sx={{ mt: 2 }}>
-          {strategies.map((strat) => (
-            <Paper
-              key={strat.id}
-              elevation={1}
-              sx={{ mb: 2 }}
-            >
-              <ListItem 
-                button 
-                onClick={() => handleStrategyClick(strat)}
-                sx={{ 
-                  borderRadius: 1,
-                  '&:hover': {
-                    backgroundColor: 'action.hover'
-                  }
+        <Grid container spacing={3}>
+          {strategies.map((strategy) => (
+            <Grid item xs={12} sm={6} md={4} key={strategy.id}>
+              <Card
+                sx={{
+                  cursor: 'pointer',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
+                onClick={() => handleStrategyClick(strategy.id)}
               >
-                <Box>
-                  <Typography color="text.primary" variant="h6">{strat.name}</Typography>
-                  <Typography color="text.secondary" variant="body2">{strat.description}</Typography>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    {strategy.name}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    {strategy.description}
+                  </Typography>
                 </Box>
-              </ListItem>
-            </Paper>
+                <Box sx={{ mt: 'auto' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: strategy.isActive ? theme.palette.success.main : theme.palette.error.main,
+                    }}
+                  >
+                    {strategy.isActive ? 'Active' : 'Inactive'}
+                  </Typography>
+                </Box>
+              </Card>
+            </Grid>
           ))}
-        </List>
+        </Grid>
       )}
-    </Container>
+    </Box>
   );
 }
