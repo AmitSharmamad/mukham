@@ -1,82 +1,70 @@
+import { Box, Typography } from '@mui/material';
+import { StrategyForm } from '../../components/StrategyBuilder/StrategyForm';
+import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import NewStrategy from './new';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button } from '@mui/material';
 
-export default function StrategyDetail() {
-  const [strategyData, setStrategyData] = useState(null);
+// This would come from an API in a real application
+const mockStrategy = {
+  id: '1',
+  name: 'EMA Crossover',
+  description: 'A strategy based on EMA crossover signals',
+  buyOrSell: 'buy',
+  instruments: [],
+  candlestickType: 'Candlestick',
+  timeframe: '5',
+  tradeType: 'MIS',
+  maxAllocation: '100000',
+  maxQuantity: '10',
+  entryConditions: [
+    {
+      indicator1: { name: 'EMA', config: { period: 5 } },
+      operator: 'CrossesAbove',
+      indicator2: { name: 'Number', config: { value: 21000 } },
+    },
+  ],
+  exitConditions: [
+    {
+      indicator1: { name: 'EMA', config: { period: 5 } },
+      operator: 'CrossesBelow',
+      indicator2: { name: 'Number', config: { value: 20900 } },
+    },
+  ],
+  stopLoss: '1',
+  targetProfit: '2',
+  trailingStopLoss: '0.5',
+  initialCapital: '1000000',
+  entryStartTime: '09:15',
+  entryEndTime: '15:15',
+  startDate: '2025-01-01',
+  endDate: '2025-12-31',
+};
+
+export default function EditStrategy() {
+  const router = useRouter();
+  const { strategy_id } = router.query;
+  const [strategy, setStrategy] = useState<any>(null);
 
   useEffect(() => {
-    const storedStrategy = localStorage.getItem('selectedStrategy');
-    if (storedStrategy) {
-      setStrategyData(JSON.parse(storedStrategy));
+    // In a real application, this would fetch from an API
+    if (strategy_id) {
+      setStrategy(mockStrategy);
     }
-  }, []);
+  }, [strategy_id]);
+
+  if (!strategy) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Typography>Loading strategy...</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <>
-      {strategyData && <NewStrategy initialData={strategyData} />}
-      <h2 style={{ textAlign: 'center', marginTop: '20px' }}>Backtesting Results</h2>
-      <br />
-      <TableContainer component={Paper} style={{ marginTop: '20px', maxWidth: '800px', margin: '0 auto' }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontSize: '0.875rem' }}>Instrument</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>LTP</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>P&L</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>W | L</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>Trades</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>WS</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>LS</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>Max DD</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>Deploy</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>Total</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}></TableCell>
-              <TableCell sx={{ fontSize: '0.875rem', color: 'green' }}>+110.55 (+5.57%)</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>12 | 27</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>41</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>4</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>9</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>-0.9800</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell sx={{ fontSize: '0.875rem' }}>ADANIENT</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>NSE</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem', color: 'green' }}>+84.40 (+3.47%)</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>6 | 13</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>20</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>2</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>4</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>-0.9800</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>
-                <Button variant="contained" color="primary" size="small">
-                  Deploy
-                </Button>
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell sx={{ fontSize: '0.875rem' }}>ADANIPORTS</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>NSE</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem', color: 'green' }}>+26.15 (+2.1%)</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>6 | 14</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>21</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>2</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>5</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>0.0000</TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>
-                <Button variant="contained" color="primary" size="small">
-                  Deploy
-                </Button>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </>
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        Edit Strategy: {strategy.name}
+      </Typography>
+      <StrategyForm initialData={strategy} />
+    </Box>
   );
 }

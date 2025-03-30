@@ -98,3 +98,5 @@ always align components to the centre
 3. do not deviate from the functionality, if you have any questions, stop and take confirmation from me
 
 build the application page by page diligently
+
+do not override the functionality that is already built, just work in the context of what is provided as the requirement, do not make any enhancements unless asked

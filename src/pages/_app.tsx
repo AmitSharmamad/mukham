@@ -1,42 +1,28 @@
-import { createContext, useMemo, useState, useContext } from 'react';
-import { AppProps } from 'next/app';
-import { ThemeProvider, CssBaseline, Toolbar } from '@mui/material';
+import type { AppProps } from 'next/app';
+import { ThemeProvider as MUIThemeProvider } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
 import { light, dark } from '../theme';
-import Navbar from '../components/Navbar';
+import MainLayout from '../components/MainLayout';
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import '../styles/globals.css';
 
-// Create theme context
-export const ColorModeContext = createContext({ 
-  toggleColorMode: () => {},
-  mode: 'light' as 'light' | 'dark'
-});
-
-export default function MyApp({ Component, pageProps }: AppProps) {
-  const [mode, setMode] = useState<'light' | 'dark'>('dark');
-  
-  const colorMode = useMemo(
-    () => ({
-      toggleColorMode: () => {
-        setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
-      },
-      mode,
-    }),
-    [mode],
-  );
-
-  const theme = useMemo(() => (mode === 'light' ? light : dark), [mode]);
+function AppContent({ Component, pageProps }: AppProps) {
+  const { isDarkMode, toggleTheme } = useTheme();
 
   return (
-    <ColorModeContext.Provider value={colorMode}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Navbar />
-        <Toolbar /> {/* This creates the spacing */}
+    <MUIThemeProvider theme={isDarkMode ? dark : light}>
+      <CssBaseline />
+      <MainLayout onToggleTheme={toggleTheme} isDarkMode={isDarkMode}>
         <Component {...pageProps} />
-      </ThemeProvider>
-    </ColorModeContext.Provider>
+      </MainLayout>
+    </MUIThemeProvider>
   );
 }
 
-// Hook for using the color mode
-export const useColorMode = () => useContext(ColorModeContext);
+export default function App(props: AppProps) {
+  return (
+    <ThemeProvider>
+      <AppContent {...props} />
+    </ThemeProvider>
+  );
+}
