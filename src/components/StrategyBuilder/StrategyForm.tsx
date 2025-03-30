@@ -1,3 +1,4 @@
+import { useRouter } from 'next/router';
 import { 
   Accordion,
   AccordionDetails,
@@ -18,14 +19,25 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import Add from '@mui/icons-material/Add';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import { Dayjs } from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { Button } from '../Button';
 import { Select } from '../Select';
 import { TextField } from '../TextField';
 import InstrumentSelector from './InstrumentSelector';
 import { IndicatorExpressionBuilder } from './IndicatorExpressionBuilder';
-import { PROFIT_LOSS_TYPES } from '../../constants';
+import { PROFIT_LOSS_TYPES, TIMEFRAME_OPTIONS } from '../../constants';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress,
+} from '@mui/material';
+import { BacktestResult } from '../../types/strategy';
 
 export interface Instrument {
   id: number;
@@ -45,23 +57,24 @@ interface IndicatorExpression {
 }
 
 interface FormData {
+  id?: string;  // Make id optional since it won't exist for new strategies
   name: string;
   description: string;
-  position: 'buy' | 'sell';
+  buyOrSell: 'buy' | 'sell';
   instruments: number[];
   candlestickType: string;
   timeframe: string;
   tradeType: string;
-  maxAllocation: number;
-  maxQuantity: number;
-  entryConditions: IndicatorExpression[];
-  exitConditions: IndicatorExpression[];
-  stopLoss: number;
-  stopLossType: string;
-  targetProfit: number;
-  targetProfitType: string;
-  trailingStopLoss: number;
-  initialCapital: number;
+  maxAllocation: string;
+  maxQuantity: string;
+  entryConditions: any;
+  exitConditions: any;
+  stopLoss: string;
+  stopLossType: 'ABSOLUTE' | 'PERCENTAGE';
+  targetProfit: string;
+  targetProfitType: 'ABSOLUTE' | 'PERCENTAGE';
+  trailingStopLoss: string;
+  initialCapital: string;
   entryStartTime: Dayjs | null;
   entryEndTime: Dayjs | null;
   startDate: Dayjs | null;
@@ -71,21 +84,21 @@ interface FormData {
 const initialFormData: FormData = {
   name: '',
   description: '',
-  position: 'buy',
+  buyOrSell: 'buy',
   instruments: [],
-  candlestickType: 'Candlestick',
+  candlestickType: 'CANDLESTICK',
   timeframe: '1 Minute',
   tradeType: 'MIS',
-  maxAllocation: 0,
-  maxQuantity: 0,
+  maxAllocation: '',
+  maxQuantity: '',
   entryConditions: [],
   exitConditions: [],
-  stopLoss: 0,
-  stopLossType: 'Absolute',
-  targetProfit: 0,
-  targetProfitType: 'Absolute',
-  trailingStopLoss: 0,
-  initialCapital: 0,
+  stopLoss: '',
+  stopLossType: 'ABSOLUTE',
+  targetProfit: '',
+  targetProfitType: 'ABSOLUTE',
+  trailingStopLoss: '',
+  initialCapital: '',
   entryStartTime: null,
   entryEndTime: null,
   startDate: null,
@@ -100,14 +113,140 @@ const setErrorsWithType = (prev: ValidationErrors) => ({
   ...prev,
 });
 
-export const StrategyForm: React.FC = () => {
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+interface StrategyFormProps {
+  initialData?: any;
+}
+
+interface ApiFormData {
+  id: string;
+  name: string;
+  description: string;
+  position_type: 'LONG' | 'SHORT';
+  instruments: number[];
+  chart_type: string;
+  chart_timeframe: string;
+  qty: number;
+  entry_expression: string;
+  exit_expression: string;
+  target_profit: number;
+  target_profit_type: 'ABSOLUTE' | 'PERCENTAGE';
+  stop_loss: number;
+  stop_loss_type: 'ABSOLUTE' | 'PERCENTAGE';
+  trailing_stop_loss: number;
+  trailing_stop_loss_type: 'ABSOLUTE' | 'PERCENTAGE';
+  capital: number;
+  max_trades: number;
+  entry_start_time: string;
+  entry_end_time: string;
+  start_date: string;
+  end_date: string;
+}
+
+// Convert form data to API format
+const convertFormToApiData = (formData: FormData): ApiFormData => {
+  return {
+    id: formData.id || '',
+    name: formData.name,
+    description: formData.description,
+    position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
+    instruments: formData.instruments,
+    chart_type: formData.candlestickType,
+    chart_timeframe: formData.timeframe,
+    qty: parseInt(formData.maxQuantity) || 0,
+    entry_expression: JSON.stringify(formData.entryConditions),
+    exit_expression: JSON.stringify(formData.exitConditions),
+    target_profit: parseFloat(formData.targetProfit) || 0,
+    target_profit_type: formData.targetProfitType,
+    stop_loss: parseFloat(formData.stopLoss) || 0,
+    stop_loss_type: formData.stopLossType,
+    trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
+    trailing_stop_loss_type: formData.stopLossType,
+    capital: parseFloat(formData.initialCapital) || 0,
+    max_trades: 5, // Default value
+    entry_start_time: formData.entryStartTime?.toISOString() || '',
+    entry_end_time: formData.entryEndTime?.toISOString() || '',
+    start_date: formData.startDate?.toISOString() || '',
+    end_date: formData.endDate?.toISOString() || ''
+  };
+};
+
+// Add sample backtest results data
+const sampleBacktestResults: BacktestResult = {
+  strategyId: '1',
+  results: [
+    {
+      instrumentId: 1,
+      instrumentName: 'NIFTY',
+      totalTrades: 120,
+      winningTrades: 75,
+      losingTrades: 45,
+      winRate: 0.625,
+      profitFactor: 1.8,
+      totalPnL: 25000,
+      maxDrawdown: 12.5,
+      sharpeRatio: 1.2
+    },
+    {
+      instrumentId: 2,
+      instrumentName: 'BANKNIFTY',
+      totalTrades: 95,
+      winningTrades: 55,
+      losingTrades: 40,
+      winRate: 0.579,
+      profitFactor: 1.5,
+      totalPnL: 18500,
+      maxDrawdown: 15.0,
+      sharpeRatio: 0.9
+    }
+  ],
+  aggregatedMetrics: {
+    instrumentId: 0,
+    instrumentName: 'Total',
+    totalTrades: 215,
+    winningTrades: 130,
+    losingTrades: 85,
+    winRate: 0.605,
+    profitFactor: 1.65,
+    totalPnL: 43500,
+    maxDrawdown: 13.75,
+    sharpeRatio: 1.05
+  }
+};
+
+export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
+  const router = useRouter();
+  const [formData, setFormData] = useState<FormData>({
+    name: initialData?.name || '',
+    description: initialData?.description || '',
+    buyOrSell: initialData?.buyOrSell || 'buy',
+    instruments: initialData?.instruments || [],
+    candlestickType: initialData?.candlestickType || 'CANDLESTICK',
+    timeframe: initialData?.timeframe || '1 Minute',
+    tradeType: initialData?.tradeType || 'MIS',
+    maxAllocation: initialData?.maxAllocation || '',
+    maxQuantity: initialData?.maxQuantity || '',
+    entryConditions: initialData?.entryConditions || null,
+    exitConditions: initialData?.exitConditions || null,
+    stopLoss: initialData?.stopLoss || '',
+    stopLossType: initialData?.stopLossType || 'ABSOLUTE',
+    targetProfit: initialData?.targetProfit || '',
+    targetProfitType: initialData?.targetProfitType || 'ABSOLUTE',
+    trailingStopLoss: initialData?.trailingStopLoss || '',
+    initialCapital: initialData?.initialCapital || '',
+    entryStartTime: initialData?.entryStartTime ? dayjs(initialData.entryStartTime, 'HH:mm') : null,
+    entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm') : null,
+    startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
+    endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
+  });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [expandedSections, setExpandedSections] = useState<string[]>(['name']);
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isInstrumentSelectorOpen, setInstrumentSelectorOpen] = useState(false);
   const [selectedInstruments, setSelectedInstruments] = useState<Instrument[]>([]);
+  const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(sampleBacktestResults);
+  const [isBacktesting, setIsBacktesting] = useState(false);
+  const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
 
   const handleChange = (field: keyof FormData) => (value: any) => {
     setFormData(prev => ({
@@ -125,15 +264,15 @@ export const StrategyForm: React.FC = () => {
   };
 
   const validateForm = () => {
-    const newErrors: any = {};
+    const newErrors: ValidationErrors = {};
     
     // Required fields validation
     if (!formData.name.trim()) {
       newErrors.name = 'Strategy name is required';
     }
     
-    if (!formData.position) {
-      newErrors.position = 'Position type is required';
+    if (!formData.buyOrSell) {
+      newErrors.buyOrSell = 'Position type is required';
     }
     
     if (!formData.candlestickType) {
@@ -326,8 +465,8 @@ export const StrategyForm: React.FC = () => {
               <RadioGroup
                 row
                 name="position-type"
-                value={formData.position}
-                onChange={(e) => handleChange('position')(e.target.value)}
+                value={formData.buyOrSell}
+                onChange={(e) => handleChange('buyOrSell')(e.target.value)}
                 sx={{ mb: 2 }}
               >
                 <FormControlLabel value="buy" control={<Radio />} label="Buy" />
@@ -359,11 +498,11 @@ export const StrategyForm: React.FC = () => {
           </Grid>
           <Grid item xs={12}>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <Select
                   fullWidth
                   label="Candlestick Type"
-                  options={[{ label: 'Candlestick', value: 'Candlestick' }]}
+                  options={[{ label: 'Candlestick', value: 'CANDLESTICK' }]}
                   value={formData.candlestickType}
                   onChange={handleChange('candlestickType')}
                   error={attemptedSubmit && !!errors.candlestickType}
@@ -375,20 +514,11 @@ export const StrategyForm: React.FC = () => {
                   </Typography>
                 )}
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <Select
                   fullWidth
                   label="Timeframe"
-                  options={[
-                    { label: '1 Minute', value: '1 Minute' },
-                    { label: '3 Minutes', value: '3 Minutes' },
-                    { label: '5 Minutes', value: '5 Minutes' },
-                    { label: '10 Minutes', value: '10 Minutes' },
-                    { label: '15 Minutes', value: '15 Minutes' },
-                    { label: '30 Minutes', value: '30 Minutes' },
-                    { label: '1 Hour', value: '1 Hour' },
-                    { label: '1 Day', value: '1 Day' }
-                  ]}
+                  options={TIMEFRAME_OPTIONS}
                   value={formData.timeframe}
                   onChange={handleChange('timeframe')}
                   error={attemptedSubmit && !!errors.timeframe}
@@ -400,7 +530,7 @@ export const StrategyForm: React.FC = () => {
                   </Typography>
                 )}
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <Select
                   fullWidth
                   label="Trade Type"
@@ -418,6 +548,29 @@ export const StrategyForm: React.FC = () => {
                     {errors.tradeType}
                   </Typography>
                 )}
+              </Grid>
+            </Grid>
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="subtitle1" gutterBottom>Quantity</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Max Allocation"
+                  type="number"
+                  value={formData.maxAllocation}
+                  onChange={(e) => handleChange('maxAllocation')(e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Max Quantity"
+                  type="number"
+                  value={formData.maxQuantity}
+                  onChange={(e) => handleChange('maxQuantity')(e.target.value)}
+                />
               </Grid>
             </Grid>
           </Grid>
@@ -611,11 +764,37 @@ export const StrategyForm: React.FC = () => {
     setIsAllExpanded(prev => !prev);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setAttemptedSubmit(true);
     if (validateForm()) {
-      // Handle form submission
-      console.log('Form is valid, submitting...', formData);
+      try {
+        const apiData = convertFormToApiData(formData);
+        const response = await fetch('http://localhost:9090/strategy', {
+          method: initialData ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(apiData),
+        });
+
+        const result = await response.json();
+        if (result.result) {
+          // Handle success
+          console.log('Strategy saved successfully');
+          router.push('/strategy');
+        } else {
+          // Handle error
+          setErrors(prev => ({
+            ...prev,
+            submit: 'Failed to save strategy'
+          }));
+        }
+      } catch (error) {
+        setErrors(prev => ({
+          ...prev,
+          submit: 'Error connecting to server'
+        }));
+      }
     } else {
       // Expand sections with errors
       const sectionsWithErrors = new Set<string>();
@@ -633,6 +812,175 @@ export const StrategyForm: React.FC = () => {
       });
       setExpandedSections(Array.from(sectionsWithErrors));
     }
+  };
+
+  const handleBacktest = async () => {
+    setAttemptedSubmit(true);
+    if (validateForm()) {
+      try {
+        setIsBacktesting(true);
+        const apiData = convertFormToApiData(formData);
+        const response = await fetch('http://localhost:9090/strategy/backtest', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(apiData),
+        });
+
+        const result = await response.json();
+        if (result.result) {
+          setBacktestResults(result.data);
+        } else {
+          setErrors(prev => ({
+            ...prev,
+            submit: 'Failed to run backtest'
+          }));
+        }
+      } catch (error) {
+        setErrors(prev => ({
+          ...prev,
+          submit: 'Error connecting to server'
+        }));
+      } finally {
+        setIsBacktesting(false);
+      }
+    }
+  };
+
+  const handleDeploy = async (instrumentId: number) => {
+    try {
+      const newSet = new Set(deployingInstruments);
+      newSet.add(instrumentId);
+      setDeployingInstruments(newSet);
+      
+      const response = await fetch('http://localhost:9090/strategy/deploy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          strategyId: initialData?.id,
+          instrumentId,
+        }),
+      });
+
+      const result = await response.json();
+      if (!result.result) {
+        setErrors(prev => ({
+          ...prev,
+          submit: `Failed to deploy strategy for instrument ${instrumentId}`
+        }));
+      }
+    } catch (error) {
+      setErrors(prev => ({
+        ...prev,
+        submit: 'Error connecting to server'
+      }));
+    } finally {
+      const newSet = new Set(deployingInstruments);
+      newSet.delete(instrumentId);
+      setDeployingInstruments(newSet);
+    }
+  };
+
+  const handleDeployAll = async () => {
+    if (!backtestResults) return;
+    
+    const instrumentIds = backtestResults.results.map(r => r.instrumentId);
+    for (const instrumentId of instrumentIds) {
+      await handleDeploy(instrumentId);
+    }
+  };
+
+  const renderBacktestResults = () => {
+    if (!backtestResults) return null;
+
+    return (
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h6" gutterBottom>Backtest Results</Typography>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Instrument</TableCell>
+                <TableCell align="right">Total Trades</TableCell>
+                <TableCell align="right">Win Rate</TableCell>
+                <TableCell align="right">Profit Factor</TableCell>
+                <TableCell align="right">Total P&L</TableCell>
+                <TableCell align="right">Max Drawdown</TableCell>
+                <TableCell align="right">Sharpe Ratio</TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {/* Total row at the top */}
+              <TableRow sx={{ bgcolor: 'action.hover' }}>
+                <TableCell><strong>Total</strong></TableCell>
+                <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.totalTrades}</strong></TableCell>
+                <TableCell align="right"><strong>{(backtestResults.aggregatedMetrics.winRate * 100).toFixed(2)}%</strong></TableCell>
+                <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.profitFactor.toFixed(2)}</strong></TableCell>
+                <TableCell 
+                  align="right"
+                  sx={{ 
+                    color: backtestResults.aggregatedMetrics.totalPnL >= 0 ? 'success.main' : 'error.main',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {backtestResults.aggregatedMetrics.totalPnL.toFixed(2)}
+                </TableCell>
+                <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.maxDrawdown.toFixed(2)}%</strong></TableCell>
+                <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.sharpeRatio.toFixed(2)}</strong></TableCell>
+                <TableCell align="center">
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleDeployAll}
+                    disabled={deployingInstruments.size > 0}
+                  >
+                    {deployingInstruments.size > 0 ? (
+                      <CircularProgress size={20} />
+                    ) : 'Deploy All'}
+                  </Button>
+                </TableCell>
+              </TableRow>
+
+              {/* Individual instrument rows */}
+              {backtestResults.results.map((result) => (
+                <TableRow key={result.instrumentId}>
+                  <TableCell>{result.instrumentName}</TableCell>
+                  <TableCell align="right">{result.totalTrades}</TableCell>
+                  <TableCell align="right">{(result.winRate * 100).toFixed(2)}%</TableCell>
+                  <TableCell align="right">{result.profitFactor.toFixed(2)}</TableCell>
+                  <TableCell 
+                    align="right"
+                    sx={{ 
+                      color: result.totalPnL >= 0 ? 'success.main' : 'error.main'
+                    }}
+                  >
+                    {result.totalPnL.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="right">{result.maxDrawdown.toFixed(2)}%</TableCell>
+                  <TableCell align="right">{result.sharpeRatio.toFixed(2)}</TableCell>
+                  <TableCell align="center">
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => handleDeploy(result.instrumentId)}
+                      disabled={deployingInstruments.has(result.instrumentId)}
+                    >
+                      {deployingInstruments.has(result.instrumentId) ? (
+                        <CircularProgress size={20} />
+                      ) : 'Deploy'}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    );
   };
 
   return (
@@ -701,10 +1049,29 @@ export const StrategyForm: React.FC = () => {
         selectedInstruments={selectedInstruments}
       />
       
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
-        <Button variant="outlined">Cancel</Button>
-        <Button variant="contained" onClick={handleSave}>Save Strategy</Button>
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
+        <Button 
+          variant="outlined" 
+          onClick={() => router.push('/strategy')}
+        >
+          Cancel
+        </Button>
+        <Button 
+          variant="contained" 
+          onClick={handleBacktest}
+          disabled={isBacktesting}
+        >
+          {isBacktesting ? <CircularProgress size={24} /> : 'Backtest'}
+        </Button>
+        <Button 
+          variant="contained" 
+          onClick={handleSave}
+        >
+          Save Strategy
+        </Button>
       </Box>
+
+      {renderBacktestResults()}
     </form>
   );
 };

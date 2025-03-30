@@ -1,30 +1,34 @@
-import { useState } from 'react';
-import { Box, Grid, Typography, useTheme } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { useEffect, useState } from 'react';
+import { Box, Button, Card, CardContent, Typography, CircularProgress } from '@mui/material';
 import { useRouter } from 'next/router';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
+import type { Strategy } from '../../types/strategy';
 
-// This would come from an API in a real application
-const mockStrategies = [
-  {
-    id: '1',
-    name: 'EMA Crossover',
-    description: 'A strategy based on EMA crossover signals',
-    isActive: true,
-  },
-  {
-    id: '2',
-    name: 'RSI Reversal',
-    description: 'RSI-based mean reversion strategy',
-    isActive: false,
-  },
-];
-
-export default function Strategy() {
+export default function StrategyList() {
   const router = useRouter();
-  const theme = useTheme();
-  const [strategies] = useState(mockStrategies);
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchStrategies();
+  }, []);
+
+  const fetchStrategies = async () => {
+    try {
+      const response = await fetch('http://localhost:9090/strategy');
+      const data = await response.json();
+      
+      if (data.result) {
+        setStrategies(data.data);
+      } else {
+        setError('Failed to fetch strategies');
+      }
+    } catch (err) {
+      setError('Error connecting to the server');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreateStrategy = () => {
     router.push('/strategy/new');
@@ -34,74 +38,59 @@ export default function Strategy() {
     router.push(`/strategy/${id}`);
   };
 
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box textAlign="center" py={4}>
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
+
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+    <Box sx={{ p: 3 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Typography variant="h4">Strategies</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateStrategy}
-        >
+        <Button variant="contained" color="primary" onClick={handleCreateStrategy}>
           Create Strategy
         </Button>
       </Box>
 
       {strategies.length === 0 ? (
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          minHeight: '50vh',
-          gap: 2
-        }}>
-          <Typography variant="h6" color="textSecondary">
-            No strategies yet
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateStrategy}
-          >
+        <Box textAlign="center" py={8}>
+          <Typography variant="h6" gutterBottom>No strategies found</Typography>
+          <Button variant="contained" color="primary" onClick={handleCreateStrategy}>
             Create Your First Strategy
           </Button>
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Box display="grid" gap={3} gridTemplateColumns="repeat(auto-fill, minmax(300px, 1fr))">
           {strategies.map((strategy) => (
-            <Grid item xs={12} sm={6} md={4} key={strategy.id}>
-              <Card
-                sx={{
-                  cursor: 'pointer',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-                onClick={() => handleStrategyClick(strategy.id)}
-              >
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    {strategy.name}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    {strategy.description}
-                  </Typography>
-                </Box>
-                <Box sx={{ mt: 'auto' }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: strategy.isActive ? theme.palette.success.main : theme.palette.error.main,
-                    }}
-                  >
-                    {strategy.isActive ? 'Active' : 'Inactive'}
-                  </Typography>
-                </Box>
-              </Card>
-            </Grid>
+            <Card 
+              key={strategy.id} 
+              onClick={() => handleStrategyClick(strategy.id)}
+              sx={{ cursor: 'pointer', '&:hover': { boxShadow: 6 } }}
+            >
+              <CardContent>
+                <Typography variant="h6" gutterBottom>{strategy.name}</Typography>
+                <Typography color="textSecondary" noWrap>{strategy.description}</Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Position: {strategy.position_type}
+                </Typography>
+                <Typography variant="body2">
+                  Created: {new Date(strategy.created_at).toLocaleDateString()}
+                </Typography>
+              </CardContent>
+            </Card>
           ))}
-        </Grid>
+        </Box>
       )}
     </Box>
   );
