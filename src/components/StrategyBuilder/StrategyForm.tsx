@@ -74,6 +74,7 @@ interface FormData {
   targetProfit: string;
   targetProfitType: 'ABSOLUTE' | 'PERCENTAGE';
   trailingStopLoss: string;
+  trailingStopLossType: 'ABSOLUTE' | 'PERCENTAGE';
   initialCapital: string;
   entryStartTime: Dayjs | null;
   entryEndTime: Dayjs | null;
@@ -98,6 +99,7 @@ const initialFormData: FormData = {
   targetProfit: '',
   targetProfitType: 'ABSOLUTE',
   trailingStopLoss: '',
+  trailingStopLossType: 'ABSOLUTE',
   initialCapital: '',
   entryStartTime: null,
   entryEndTime: null,
@@ -160,7 +162,7 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
     stop_loss: parseFloat(formData.stopLoss) || 0,
     stop_loss_type: formData.stopLossType,
     trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
-    trailing_stop_loss_type: formData.stopLossType,
+    trailing_stop_loss_type: formData.trailingStopLossType,
     capital: parseFloat(formData.initialCapital) || 0,
     max_trades: 5, // Default value
     entry_start_time: formData.entryStartTime?.toISOString() || '',
@@ -232,6 +234,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     targetProfit: initialData?.targetProfit || '',
     targetProfitType: initialData?.targetProfitType || 'ABSOLUTE',
     trailingStopLoss: initialData?.trailingStopLoss || '',
+    trailingStopLossType: initialData?.trailingStopLossType || 'ABSOLUTE',
     initialCapital: initialData?.initialCapital || '',
     entryStartTime: initialData?.entryStartTime ? dayjs(initialData.entryStartTime, 'HH:mm') : null,
     entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm') : null,
@@ -460,40 +463,49 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       component: (
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <FormControl component="fieldset">
-              <FormLabel component="legend">Position Type</FormLabel>
-              <RadioGroup
-                row
-                name="position-type"
-                value={formData.buyOrSell}
-                onChange={(e) => handleChange('buyOrSell')(e.target.value)}
-                sx={{ mb: 2 }}
-              >
-                <FormControlLabel value="buy" control={<Radio />} label="Buy" />
-                <FormControlLabel value="sell" control={<Radio />} label="Sell" />
-              </RadioGroup>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
-              <Button
-                variant="outlined"
-                startIcon={<Add />}
-                onClick={() => setInstrumentSelectorOpen(true)}
-              >
-                Add Instrument
-              </Button>
-              {selectedInstruments.map((instrument) => (
-                <Chip
-                  key={instrument.id}
-                  label={instrument.name}
-                  onDelete={() => {
-                    const newInstruments = selectedInstruments.filter(i => i.id !== instrument.id);
-                    setSelectedInstruments(newInstruments);
-                    handleChange('instruments')(newInstruments.map(i => i.id));
-                  }}
-                />
-              ))}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <FormControl component="fieldset">
+                <FormLabel component="legend">Position Type</FormLabel>
+                <RadioGroup
+                  row
+                  name="position-type"
+                  value={formData.buyOrSell}
+                  onChange={(e) => handleChange('buyOrSell')(e.target.value)}
+                >
+                  <FormControlLabel value="buy" control={<Radio />} label="Buy" />
+                  <FormControlLabel value="sell" control={<Radio />} label="Sell" />
+                </RadioGroup>
+              </FormControl>
+
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 2,
+                flex: 1,
+                justifyContent: 'center'
+              }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Add />}
+                  onClick={() => setInstrumentSelectorOpen(true)}
+                >
+                  Add Instrument
+                </Button>
+                
+                <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                  {selectedInstruments.map((instrument) => (
+                    <Chip
+                      key={instrument.id}
+                      label={instrument.name}
+                      onDelete={() => {
+                        const newInstruments = selectedInstruments.filter(i => i.id !== instrument.id);
+                        setSelectedInstruments(newInstruments);
+                        handleChange('instruments')(newInstruments.map(i => i.id));
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
             </Box>
           </Grid>
           <Grid item xs={12}>
@@ -647,13 +659,22 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
               onChange={handleChange('targetProfitType')}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid item xs={12} md={6}>
             <TextField
               fullWidth
               label="Trailing Stop Loss"
               type="number"
               value={formData.trailingStopLoss}
               onChange={(e) => handleChange('trailingStopLoss')(e.target.value)}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Select
+              fullWidth
+              label="Trailing Stop Loss Type"
+              options={PROFIT_LOSS_TYPES}
+              value={formData.trailingStopLossType}
+              onChange={handleChange('trailingStopLossType')}
             />
           </Grid>
         </Grid>
@@ -1058,16 +1079,16 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
         </Button>
         <Button 
           variant="contained" 
+          onClick={handleSave}
+        >
+          Save
+        </Button>
+        <Button 
+          variant="contained" 
           onClick={handleBacktest}
           disabled={isBacktesting}
         >
           {isBacktesting ? <CircularProgress size={24} /> : 'Backtest'}
-        </Button>
-        <Button 
-          variant="contained" 
-          onClick={handleSave}
-        >
-          Save Strategy
         </Button>
       </Box>
 
