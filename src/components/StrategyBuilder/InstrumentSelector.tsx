@@ -14,9 +14,14 @@ import {
 
 interface Instrument {
   id: number;
-  name: string;
   exchange: string;
   segment: string;
+  symbol: string;
+  instrument: string;
+  instrument_id: number;
+  instrument_name: string;
+  start_date: string;
+  expiry: string;
 }
 
 interface InstrumentSelectorProps {
@@ -27,7 +32,7 @@ interface InstrumentSelectorProps {
 }
 
 const exchanges = ['NSE', 'BSE', 'MCX'];
-const segments = ['EQ', 'FO', 'FUT'];
+const segments = ['EQ', 'F&O', 'FUT'];
 
 const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   open,
@@ -57,8 +62,15 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
         const response = await fetch(`http://localhost:9090/stock?${queryParams.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch instruments');
         
-        const data = await response.json();
-        setInstruments(data);
+        const responseData = await response.json();
+        
+        // Check if the response has the expected structure
+        if (responseData?.result === true && Array.isArray(responseData.data)) {
+          setInstruments(responseData.data);
+        } else {
+          console.error('Invalid response structure:', responseData);
+          setInstruments([]);
+        }
       } catch (error) {
         console.error('Error fetching instruments:', error);
         setInstruments([]);
@@ -131,11 +143,29 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 <Autocomplete
                   multiple
                   options={instruments}
-                  getOptionLabel={(option) => option.name}
+                  getOptionLabel={(option) => `${option.symbol} - ${option.instrument_name}`}
                   value={tempSelected}
                   onChange={(_, newValue) => {
                     setTempSelected(newValue);
                   }}
+                  renderOption={(props, option) => (
+                    <li {...props}>
+                      <Box>
+                        <strong>{option.symbol}</strong> - {option.instrument_name}
+                      </Box>
+                    </li>
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Box
+                        component="span"
+                        {...getTagProps({ index })}
+                        key={option.instrument_id}
+                      >
+                        {option.symbol}
+                      </Box>
+                    ))
+                  }
                   renderInput={(params) => (
                     <TextField
                       {...params}

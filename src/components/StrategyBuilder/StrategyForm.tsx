@@ -44,9 +44,14 @@ import { BacktestResult } from '../../types/strategy';
 
 export interface Instrument {
   id: number;
-  name: string;
   exchange: string;
   segment: string;
+  symbol: string;
+  instrument: string;
+  instrument_id: number;
+  instrument_name: string;
+  start_date: string;
+  expiry: string;
 }
 
 interface Indicator {
@@ -496,7 +501,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
 
   const handleInstrumentSelect = (instruments: Instrument[]) => {
     setSelectedInstruments(instruments);
-    handleChange('instruments')(instruments.map(i => i.id));
+    handleChange('instruments')(instruments.map(i => i.instrument_id));
   };
 
   const isSectionComplete = (sectionId: string): boolean => {
@@ -607,12 +612,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
                 <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                   {selectedInstruments.map((instrument) => (
                     <Chip
-                      key={instrument.id}
-                      label={instrument.name}
+                      key={instrument.instrument_id}
+                      label={instrument.symbol}
                       onDelete={() => {
-                        const newInstruments = selectedInstruments.filter(i => i.id !== instrument.id);
+                        const newInstruments = selectedInstruments.filter(i => i.instrument_id !== instrument.instrument_id);
                         setSelectedInstruments(newInstruments);
-                        handleChange('instruments')(newInstruments.map(i => i.id));
+                        handleChange('instruments')(newInstruments.map(i => i.instrument_id));
                       }}
                     />
                   ))}
