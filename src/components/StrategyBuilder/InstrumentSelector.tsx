@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -9,6 +9,7 @@ import {
   Button,
   Box,
   Grid,
+  CircularProgress,
 } from '@mui/material';
 
 interface Instrument {
@@ -25,23 +26,8 @@ interface InstrumentSelectorProps {
   selectedInstruments: Instrument[];
 }
 
-// Mock data - replace with actual API call in production
-const mockInstruments: Instrument[] = [
-  { id: 1, name: 'RELIANCE', exchange: 'NSE', segment: 'EQ' },
-  { id: 2, name: 'TCS', exchange: 'NSE', segment: 'EQ' },
-  { id: 3, name: 'HDFC BANK', exchange: 'NSE', segment: 'EQ' },
-  { id: 4, name: 'INFOSYS', exchange: 'BSE', segment: 'EQ' },
-  { id: 5, name: 'ICICI BANK', exchange: 'BSE', segment: 'EQ' },
-  { id: 6, name: 'NIFTY', exchange: 'NSE', segment: 'FO' },
-  { id: 7, name: 'BANKNIFTY', exchange: 'NSE', segment: 'FO' },
-  { id: 8, name: 'GOLD', exchange: 'MCX', segment: 'FUT' },
-  { id: 9, name: 'SILVER', exchange: 'MCX', segment: 'FUT' },
-  { id: 10, name: 'CRUDEOIL', exchange: 'MCX', segment: 'FUT' },
-  { id: 11, name: 'COPPER', exchange: 'MCX', segment: 'FUT' },
-];
-
-const exchanges = Array.from(new Set(mockInstruments.map(i => i.exchange)));
-const segments = Array.from(new Set(mockInstruments.map(i => i.segment)));
+const exchanges = ['NSE', 'BSE', 'MCX'];
+const segments = ['EQ', 'FO', 'FUT'];
 
 const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   open,
@@ -50,13 +36,44 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   selectedInstruments,
 }) => {
   const [tempSelected, setTempSelected] = useState<Instrument[]>(selectedInstruments);
-  const [selectedExchanges, setSelectedExchanges] = useState<string[]>([]);
-  const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
+  const [selectedExchange, setSelectedExchange] = useState<string | null>(null);
+  const [selectedSegment, setSelectedSegment] = useState<string | null>(null);
+  const [instruments, setInstruments] = useState<Instrument[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchInstruments = async () => {
+      if (!selectedExchange && !selectedSegment) {
+        setInstruments([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const queryParams = new URLSearchParams();
+        if (selectedExchange) queryParams.append('exchange', selectedExchange);
+        if (selectedSegment) queryParams.append('segment', selectedSegment);
+
+        const response = await fetch(`http://localhost:9090/stock?${queryParams.toString()}`);
+        if (!response.ok) throw new Error('Failed to fetch instruments');
+        
+        const data = await response.json();
+        setInstruments(data);
+      } catch (error) {
+        console.error('Error fetching instruments:', error);
+        setInstruments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInstruments();
+  }, [selectedExchange, selectedSegment]);
 
   const handleClose = () => {
     setTempSelected(selectedInstruments);
-    setSelectedExchanges([]);
-    setSelectedSegments([]);
+    setSelectedExchange(null);
+    setSelectedSegment(null);
     onClose();
   };
 
@@ -64,12 +81,6 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
     onSelect(tempSelected);
     onClose();
   };
-
-  const filteredInstruments = mockInstruments.filter(instrument => {
-    const exchangeMatch = selectedExchanges.length === 0 || selectedExchanges.includes(instrument.exchange);
-    const segmentMatch = selectedSegments.length === 0 || selectedSegments.includes(instrument.segment);
-    return exchangeMatch && segmentMatch;
-  });
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -79,58 +90,62 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
           <Grid container spacing={2}>
             <Grid item xs={6}>
               <Autocomplete
-                multiple
                 options={exchanges}
-                value={selectedExchanges}
+                value={selectedExchange}
                 onChange={(_, newValue) => {
-                  setSelectedExchanges(newValue);
+                  setSelectedExchange(newValue);
                 }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
                     variant="outlined"
                     label="Filter by Exchange"
-                    placeholder="Select exchanges"
+                    placeholder="Select exchange"
                   />
                 )}
               />
             </Grid>
             <Grid item xs={6}>
               <Autocomplete
-                multiple
                 options={segments}
-                value={selectedSegments}
+                value={selectedSegment}
                 onChange={(_, newValue) => {
-                  setSelectedSegments(newValue);
+                  setSelectedSegment(newValue);
                 }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
                     variant="outlined"
                     label="Filter by Segment"
-                    placeholder="Select segments"
+                    placeholder="Select segment"
                   />
                 )}
               />
             </Grid>
             <Grid item xs={12}>
-              <Autocomplete
-                multiple
-                options={filteredInstruments}
-                getOptionLabel={(option) => option.name}
-                value={tempSelected}
-                onChange={(_, newValue) => {
-                  setTempSelected(newValue);
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    variant="outlined"
-                    label="Search Instruments"
-                    placeholder="Type to search"
-                  />
-                )}
-              />
+              {loading ? (
+                <Box display="flex" justifyContent="center" my={2}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <Autocomplete
+                  multiple
+                  options={instruments}
+                  getOptionLabel={(option) => option.name}
+                  value={tempSelected}
+                  onChange={(_, newValue) => {
+                    setTempSelected(newValue);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      variant="outlined"
+                      label="Search Instruments"
+                      placeholder="Type to search"
+                    />
+                  )}
+                />
+              )}
             </Grid>
           </Grid>
         </Box>
