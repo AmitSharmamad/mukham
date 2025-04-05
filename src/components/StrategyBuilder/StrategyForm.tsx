@@ -11,7 +11,8 @@ import {
   Grid,
   Radio,
   RadioGroup,
-  Typography 
+  Typography,
+  Tooltip
 } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -19,6 +20,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import Add from '@mui/icons-material/Add';
 import ExpandMore from '@mui/icons-material/ExpandMore';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Cancel from '@mui/icons-material/Cancel';
 import dayjs, { Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { Button } from '../Button';
@@ -42,18 +45,21 @@ import { BacktestResult } from '../../types/strategy';
 export interface Instrument {
   id: number;
   name: string;
+  exchange: string;
+  segment: string;
 }
 
 interface Indicator {
   name: string;
-  value: string;
   config: Record<string, any>;
+  value: string;
 }
 
 interface IndicatorExpression {
   indicator1: Indicator;
   operator: string;
   indicator2: Indicator;
+  logicalOperator?: string;
 }
 
 interface FormData {
@@ -67,8 +73,8 @@ interface FormData {
   tradeType: string;
   maxAllocation: string;
   maxQuantity: string;
-  entryConditions: any;
-  exitConditions: any;
+  entryConditions: any[];
+  exitConditions: any[];
   stopLoss: string;
   stopLossType: 'ABSOLUTE' | 'PERCENTAGE';
   targetProfit: string;
@@ -144,8 +150,68 @@ interface ApiFormData {
   end_date: string;
 }
 
-// Convert form data to API format
 const convertFormToApiData = (formData: FormData): ApiFormData => {
+  const createExpressionJson = (expression: IndicatorExpression) => {
+    const getIndicatorJson = (indicator: Indicator) => ({
+      type: 'Indicator',
+      name: indicator.name,
+      point: 'close',
+      returns: indicator.name === 'Number' ? 'float' : 'float',
+      value: indicator.config
+    });
+
+    return {
+      type: 'IndicatorExpression',
+      operator: expression.operator,
+      returns: 'bool',
+      lhs: getIndicatorJson({
+        ...expression.indicator1,
+        value: expression.indicator1.name === 'Number' 
+          ? (expression.indicator1.config.value?.toString() || '0')
+          : ''
+      }),
+      rhs: getIndicatorJson({
+        ...expression.indicator2,
+        value: expression.indicator2.name === 'Number'
+          ? (expression.indicator2.config.value?.toString() || '0')
+          : ''
+      })
+    };
+  };
+
+  const createConditionsJson = (conditions: IndicatorExpression[]) => {
+    if (conditions.length === 0) return null;
+    if (conditions.length === 1) {
+      return {
+        type: 'ExpressionStatement',
+        returns: 'bool',
+        value: createExpressionJson(conditions[0])
+      };
+    }
+
+    // For multiple conditions, combine them with logical operators
+    let current = createExpressionJson(conditions[0]);
+    
+    for (let i = 1; i < conditions.length; i++) {
+      const logicalOp = conditions[i-1].logicalOperator;
+      if (logicalOp) {
+        current = {
+          type: 'LogicalExpression',
+          operator: logicalOp,
+          returns: 'bool',
+          lhs: current,
+          rhs: createExpressionJson(conditions[i])
+        };
+      }
+    }
+
+    return {
+      type: 'ExpressionStatement',
+      returns: 'bool',
+      value: current
+    };
+  };
+
   return {
     id: formData.id || '',
     name: formData.name,
@@ -155,8 +221,8 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
     chart_type: formData.candlestickType,
     chart_timeframe: formData.timeframe,
     qty: parseInt(formData.maxQuantity) || 0,
-    entry_expression: JSON.stringify(formData.entryConditions),
-    exit_expression: JSON.stringify(formData.exitConditions),
+    entry_expression: JSON.stringify(createConditionsJson(formData.entryConditions)),
+    exit_expression: JSON.stringify(createConditionsJson(formData.exitConditions)),
     target_profit: parseFloat(formData.targetProfit) || 0,
     target_profit_type: formData.targetProfitType,
     stop_loss: parseFloat(formData.stopLoss) || 0,
@@ -164,7 +230,7 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
     trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
     trailing_stop_loss_type: formData.trailingStopLossType,
     capital: parseFloat(formData.initialCapital) || 0,
-    max_trades: 5, // Default value
+    max_trades: 5,
     entry_start_time: formData.entryStartTime?.toISOString() || '',
     entry_end_time: formData.entryEndTime?.toISOString() || '',
     start_date: formData.startDate?.toISOString() || '',
@@ -172,7 +238,47 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
   };
 };
 
-// Add sample backtest results data
+const parseExpressionFromJson = (jsonStr: string): IndicatorExpression[] => {
+  try {
+    const json = JSON.parse(jsonStr);
+    const expressions: IndicatorExpression[] = [];
+
+    const parseIndicator = (indicatorJson: any): Indicator => ({
+      name: indicatorJson.name,
+      config: indicatorJson.value || {},
+      value: indicatorJson.name === 'Number' 
+        ? (indicatorJson.value?.value?.toString() || '0')
+        : ''
+    });
+
+    const parseExpression = (expr: any, logicalOperator?: string): void => {
+      if (expr.type === 'LogicalExpression') {
+        parseExpression(expr.expression.lhs);
+        expressions[expressions.length - 1].logicalOperator = expr.operator;
+        parseExpression(expr.expression.rhs);
+      } else if (expr.type === 'IndicatorExpression') {
+        expressions.push({
+          indicator1: parseIndicator(expr.lhs),
+          operator: expr.operator,
+          indicator2: parseIndicator(expr.rhs),
+          logicalOperator
+        });
+      } else if (expr.type === 'ExpressionStatement') {
+        parseExpression(expr.value);
+      }
+    };
+
+    if (json) {
+      parseExpression(json);
+    }
+
+    return expressions;
+  } catch (err) {
+    console.error('Failed to parse expression JSON:', err);
+    return [];
+  }
+};
+
 const sampleBacktestResults: BacktestResult = {
   strategyId: '1',
   results: [
@@ -227,8 +333,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     tradeType: initialData?.tradeType || 'MIS',
     maxAllocation: initialData?.maxAllocation || '',
     maxQuantity: initialData?.maxQuantity || '',
-    entryConditions: initialData?.entryConditions || null,
-    exitConditions: initialData?.exitConditions || null,
+    entryConditions: initialData?.entryConditions || [],
+    exitConditions: initialData?.exitConditions || [],
     stopLoss: initialData?.stopLoss || '',
     stopLossType: initialData?.stopLossType || 'ABSOLUTE',
     targetProfit: initialData?.targetProfit || '',
@@ -250,6 +356,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(sampleBacktestResults);
   const [isBacktesting, setIsBacktesting] = useState(false);
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (field: keyof FormData) => (value: any) => {
     setFormData(prev => ({
@@ -257,7 +365,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       [field]: value
     }));
 
-    // Clear any existing errors for this field
     if (errors[field]) {
       setErrors(prev => ({
         ...prev,
@@ -269,7 +376,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
   const validateForm = () => {
     const newErrors: ValidationErrors = {};
     
-    // Required fields validation
     if (!formData.name.trim()) {
       newErrors.name = 'Strategy name is required';
     }
@@ -294,15 +400,15 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       newErrors.entryConditions = 'At least one entry condition is required';
     }
     
-    if (!formData.stopLoss) {
+    if (formData.stopLoss === '') {
       newErrors.stopLoss = 'Stop loss is required';
     }
     
-    if (!formData.targetProfit) {
+    if (formData.targetProfit === '') {
       newErrors.targetProfit = 'Target profit is required';
     }
     
-    if (!formData.initialCapital) {
+    if (formData.initialCapital === '') {
       newErrors.initialCapital = 'Initial capital is required';
     }
     
@@ -314,7 +420,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       newErrors.endDate = 'End date is required';
     }
 
-    // Date range validation
     if (formData.startDate && formData.endDate) {
       if (formData.startDate.isAfter(formData.endDate)) {
         newErrors.startDate = 'Start date cannot be after end date';
@@ -322,7 +427,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       }
     }
 
-    // Time range validation
     if (formData.entryStartTime && formData.entryEndTime) {
       if (formData.entryStartTime.isAfter(formData.entryEndTime)) {
         newErrors.entryStartTime = 'Start time cannot be after end time';
@@ -334,7 +438,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Helper function to validate time range
   const validateTimeRange = (startTime: Dayjs | null, endTime: Dayjs | null) => {
     if (startTime && endTime && startTime.isAfter(endTime)) {
       return false;
@@ -342,10 +445,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     return true;
   };
 
-  // Helper function to validate date range by comparing only dates without time
   const validateDateRange = (startDate: Dayjs | null, endDate: Dayjs | null) => {
     if (startDate && endDate) {
-      // Compare dates by setting both to start of day to ignore time component
       const start = startDate.startOf('day');
       const end = endDate.startOf('day');
       return !start.isAfter(end);
@@ -357,7 +458,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     const otherField = field === 'startDate' ? 'endDate' : 'startDate';
     const otherValue = formData[otherField];
 
-    // Clear any existing date-related errors
     if (errors.startDate || errors.endDate) {
       setErrors(prev => ({
         ...prev,
@@ -366,13 +466,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       }));
     }
 
-    // Update the date value
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
 
-    // Validate date range if both values exist
     if (value && otherValue) {
       const isStartDate = field === 'startDate';
       const start = isStartDate ? value : otherValue;
@@ -392,7 +490,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     const otherField = field === 'entryStartTime' ? 'entryEndTime' : 'entryStartTime';
     const otherValue = formData[otherField];
 
-    // Clear any existing time-related errors
     if (errors.entryStartTime || errors.entryEndTime) {
       setErrors(prev => ({
         ...prev,
@@ -401,13 +498,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       }));
     }
 
-    // Update the time value
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
 
-    // Validate time range if both values exist
     if (value && otherValue) {
       const isStartTime = field === 'entryStartTime';
       const start = isStartTime ? value : otherValue;
@@ -423,8 +518,46 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     }
   };
 
-  const handleInstrumentSelect = (selectedInstruments: Instrument[]) => {
-    handleChange('instruments')(selectedInstruments);
+  const handleInstrumentSelect = (instruments: Instrument[]) => {
+    setSelectedInstruments(instruments);
+    handleChange('instruments')(instruments.map(i => i.id));
+  };
+
+  const isSectionComplete = (sectionId: string): boolean => {
+    switch (sectionId) {
+      case 'name':
+        return !!formData.name.trim();
+      
+      case 'positions':
+        return (
+          !!formData.buyOrSell &&
+          selectedInstruments.length > 0 &&
+          !!formData.candlestickType &&
+          !!formData.timeframe &&
+          !!formData.tradeType
+        );
+      
+      case 'entry':
+        return Array.isArray(formData.entryConditions) && formData.entryConditions.length > 0;
+      
+      case 'exit':
+        return (
+          formData.stopLoss !== '' &&
+          formData.targetProfit !== ''
+        );
+      
+      case 'backtest':
+        return (
+          formData.initialCapital !== '' &&
+          !!formData.startDate &&
+          !!formData.endDate &&
+          (!formData.entryStartTime || !formData.entryEndTime || validateTimeRange(formData.entryStartTime, formData.entryEndTime)) &&
+          validateDateRange(formData.startDate, formData.endDate)
+        );
+      
+      default:
+        return false;
+    }
   };
 
   const sections = [
@@ -573,6 +706,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
                   type="number"
                   value={formData.maxAllocation}
                   onChange={(e) => handleChange('maxAllocation')(e.target.value)}
+                  inputProps={{ min: 0 }}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
@@ -582,6 +716,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
                   type="number"
                   value={formData.maxQuantity}
                   onChange={(e) => handleChange('maxQuantity')(e.target.value)}
+                  inputProps={{ min: 0 }}
                 />
               </Grid>
             </Grid>
@@ -612,9 +747,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <IndicatorExpressionBuilder
+              label="Exit Conditions"
               value={formData.exitConditions}
               onChange={handleChange('exitConditions')}
-              label="Exit Conditions"
+              isOptional
             />
           </Grid>
           <Grid item xs={12} md={3}>
@@ -627,6 +763,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
               error={attemptedSubmit && !!errors.stopLoss}
               helperText={attemptedSubmit && errors.stopLoss}
               required
+              inputProps={{ min: 0 }}
             />
           </Grid>
           <Grid item xs={12} md={3}>
@@ -648,6 +785,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
               error={attemptedSubmit && !!errors.targetProfit}
               helperText={attemptedSubmit && errors.targetProfit}
               required
+              inputProps={{ min: 0 }}
             />
           </Grid>
           <Grid item xs={12} md={3}>
@@ -666,6 +804,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
               type="number"
               value={formData.trailingStopLoss}
               onChange={(e) => handleChange('trailingStopLoss')(e.target.value)}
+              inputProps={{ min: 0 }}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -696,6 +835,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
                 error={attemptedSubmit && !!errors.initialCapital}
                 helperText={attemptedSubmit && errors.initialCapital}
                 required
+                inputProps={{ min: 0 }}
               />
             </Grid>
             <Grid item xs={12} md={4}>
@@ -798,26 +938,25 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           body: JSON.stringify(apiData),
         });
 
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const result = await response.json();
         if (result.result) {
-          // Handle success
           console.log('Strategy saved successfully');
           router.push('/strategy');
         } else {
-          // Handle error
-          setErrors(prev => ({
-            ...prev,
-            submit: 'Failed to save strategy'
-          }));
+          throw new Error(result.error || 'Failed to save strategy');
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Error connecting to server';
         setErrors(prev => ({
           ...prev,
-          submit: 'Error connecting to server'
+          submit: errorMessage
         }));
       }
     } else {
-      // Expand sections with errors
       const sectionsWithErrors = new Set<string>();
       Object.keys(errors).forEach(errorKey => {
         const section = sections.find(s => 
@@ -935,7 +1074,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {/* Total row at the top */}
               <TableRow sx={{ bgcolor: 'action.hover' }}>
                 <TableCell><strong>Total</strong></TableCell>
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.totalTrades}</strong></TableCell>
@@ -965,8 +1103,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
                   </Button>
                 </TableCell>
               </TableRow>
-
-              {/* Individual instrument rows */}
               {backtestResults.results.map((result) => (
                 <TableRow key={result.instrumentId}>
                   <TableCell>{result.instrumentName}</TableCell>
@@ -1002,6 +1138,62 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
         </TableContainer>
       </Box>
     );
+  };
+
+  const fetchStrategy = async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`http://localhost:9090/strategy/${id}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.result) {
+        const strategyData = data.data;
+        
+        const entryConditions = parseExpressionFromJson(strategyData.entry_expression);
+        const exitConditions = parseExpressionFromJson(strategyData.exit_expression);
+        
+        const formData: FormData = {
+          id: strategyData.id,
+          name: strategyData.name,
+          description: strategyData.description,
+          buyOrSell: strategyData.position_type === 'LONG' ? 'buy' : 'sell',
+          instruments: strategyData.instruments,
+          candlestickType: strategyData.chart_type || 'CANDLESTICK',
+          timeframe: strategyData.chart_timeframe,
+          tradeType: strategyData.trade_type || 'MIS',
+          maxAllocation: strategyData.capital?.toString() || '',
+          maxQuantity: strategyData.qty?.toString() || '',
+          entryConditions,
+          exitConditions,
+          stopLoss: strategyData.stop_loss?.toString() || '',
+          stopLossType: strategyData.stop_loss_type || 'ABSOLUTE',
+          targetProfit: strategyData.target_profit?.toString() || '',
+          targetProfitType: strategyData.target_profit_type || 'ABSOLUTE',
+          trailingStopLoss: strategyData.trailing_stop_loss?.toString() || '',
+          trailingStopLossType: strategyData.trailing_stop_loss_type || 'ABSOLUTE',
+          initialCapital: strategyData.capital?.toString() || '',
+          entryStartTime: strategyData.entry_start_time ? dayjs(strategyData.entry_start_time) : null,
+          entryEndTime: strategyData.entry_end_time ? dayjs(strategyData.entry_end_time) : null,
+          startDate: strategyData.start_date ? dayjs(strategyData.start_date) : null,
+          endDate: strategyData.end_date ? dayjs(strategyData.end_date) : null,
+        };
+        
+        setFormData(formData);
+      } else {
+        throw new Error(data.error || 'Failed to fetch strategy');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error connecting to server';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -1041,21 +1233,21 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
                   : 'none',
             }}
           >
-            <Typography variant="h6">
-              {section.title}
-              {section.id === 'name' && errors.name && attemptedSubmit && (
-                <Typography 
-                  component="span" 
-                  sx={{ 
-                    color: 'error.main',
-                    ml: 1,
-                    fontSize: '0.8em'
-                  }}
-                >
-                  (has errors)
-                </Typography>
-              )}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+              <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                {section.title}
+              </Typography>
+              <Tooltip 
+                title={isSectionComplete(section.id) ? "Section is complete" : "Section is incomplete"}
+                arrow
+              >
+                {isSectionComplete(section.id) ? (
+                  <CheckCircle color="success" sx={{ fontSize: 20 }} />
+                ) : (
+                  <Cancel color="error" sx={{ fontSize: 20 }} />
+                )}
+              </Tooltip>
+            </Box>
           </AccordionSummary>
           <AccordionDetails sx={{ p: 3 }}>
             {section.component}

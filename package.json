@@ -17,6 +17,8 @@
     "dayjs": "^1.11.13",
     "next": "latest",
     "react": "latest",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "latest"
   },
   "devDependencies": {
