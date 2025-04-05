@@ -1,5 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, CardContent, Typography, CircularProgress, TextField, Alert } from '@mui/material';
+import { 
+  Box, 
+  Button, 
+  Card, 
+  CardContent, 
+  Typography, 
+  CircularProgress, 
+  TextField, 
+  Alert, 
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions 
+} from '@mui/material';
+import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import type { Strategy } from '../../types/strategy';
 
@@ -11,6 +27,11 @@ export default function StrategyList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; strategy: Strategy | null }>({
+    open: false,
+    strategy: null
+  });
 
   const fetchStrategies = async () => {
     try {
@@ -65,6 +86,45 @@ export default function StrategyList() {
   const handleRetry = async () => {
     setRetrying(true);
     await fetchStrategies();
+  };
+
+  const handleDeleteClick = (event: React.MouseEvent, strategy: Strategy) => {
+    event.stopPropagation(); // Prevent card click when clicking delete
+    setDeleteDialog({ open: true, strategy });
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialog({ open: false, strategy: null });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteDialog.strategy) return;
+
+    try {
+      setDeleting(deleteDialog.strategy.id);
+      const response = await fetch(`http://localhost:9090/strategy/${deleteDialog.strategy.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.result) {
+        // Remove the strategy from both arrays
+        setStrategies(prev => prev.filter(s => s.id !== deleteDialog.strategy!.id));
+        setFilteredStrategies(prev => prev.filter(s => s.id !== deleteDialog.strategy!.id));
+        handleCloseDeleteDialog();
+      } else {
+        throw new Error(data.error || 'Failed to delete strategy');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error deleting strategy';
+      setError(errorMessage);
+    } finally {
+      setDeleting(null);
+    }
   };
 
   if (loading) {
@@ -149,8 +209,27 @@ export default function StrategyList() {
                   onClick={() => handleStrategyClick(strategy.id)}
                   sx={{ cursor: 'pointer', '&:hover': { boxShadow: 6 } }}
                 >
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>{strategy.name}</Typography>
+                  <CardContent sx={{ position: 'relative' }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                      <Typography variant="h6" gutterBottom>{strategy.name}</Typography>
+                      <IconButton 
+                        size="small" 
+                        onClick={(e) => handleDeleteClick(e, strategy)}
+                        disabled={deleting === strategy.id}
+                        sx={{ 
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          '&:hover': { color: 'error.main' }
+                        }}
+                      >
+                        {deleting === strategy.id ? (
+                          <CircularProgress size={20} />
+                        ) : (
+                          <DeleteIcon />
+                        )}
+                      </IconButton>
+                    </Box>
                     <Typography color="textSecondary" noWrap>{strategy.description}</Typography>
                     <Typography variant="body2" sx={{ mt: 1 }}>
                       Position: {strategy.position_type}
@@ -163,6 +242,35 @@ export default function StrategyList() {
               ))}
             </Box>
           )}
+
+          <Dialog
+            open={deleteDialog.open}
+            onClose={handleCloseDeleteDialog}
+            aria-labelledby="delete-dialog-title"
+            aria-describedby="delete-dialog-description"
+          >
+            <DialogTitle id="delete-dialog-title">
+              Delete Strategy
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText id="delete-dialog-description">
+                Are you sure you want to delete the strategy "{deleteDialog.strategy?.name}"? This action cannot be undone.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDeleteDialog} color="inherit">
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmDelete} 
+                color="error"
+                variant="contained"
+                disabled={!!deleting}
+              >
+                {deleting ? <CircularProgress size={24} /> : 'Delete'}
+              </Button>
+            </DialogActions>
+          </Dialog>
         </>
       )}
     </Box>
