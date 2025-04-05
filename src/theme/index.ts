@@ -4,18 +4,20 @@ import { createTheme, ThemeOptions } from '@mui/material';
 const commonProperties: ThemeOptions = {
   typography: {
     fontFamily: '"Ubuntu", sans-serif',
-    h1: { fontWeight: 400, fontFamily: '"Ubuntu", sans-serif' },
-    h2: { fontWeight: 400, fontFamily: '"Ubuntu", sans-serif' },
-    h3: { fontWeight: 400, fontFamily: '"Ubuntu", sans-serif' },
-    h4: { fontWeight: 300, fontFamily: '"Ubuntu", sans-serif' },
-    h5: { fontWeight: 300, fontFamily: '"Ubuntu", sans-serif' },
-    h6: { fontWeight: 300, fontFamily: '"Ubuntu", sans-serif' },
-    button: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300 },
-    body1: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300 },
-    body2: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300 },
-    caption: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300 },
-    subtitle1: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300 },
-    subtitle2: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300 },
+    htmlFontSize: 14, // Default is 16
+    fontSize: 13, // Default is 14
+    h1: { fontWeight: 400, fontFamily: '"Ubuntu", sans-serif', fontSize: '2.5rem' }, // Default is 2.75rem
+    h2: { fontWeight: 400, fontFamily: '"Ubuntu", sans-serif', fontSize: '2rem' }, // Default is 2.25rem
+    h3: { fontWeight: 400, fontFamily: '"Ubuntu", sans-serif', fontSize: '1.75rem' }, // Default is 2rem
+    h4: { fontWeight: 300, fontFamily: '"Ubuntu", sans-serif', fontSize: '1.5rem' }, // Default is 1.75rem
+    h5: { fontWeight: 300, fontFamily: '"Ubuntu", sans-serif', fontSize: '1.25rem' }, // Default is 1.5rem
+    h6: { fontWeight: 300, fontFamily: '"Ubuntu", sans-serif', fontSize: '1rem' }, // Default is 1.25rem
+    button: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300, fontSize: '0.875rem' }, // Default is 1rem
+    body1: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300, fontSize: '0.875rem' }, // Default is 1rem
+    body2: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300, fontSize: '0.8125rem' }, // Default is 0.875rem
+    caption: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300, fontSize: '0.75rem' }, // Default is 0.8125rem
+    subtitle1: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300, fontSize: '0.875rem' }, // Default is 1rem
+    subtitle2: { fontFamily: '"Ubuntu", sans-serif', fontWeight: 300, fontSize: '0.8125rem' }, // Default is 0.875rem
   },
   shape: {
     borderRadius: 8,

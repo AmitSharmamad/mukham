@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Button } from '@mui/material';
 import { StrategyForm } from '../../components/StrategyBuilder/StrategyForm';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
@@ -36,6 +36,8 @@ export default function EditStrategy() {
   const { strategy_id } = router.query;
   const [strategy, setStrategy] = useState<FormattedStrategy | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     if (strategy_id) {
@@ -45,7 +47,15 @@ export default function EditStrategy() {
 
   const fetchStrategy = async (id: string) => {
     try {
+      setLoading(true);
+      setError(null);
+      setRetrying(false);
       const response = await fetch(`http://localhost:9090/strategy/${id}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       
       if (data.result) {
@@ -79,14 +89,28 @@ export default function EditStrategy() {
         
         setStrategy(formData);
       } else {
-        setError('Failed to fetch strategy');
+        throw new Error(data.error || 'Failed to fetch strategy');
       }
     } catch (err) {
-      setError('Error connecting to the server');
+      const errorMessage = err instanceof Error ? err.message : 'Error connecting to server';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!strategy && !error) {
+  const handleRetry = async () => {
+    if (strategy_id) {
+      setRetrying(true);
+      await fetchStrategy(strategy_id as string);
+    }
+  };
+
+  const handleGoBack = () => {
+    router.push('/strategy');
+  };
+
+  if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
         <CircularProgress />
@@ -96,8 +120,25 @@ export default function EditStrategy() {
 
   if (error) {
     return (
-      <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography color="error">{error}</Typography>
+      <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center', py: 4 }}>
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3 }}
+          action={
+            <Button 
+              color="inherit" 
+              onClick={handleRetry}
+              disabled={retrying}
+            >
+              {retrying ? <CircularProgress size={20} /> : 'Retry'}
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={handleGoBack}>
+          Back to Strategies
+        </Button>
       </Box>
     );
   }
