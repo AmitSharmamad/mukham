@@ -1,7 +1,7 @@
 import { Box, Typography, CircularProgress, Alert, Button } from '@mui/material';
 import { StrategyForm } from '../../components/StrategyBuilder/StrategyForm';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Strategy } from '../../types/strategy';
 import dayjs from 'dayjs';
 import { mapTimeframeToDisplay } from '../../constants';
@@ -35,9 +35,8 @@ export default function EditStrategy() {
   const router = useRouter();
   const { strategy_id } = router.query;
   const [strategy, setStrategy] = useState<FormattedStrategy | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [retrying, setRetrying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (strategy_id) {
@@ -49,7 +48,6 @@ export default function EditStrategy() {
     try {
       setLoading(true);
       setError(null);
-      setRetrying(false);
       const response = await fetch(`http://localhost:9090/strategy/${id}`);
       
       if (!response.ok) {
@@ -61,7 +59,6 @@ export default function EditStrategy() {
       if (data.result) {
         const strategyData = data.data;
         
-        // Transform API data to match form structure
         const formData: FormattedStrategy = {
           id: strategyData.id,
           name: strategyData.name,
@@ -73,8 +70,8 @@ export default function EditStrategy() {
           tradeType: strategyData.trade_type || 'MIS',
           maxAllocation: strategyData.capital?.toString() || '',
           maxQuantity: strategyData.qty?.toString() || '',
-          entryConditions: JSON.parse(strategyData.entry_expression),
-          exitConditions: JSON.parse(strategyData.exit_expression),
+          entryConditions: strategyData.entry_expression,
+          exitConditions: strategyData.exit_expression,
           stopLoss: strategyData.stop_loss?.toString() || '',
           stopLossType: strategyData.stop_loss_type || 'ABSOLUTE',
           targetProfit: strategyData.target_profit?.toString() || '',
@@ -99,13 +96,6 @@ export default function EditStrategy() {
     }
   };
 
-  const handleRetry = async () => {
-    if (strategy_id) {
-      setRetrying(true);
-      await fetchStrategy(strategy_id as string);
-    }
-  };
-
   const handleGoBack = () => {
     router.push('/strategy');
   };
@@ -121,20 +111,21 @@ export default function EditStrategy() {
   if (error) {
     return (
       <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center', py: 4 }}>
-        <Alert 
-          severity="error" 
-          sx={{ mb: 3 }}
-          action={
-            <Button 
-              color="inherit" 
-              onClick={handleRetry}
-              disabled={retrying}
-            >
-              {retrying ? <CircularProgress size={20} /> : 'Retry'}
-            </Button>
-          }
-        >
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
+        </Alert>
+        <Button variant="contained" onClick={handleGoBack}>
+          Back to Strategies
+        </Button>
+      </Box>
+    );
+  }
+
+  if (!strategy) {
+    return (
+      <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center', py: 4 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          Strategy not found
         </Alert>
         <Button variant="contained" onClick={handleGoBack}>
           Back to Strategies
@@ -146,7 +137,7 @@ export default function EditStrategy() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Edit Strategy: {strategy?.name}
+        Edit Strategy: {strategy.name}
       </Typography>
       <StrategyForm initialData={strategy} />
     </Box>
