@@ -52,7 +52,7 @@ export interface Instrument {
 interface Indicator {
   name: string;
   config: Record<string, any>;
-  value: string;
+  value?: string; // Making value optional since it's not always needed
 }
 
 interface IndicatorExpression {
@@ -126,7 +126,6 @@ interface StrategyFormProps {
 }
 
 interface ApiFormData {
-  id: string;
   name: string;
   description: string;
   position_type: 'LONG' | 'SHORT';
@@ -150,70 +149,61 @@ interface ApiFormData {
   end_date: string;
 }
 
-const convertFormToApiData = (formData: FormData): ApiFormData => {
-  const createExpressionJson = (expression: IndicatorExpression) => {
-    const getIndicatorJson = (indicator: Indicator) => ({
-      type: 'Indicator',
-      name: indicator.name,
-      point: 'close',
-      returns: indicator.name === 'Number' ? 'float' : 'float',
-      value: indicator.config
-    });
+interface BacktestRun {
+  id: string;
+  run_group_id: string;
+  strategy_id: string;
+  exchange: string;
+  instrument_id: number;
+  type: string;
+  state: string;
+  qty: number;
+  metrics: {
+    id: string;
+    run_id: string;
+    total_trades: number;
+    win_rate: number;
+    profit_factor: number;
+    total_return_pct: number;
+    max_drawdown: number;
+    sharpe_ratio: number;
+  };
+}
 
-    return {
-      type: 'IndicatorExpression',
-      operator: expression.operator,
-      returns: 'bool',
-      lhs: getIndicatorJson({
-        ...expression.indicator1,
-        value: expression.indicator1.name === 'Number' 
-          ? (expression.indicator1.config.value?.toString() || '0')
-          : ''
-      }),
-      rhs: getIndicatorJson({
-        ...expression.indicator2,
-        value: expression.indicator2.name === 'Number'
-          ? (expression.indicator2.config.value?.toString() || '0')
-          : ''
-      })
+interface BacktestData {
+  id: string;
+  strategy_id: string;
+  runs: BacktestRun[];
+}
+
+const convertFormToApiData = (formData: FormData): ApiFormData => {
+  const stringifyExpression = (expression: IndicatorExpression): string => {
+    const getIndicatorString = (indicator: Indicator): string => {
+      if (indicator.name === 'Number') {
+        return indicator.config.value?.toString() || '0';
+      }
+      const params = [
+        'close',
+        ...Object.values(indicator.config || {}).map(val => val.toString())
+      ];
+      return `${indicator.name}(${params.join(', ')})`;
     };
+
+    const expr = `${getIndicatorString(expression.indicator1)} ${expression.operator} ${getIndicatorString(expression.indicator2)}`;
+    return expr;
   };
 
-  const createConditionsJson = (conditions: IndicatorExpression[]) => {
-    if (conditions.length === 0) return null;
-    if (conditions.length === 1) {
-      return {
-        type: 'ExpressionStatement',
-        returns: 'bool',
-        value: createExpressionJson(conditions[0])
-      };
-    }
+  const stringifyConditions = (conditions: IndicatorExpression[]): string => {
+    if (conditions.length === 0) return '';
+    if (conditions.length === 1) return stringifyExpression(conditions[0]);
 
-    // For multiple conditions, combine them with logical operators
-    let current = createExpressionJson(conditions[0]);
-    
-    for (let i = 1; i < conditions.length; i++) {
-      const logicalOp = conditions[i-1].logicalOperator;
-      if (logicalOp) {
-        current = {
-          type: 'LogicalExpression',
-          operator: logicalOp,
-          returns: 'bool',
-          lhs: current,
-          rhs: createExpressionJson(conditions[i])
-        };
-      }
-    }
-
-    return {
-      type: 'ExpressionStatement',
-      returns: 'bool',
-      value: current
-    };
+    return conditions.reduce((acc, condition, index) => {
+      if (index === 0) return stringifyExpression(condition);
+      return `${acc} ${condition.logicalOperator} ${stringifyExpression(condition)}`;
+    }, '');
   };
 
   return {
-    id: formData.id || '',
     name: formData.name,
     description: formData.description,
     position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
@@ -221,8 +211,8 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
     chart_type: formData.candlestickType,
     chart_timeframe: formData.timeframe,
     qty: parseInt(formData.maxQuantity) || 0,
-    entry_expression: JSON.stringify(createConditionsJson(formData.entryConditions)),
-    exit_expression: JSON.stringify(createConditionsJson(formData.exitConditions)),
+    entry_expression: stringifyConditions(formData.entryConditions),
+    exit_expression: stringifyConditions(formData.exitConditions),
     target_profit: parseFloat(formData.targetProfit) || 0,
     target_profit_type: formData.targetProfitType,
     stop_loss: parseFloat(formData.stopLoss) || 0,
@@ -238,86 +228,72 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
   };
 };
 
-const parseExpressionFromJson = (jsonStr: string): IndicatorExpression[] => {
+const parseExpressions = (expressionStr: string): IndicatorExpression[] => {
   try {
-    const json = JSON.parse(jsonStr);
+    if (!expressionStr) return [];
+    
+    // Split by logical operators while preserving them
+    const parts = expressionStr.split(/(AND|OR)/).map(part => part.trim()).filter(Boolean);
+    
     const expressions: IndicatorExpression[] = [];
-
-    const parseIndicator = (indicatorJson: any): Indicator => ({
-      name: indicatorJson.name,
-      config: indicatorJson.value || {},
-      value: indicatorJson.name === 'Number' 
-        ? (indicatorJson.value?.value?.toString() || '0')
-        : ''
-    });
-
-    const parseExpression = (expr: any, logicalOperator?: string): void => {
-      if (expr.type === 'LogicalExpression') {
-        parseExpression(expr.expression.lhs);
-        expressions[expressions.length - 1].logicalOperator = expr.operator;
-        parseExpression(expr.expression.rhs);
-      } else if (expr.type === 'IndicatorExpression') {
+    for (let i = 0; i < parts.length; i += 2) {
+      const expr = parts[i];
+      const logicalOp = parts[i + 1];
+      
+      // Match indicator expressions like "SMA(close, 20) > SMA(close, 50)"
+      const match = expr.match(/(\w+)\((.*?)\)\s*([><=!]+|CrossesAbove|CrossesBelow)\s*(\w+)\((.*?)\)/);
+      if (match) {
+        const [, indicator1Name, indicator1Params, operator, indicator2Name, indicator2Params] = match;
+        
+        const parseParams = (params: string) => {
+          const [field = 'CLOSE', ...rest] = params.split(',').map(p => p.trim());
+          if (indicator1Name === 'Number' || indicator2Name === 'Number') {
+            return { value: parseFloat(field) || 0 };
+          }
+          return {
+            field,
+            period: parseInt(rest[0]) || 0,
+            offset: parseInt(rest[1]) || 0
+          };
+        };
+        
         expressions.push({
-          indicator1: parseIndicator(expr.lhs),
-          operator: expr.operator,
-          indicator2: parseIndicator(expr.rhs),
-          logicalOperator
+          indicator1: {
+            name: indicator1Name,
+            config: parseParams(indicator1Params),
+            value: expr.split(operator)[0].trim()
+          },
+          operator,
+          indicator2: {
+            name: indicator2Name,
+            config: parseParams(indicator2Params),
+            value: expr.split(operator)[1].trim()
+          },
+          logicalOperator: logicalOp
         });
-      } else if (expr.type === 'ExpressionStatement') {
-        parseExpression(expr.value);
       }
-    };
-
-    if (json) {
-      parseExpression(json);
     }
-
     return expressions;
   } catch (err) {
-    console.error('Failed to parse expression JSON:', err);
+    console.error('Failed to parse expression string:', err);
     return [];
   }
 };
 
 const sampleBacktestResults: BacktestResult = {
-  strategyId: '1',
-  results: [
-    {
-      instrumentId: 1,
-      instrumentName: 'NIFTY',
-      totalTrades: 120,
-      winningTrades: 75,
-      losingTrades: 45,
-      winRate: 0.625,
-      profitFactor: 1.8,
-      totalPnL: 25000,
-      maxDrawdown: 12.5,
-      sharpeRatio: 1.2
-    },
-    {
-      instrumentId: 2,
-      instrumentName: 'BANKNIFTY',
-      totalTrades: 95,
-      winningTrades: 55,
-      losingTrades: 40,
-      winRate: 0.579,
-      profitFactor: 1.5,
-      totalPnL: 18500,
-      maxDrawdown: 15.0,
-      sharpeRatio: 0.9
-    }
-  ],
+  strategyId: '',
+  results: [],
   aggregatedMetrics: {
     instrumentId: 0,
     instrumentName: 'Total',
-    totalTrades: 215,
-    winningTrades: 130,
-    losingTrades: 85,
-    winRate: 0.605,
-    profitFactor: 1.65,
-    totalPnL: 43500,
-    maxDrawdown: 13.75,
-    sharpeRatio: 1.05
+    totalTrades: 0,
+    winningTrades: 0,
+    losingTrades: 0,
+    winRate: 0,
+    profitFactor: 0,
+    totalPnL: 0,
+    maxDrawdown: 0,
+    sharpeRatio: 0
   }
 };
 
@@ -333,8 +309,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     tradeType: initialData?.tradeType || 'MIS',
     maxAllocation: initialData?.maxAllocation || '',
     maxQuantity: initialData?.maxQuantity || '',
-    entryConditions: initialData?.entryConditions || [],
-    exitConditions: initialData?.exitConditions || [],
+    entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [],
+    exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
     stopLoss: initialData?.stopLoss || '',
     stopLossType: initialData?.stopLossType || 'ABSOLUTE',
     targetProfit: initialData?.targetProfit || '',
@@ -569,6 +545,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
+              id="name"
               label="Strategy Name"
               value={formData.name}
               onChange={(e) => handleChange('name')(e.target.value)}
@@ -580,6 +557,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
+              id="description"
               label="Description"
               multiline
               rows={4}
@@ -601,7 +579,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
                 <FormLabel component="legend">Position Type</FormLabel>
                 <RadioGroup
                   row
-                  name="position-type"
+                  name="position_type"
+                  id="position_type"
                   value={formData.buyOrSell}
                   onChange={(e) => handleChange('buyOrSell')(e.target.value)}
                 >
@@ -646,6 +625,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
               <Grid item xs={12} md={3}>
                 <Select
                   fullWidth
+                  id="chart_type"
                   label="Candlestick Type"
                   options={[{ label: 'Candlestick', value: 'CANDLESTICK' }]}
                   value={formData.candlestickType}
@@ -662,6 +642,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
               <Grid item xs={12} md={3}>
                 <Select
                   fullWidth
+                  id="chart_timeframe"
                   label="Timeframe"
                   options={TIMEFRAME_OPTIONS}
                   value={formData.timeframe}
@@ -678,6 +659,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
               <Grid item xs={12} md={3}>
                 <Select
                   fullWidth
+                  id="chart_unknown"
                   label="Trade Type"
                   options={[
                     { label: 'MIS', value: 'MIS' },
@@ -712,6 +694,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
+                  id="qty"
                   label="Max Quantity"
                   type="number"
                   value={formData.maxQuantity}
@@ -756,6 +739,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           <Grid item xs={12} md={3}>
             <TextField
               fullWidth
+              id="stop_loss"
               label="Stop Loss"
               type="number"
               value={formData.stopLoss}
@@ -768,7 +752,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           </Grid>
           <Grid item xs={12} md={3}>
             <Select
-              fullWidth
+              fullWidth 
+              id="stop_loss_type"
               label="Stop Loss Type"
               options={PROFIT_LOSS_TYPES}
               value={formData.stopLossType}
@@ -778,6 +763,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           <Grid item xs={12} md={3}>
             <TextField
               fullWidth
+              id="target_profit"
               label="Target Profit"
               type="number"
               value={formData.targetProfit}
@@ -791,6 +777,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           <Grid item xs={12} md={3}>
             <Select
               fullWidth
+              id="target_profit_type"
               label="Target Profit Type"
               options={PROFIT_LOSS_TYPES}
               value={formData.targetProfitType}
@@ -800,6 +787,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
+              id="trailing_stop_loss"
               label="Trailing Stop Loss"
               type="number"
               value={formData.trailingStopLoss}
@@ -810,6 +798,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           <Grid item xs={12} md={6}>
             <Select
               fullWidth
+              id="trailing_stop_loss_type"
               label="Trailing Stop Loss Type"
               options={PROFIT_LOSS_TYPES}
               value={formData.trailingStopLossType}
@@ -828,6 +817,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
+                id="capital"
                 label="Initial Capital"
                 type="number"
                 value={formData.initialCapital}
@@ -930,7 +920,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     if (validateForm()) {
       try {
         const apiData = convertFormToApiData(formData);
-        const response = await fetch('http://localhost:9090/strategy', {
+        const url = initialData ? `http://localhost:9090/strategy/${initialData.id}` : 'http://localhost:9090/strategy';
+        const response = await fetch(url, {
           method: initialData ? 'PUT' : 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -979,18 +970,52 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     if (validateForm()) {
       try {
         setIsBacktesting(true);
-        const apiData = convertFormToApiData(formData);
-        const response = await fetch('http://localhost:9090/strategy/backtest', {
+        const response = await fetch(`http://localhost:9090/bt/start?strategy_id=${initialData?.id}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(apiData),
+          }
         });
 
         const result = await response.json();
         if (result.result) {
-          setBacktestResults(result.data);
+          const backtestData: BacktestData = result.data;
+          // Transform the API response to match our BacktestResult interface
+          const transformedResults: BacktestResult = {
+            strategyId: backtestData.strategy_id,
+            results: backtestData.runs.map((run: BacktestRun) => ({
+              instrumentId: run.instrument_id,
+              instrumentName: run.exchange || `Instrument ${run.instrument_id}`,
+              totalTrades: run.metrics.total_trades,
+              winningTrades: Math.round(run.metrics.total_trades * run.metrics.win_rate),
+              losingTrades: Math.round(run.metrics.total_trades * (1 - run.metrics.win_rate)),
+              winRate: run.metrics.win_rate,
+              profitFactor: run.metrics.profit_factor,
+              totalPnL: run.metrics.total_return_pct,
+              maxDrawdown: run.metrics.max_drawdown,
+              sharpeRatio: run.metrics.sharpe_ratio
+            })),
+            aggregatedMetrics: {
+              instrumentId: 0,
+              instrumentName: 'Total',
+              totalTrades: backtestData.runs.reduce((sum: number, run: BacktestRun) => 
+                sum + run.metrics.total_trades, 0),
+              winningTrades: backtestData.runs.reduce((sum: number, run: BacktestRun) => 
+                sum + Math.round(run.metrics.total_trades * run.metrics.win_rate), 0),
+              losingTrades: backtestData.runs.reduce((sum: number, run: BacktestRun) => 
+                sum + Math.round(run.metrics.total_trades * (1 - run.metrics.win_rate)), 0),
+              winRate: backtestData.runs.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
+                sum + run.metrics.win_rate / arr.length, 0),
+              profitFactor: backtestData.runs.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
+                sum + run.metrics.profit_factor / arr.length, 0),
+              totalPnL: backtestData.runs.reduce((sum: number, run: BacktestRun) => 
+                sum + run.metrics.total_return_pct, 0),
+              maxDrawdown: Math.max(...backtestData.runs.map((run: BacktestRun) => run.metrics.max_drawdown)),
+              sharpeRatio: backtestData.runs.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
+                sum + run.metrics.sharpe_ratio / arr.length, 0)
+            }
+          };
+          setBacktestResults(transformedResults);
         } else {
           setErrors(prev => ({
             ...prev,
@@ -1155,8 +1180,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       if (data.result) {
         const strategyData = data.data;
         
-        const entryConditions = parseExpressionFromJson(strategyData.entry_expression);
-        const exitConditions = parseExpressionFromJson(strategyData.exit_expression);
+        const entryConditions = parseExpressions(strategyData.entry_expression);
+        const exitConditions = parseExpressions(strategyData.exit_expression);
         
         const formData: FormData = {
           id: strategyData.id,
@@ -1207,6 +1232,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           {isAllExpanded ? 'Collapse All' : 'Expand All'}
         </Button>
       </Box>
+
       {sections.map((section) => (
         <Accordion
           key={section.id}
@@ -1284,7 +1310,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
         </Button>
       </Box>
 
-      {renderBacktestResults()}
+      {backtestResults && renderBacktestResults()}
     </form>
   );
 };
