@@ -10,6 +10,7 @@ import {
   Box,
   Grid,
   CircularProgress,
+  Pagination,
 } from '@mui/material';
 
 interface Instrument {
@@ -45,10 +46,14 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   const [selectedSegment, setSelectedSegment] = useState<string | null>(null);
   const [instruments, setInstruments] = useState<Instrument[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const limit = 20;
 
   useEffect(() => {
     const fetchInstruments = async () => {
-      if (!selectedExchange && !selectedSegment) {
+      if (!selectedExchange) {
         setInstruments([]);
         return;
       }
@@ -56,21 +61,20 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
       setLoading(true);
       try {
         const queryParams = new URLSearchParams();
-        if (selectedExchange) queryParams.append('exchange', selectedExchange);
+        queryParams.append('exchange', selectedExchange);
         if (selectedSegment) queryParams.append('segment', selectedSegment);
+        queryParams.append('page', page.toString());
+        queryParams.append('limit', limit.toString());
+        if (searchQuery) queryParams.append('search', searchQuery);
 
         const response = await fetch(`http://localhost:9090/stock?${queryParams.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch instruments');
         
         const responseData = await response.json();
+        console.log('API Response:', responseData); // Debug log
         
-        // Check if the response has the expected structure
-        if (responseData?.result === true && Array.isArray(responseData.data)) {
-          setInstruments(responseData.data);
-        } else {
-          console.error('Invalid response structure:', responseData);
-          setInstruments([]);
-        }
+        setInstruments(responseData.data || []);
+        setTotalPages(responseData.total_pages || 1);
       } catch (error) {
         console.error('Error fetching instruments:', error);
         setInstruments([]);
@@ -80,9 +84,11 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
     };
 
     fetchInstruments();
-  }, [selectedExchange, selectedSegment]);
+  }, [selectedExchange, selectedSegment, page, searchQuery]);
 
   const handleClose = () => {
+    setPage(1);
+    setSearchQuery('');
     setTempSelected(selectedInstruments);
     setSelectedExchange(null);
     setSelectedSegment(null);
@@ -91,7 +97,11 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
 
   const handleSelect = () => {
     onSelect(tempSelected);
-    onClose();
+    handleClose();
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
   };
 
   return (
@@ -102,10 +112,14 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
           <Grid container spacing={2}>
             <Grid item xs={6}>
               <Autocomplete
+                disablePortal
                 options={exchanges}
                 value={selectedExchange}
                 onChange={(_, newValue) => {
+                  console.log('Selected Exchange:', newValue); // Debug log
                   setSelectedExchange(newValue);
+                  setSelectedSegment(null);
+                  setPage(1);
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -119,11 +133,14 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
             </Grid>
             <Grid item xs={6}>
               <Autocomplete
+                disablePortal
                 options={segments}
                 value={selectedSegment}
                 onChange={(_, newValue) => {
                   setSelectedSegment(newValue);
+                  setPage(1);
                 }}
+                disabled={!selectedExchange}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -140,41 +157,59 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                   <CircularProgress />
                 </Box>
               ) : (
-                <Autocomplete
-                  multiple
-                  options={instruments}
-                  getOptionLabel={(option) => `${option.symbol} - ${option.instrument_name}`}
-                  value={tempSelected}
-                  onChange={(_, newValue) => {
-                    setTempSelected(newValue);
-                  }}
-                  renderOption={(props, option) => (
-                    <li {...props}>
-                      <Box>
-                        <strong>{option.symbol}</strong> - {option.instrument_name}
-                      </Box>
-                    </li>
+                <>
+                  <Autocomplete
+                    multiple
+                    filterSelectedOptions
+                    options={instruments}
+                    getOptionLabel={(option) => `${option.symbol} - ${option.instrument_name}`}
+                    value={tempSelected}
+                    onChange={(_, newValue) => {
+                      setTempSelected(newValue);
+                    }}
+                    onInputChange={(_, value) => {
+                      setSearchQuery(value);
+                      setPage(1);
+                    }}
+                    renderOption={(props, option) => (
+                      <li {...props}>
+                        <Box>
+                          <strong>{option.symbol}</strong> - {option.instrument_name}
+                        </Box>
+                      </li>
+                    )}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => (
+                        <Box
+                          component="span"
+                          {...getTagProps({ index })}
+                          key={option.instrument_id}
+                        >
+                          {option.symbol}
+                        </Box>
+                      ))
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        variant="outlined"
+                        label="Search Instruments"
+                        placeholder="Type to search"
+                      />
+                    )}
+                    disabled={!selectedExchange}
+                  />
+                  {instruments.length > 0 && (
+                    <Box display="flex" justifyContent="center" mt={2}>
+                      <Pagination
+                        count={totalPages}
+                        page={page}
+                        onChange={handlePageChange}
+                        color="primary"
+                      />
+                    </Box>
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                      <Box
-                        component="span"
-                        {...getTagProps({ index })}
-                        key={option.instrument_id}
-                      >
-                        {option.symbol}
-                      </Box>
-                    ))
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      variant="outlined"
-                      label="Search Instruments"
-                      placeholder="Type to search"
-                    />
-                  )}
-                />
+                </>
               )}
             </Grid>
           </Grid>
