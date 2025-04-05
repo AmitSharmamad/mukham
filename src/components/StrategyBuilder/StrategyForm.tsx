@@ -208,11 +208,36 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
     }, '');
   };
 
+  // Create a base date (today) for all time-related fields
+  const baseDate = formData.startDate || dayjs();
+
+  // Format dates to ISO string at start of day
+  const startDate = formData.startDate 
+    ? formData.startDate.startOf('day').toISOString() 
+    : baseDate.startOf('day').toISOString();
+  
+  const endDate = formData.endDate 
+    ? formData.endDate.startOf('day').toISOString() 
+    : baseDate.startOf('day').toISOString();
+
+  // Set default trading hours if not provided (9:15 AM to 3:30 PM)
+  const defaultStartTime = baseDate.startOf('day').hour(9).minute(15);
+  const defaultEndTime = baseDate.startOf('day').hour(15).minute(30);
+
+  // Combine date and time for entry times
+  const entryStartTime = formData.entryStartTime
+    ? baseDate.hour(formData.entryStartTime.hour()).minute(formData.entryStartTime.minute()).toISOString()
+    : defaultStartTime.toISOString();
+
+  const entryEndTime = formData.entryEndTime
+    ? baseDate.hour(formData.entryEndTime.hour()).minute(formData.entryEndTime.minute()).toISOString()
+    : defaultEndTime.toISOString();
+
   return {
     name: formData.name,
     description: formData.description,
     position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
-    instruments: formData.instruments,
+    instruments: formData.instruments || [],
     chart_type: formData.candlestickType,
     chart_timeframe: formData.timeframe,
     qty: parseInt(formData.maxQuantity) || 0,
@@ -226,10 +251,10 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
     trailing_stop_loss_type: formData.trailingStopLossType,
     capital: parseFloat(formData.initialCapital) || 0,
     max_trades: 5,
-    entry_start_time: formData.entryStartTime?.toISOString() || '',
-    entry_end_time: formData.entryEndTime?.toISOString() || '',
-    start_date: formData.startDate?.toISOString() || '',
-    end_date: formData.endDate?.toISOString() || ''
+    entry_start_time: entryStartTime,
+    entry_end_time: entryEndTime,
+    start_date: startDate,
+    end_date: endDate
   };
 };
 
@@ -339,6 +364,25 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isFormValid = () => {
+    return !!(
+      formData.name.trim() &&
+      formData.buyOrSell &&
+      selectedInstruments.length > 0 &&
+      formData.candlestickType &&
+      formData.timeframe &&
+      formData.tradeType &&
+      formData.entryConditions.length > 0 &&
+      formData.stopLoss &&
+      formData.targetProfit &&
+      formData.initialCapital &&
+      formData.startDate &&
+      formData.endDate &&
+      (!formData.entryStartTime || !formData.entryEndTime || validateTimeRange(formData.entryStartTime, formData.entryEndTime)) &&
+      validateDateRange(formData.startDate, formData.endDate)
+    );
+  };
 
   const handleChange = (field: keyof FormData) => (value: any) => {
     setFormData(prev => ({
@@ -924,10 +968,66 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     setAttemptedSubmit(true);
     if (validateForm()) {
       try {
-        const apiData = convertFormToApiData(formData);
-        const url = initialData ? `http://localhost:9090/strategy/${initialData.id}` : 'http://localhost:9090/strategy';
+        setLoading(true);
+
+        // Helper function to get indicator string
+        const getIndicatorString = (indicator: Indicator): string => {
+          if (indicator.name === 'Number') {
+            return indicator.config.value?.toString() || '0';
+          }
+          const params = [
+            'close',
+            ...Object.values(indicator.config || {}).map(val => val.toString())
+          ];
+          return `${indicator.name}(${params.join(', ')})`;
+        };
+
+        // Helper function to stringify a single expression
+        const stringifyExpression = (expression: IndicatorExpression): string => {
+          const expr = `${getIndicatorString(expression.indicator1)} ${expression.operator} ${getIndicatorString(expression.indicator2)}`;
+          return expr;
+        };
+        
+        // Helper function to convert expressions array to string
+        const stringifyConditions = (conditions: IndicatorExpression[]): string => {
+          if (conditions.length === 0) return '';
+          if (conditions.length === 1) return stringifyExpression(conditions[0]);
+
+          return conditions.reduce((acc, condition, index) => {
+            if (index === 0) return stringifyExpression(condition);
+            return `${acc} ${condition.logicalOperator} ${stringifyExpression(condition)}`;
+          }, '');
+        };
+
+        const apiData = {
+          name: formData.name,
+          description: formData.description,
+          position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
+          instruments: selectedInstruments.map(i => i.instrument_id),
+          chart_type: formData.candlestickType,
+          chart_timeframe: formData.timeframe,
+          trade_type: formData.tradeType,
+          qty: parseInt(formData.maxQuantity) || 0,
+          capital: parseInt(formData.maxAllocation) || 0,
+          entry_expression: stringifyConditions(formData.entryConditions),
+          exit_expression: stringifyConditions(formData.exitConditions),
+          stop_loss: parseFloat(formData.stopLoss) || 0,
+          stop_loss_type: formData.stopLossType,
+          target_profit: parseFloat(formData.targetProfit) || 0,
+          target_profit_type: formData.targetProfitType,
+          trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
+          trailing_stop_loss_type: formData.trailingStopLossType,
+          entry_start_time: formData.entryStartTime ? formData.entryStartTime.format() : null,
+          entry_end_time: formData.entryEndTime ? formData.entryEndTime.format() : null,
+          start_date: formData.startDate ? formData.startDate.format() : null,
+          end_date: formData.endDate ? formData.endDate.format() : null,
+        };
+
+        const isEdit = !!initialData?.id;
+        const url = isEdit ? `http://localhost:9090/strategy/${initialData.id}` : 'http://localhost:9090/strategy';
+        
         const response = await fetch(url, {
-          method: initialData ? 'PUT' : 'POST',
+          method: isEdit ? 'PUT' : 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -940,7 +1040,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
 
         const result = await response.json();
         if (result.result) {
-          console.log('Strategy saved successfully');
           router.push('/strategy');
         } else {
           throw new Error(result.error || 'Failed to save strategy');
@@ -951,6 +1050,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           ...prev,
           submit: errorMessage
         }));
+      } finally {
+        setLoading(false);
       }
     } else {
       const sectionsWithErrors = new Set<string>();
@@ -1226,6 +1327,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     }
   };
 
+  const handleClear = () => {
+    setFormData(initialFormData);
+    setSelectedInstruments([]);
+    setBacktestResults(null);
+    setErrors({});
+    setAttemptedSubmit(false);
+  };
+
   return (
     <form>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
@@ -1296,9 +1405,9 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
         <Button 
           variant="outlined" 
-          onClick={() => router.push('/strategy')}
+          onClick={handleClear}
         >
-          Cancel
+          Clear
         </Button>
         <Button 
           variant="contained" 
@@ -1309,7 +1418,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
         <Button 
           variant="contained" 
           onClick={handleBacktest}
-          disabled={isBacktesting}
+          disabled={isBacktesting || !isFormValid()}
         >
           {isBacktesting ? <CircularProgress size={24} /> : 'Backtest'}
         </Button>
