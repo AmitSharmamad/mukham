@@ -19,6 +19,7 @@ const DEFAULT_INDICATOR_VALUES = {
   ATR: { period: 14, offset: 0, field: 'CLOSE' },
   STOCH: { period: 14, offset: 0, field: 'CLOSE' },
   Number: { value: 0 },
+  CLOSE: { offset: 0 }
 } as const;
 
 const INDICATORS = [
@@ -158,6 +159,7 @@ const getIndicatorValueString = (indicator: Indicator): string => {
     case 'BB_MIDDLE':
       return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.deviations || ''}, ${indicator.config?.offset || 0})`;
     case 'CLOSE':
+      return `CLOSE(${indicator.config?.offset || 0})`;
     case 'OPEN':
     case 'HIGH':
     case 'LOW':
@@ -214,6 +216,7 @@ const getExpressionString = (indicator: Indicator): string => {
     case 'BB_MIDDLE':
       return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.deviations || ''}, ${indicator.config?.offset || 0})`;
     case 'CLOSE':
+      return `CLOSE(${indicator.config?.offset || 0})`;
     case 'OPEN':
     case 'HIGH':
     case 'LOW':
@@ -539,19 +542,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                     inputProps={{ min: 0 }}
                   />
                 </Grid>
-              ) : (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Period"
-                    type="number"
-                    value={modalConfig.period ?? ''}
-                    onChange={handleConfigChange('period')}
-                    inputProps={{ min: 0 }}
-                  />
-                </Grid>
-              )}
-              {!['Number', 'CLOSE', 'OPEN', 'HIGH', 'LOW', 'VOLUME', 'MARKET_POSITION'].includes(indicator.name) && (
+              ) : indicator.name === 'CLOSE' ? (
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -562,6 +553,29 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                     inputProps={{ min: 0 }}
                   />
                 </Grid>
+              ) : (
+                <>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Period"
+                      type="number"
+                      value={modalConfig.period ?? ''}
+                      onChange={handleConfigChange('period')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
+                </>
               )}
             </Grid>
           </Box>
