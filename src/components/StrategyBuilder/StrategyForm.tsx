@@ -137,6 +137,7 @@ interface ApiFormData {
   instruments: number[];
   chart_type: string;
   chart_timeframe: string;
+  trade_type: string;
   qty: number;
   entry_expression: string;
   exit_expression: string;
@@ -148,10 +149,10 @@ interface ApiFormData {
   trailing_stop_loss_type: 'ABSOLUTE' | 'PERCENTAGE';
   capital: number;
   max_trades: number;
-  entry_start_time: string;
-  entry_end_time: string;
-  start_date: string;
-  end_date: string;
+  entry_start_time: string | null;
+  entry_end_time: string | null;
+  start_date: string | null;
+  end_date: string | null;
 }
 
 interface BacktestRun {
@@ -188,8 +189,10 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
         return indicator.config.value?.toString() || '0';
       }
       const params = [
-        'close',
-        ...Object.values(indicator.config || {}).map(val => val.toString())
+        indicator.config.offset ? `close[${indicator.config.offset}]` : 'close',
+        ...Object.values(indicator.config || {})
+          .filter(val => val !== indicator.config.offset) // Exclude offset from other params
+          .map(val => val.toString())
       ];
       return `${indicator.name}(${params.join(', ')})`;
     };
@@ -208,53 +211,29 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
     }, '');
   };
 
-  // Create a base date (today) for all time-related fields
-  const baseDate = formData.startDate || dayjs();
-
-  // Format dates to ISO string at start of day
-  const startDate = formData.startDate 
-    ? formData.startDate.startOf('day').toISOString() 
-    : baseDate.startOf('day').toISOString();
-  
-  const endDate = formData.endDate 
-    ? formData.endDate.startOf('day').toISOString() 
-    : baseDate.startOf('day').toISOString();
-
-  // Set default trading hours if not provided (9:15 AM to 3:30 PM)
-  const defaultStartTime = baseDate.startOf('day').hour(9).minute(15);
-  const defaultEndTime = baseDate.startOf('day').hour(15).minute(30);
-
-  // Combine date and time for entry times
-  const entryStartTime = formData.entryStartTime
-    ? baseDate.hour(formData.entryStartTime.hour()).minute(formData.entryStartTime.minute()).toISOString()
-    : defaultStartTime.toISOString();
-
-  const entryEndTime = formData.entryEndTime
-    ? baseDate.hour(formData.entryEndTime.hour()).minute(formData.entryEndTime.minute()).toISOString()
-    : defaultEndTime.toISOString();
-
   return {
     name: formData.name,
     description: formData.description,
     position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
-    instruments: formData.instruments || [],
+    instruments: formData.instruments,
     chart_type: formData.candlestickType,
     chart_timeframe: formData.timeframe,
+    trade_type: formData.tradeType,
     qty: parseInt(formData.maxQuantity) || 0,
+    capital: parseInt(formData.maxAllocation) || 0,
     entry_expression: stringifyConditions(formData.entryConditions),
     exit_expression: stringifyConditions(formData.exitConditions),
-    target_profit: parseFloat(formData.targetProfit) || 0,
-    target_profit_type: formData.targetProfitType,
     stop_loss: parseFloat(formData.stopLoss) || 0,
     stop_loss_type: formData.stopLossType,
+    target_profit: parseFloat(formData.targetProfit) || 0,
+    target_profit_type: formData.targetProfitType,
     trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
     trailing_stop_loss_type: formData.trailingStopLossType,
-    capital: parseFloat(formData.initialCapital) || 0,
-    max_trades: 5,
-    entry_start_time: entryStartTime,
-    entry_end_time: entryEndTime,
-    start_date: startDate,
-    end_date: endDate
+    entry_start_time: formData.entryStartTime?.isValid() ? formData.entryStartTime.format('HH:mm:ss') : null,
+    entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('HH:mm:ss') : null,
+    start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DD') : null,
+    end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DD') : null,
+    max_trades: 5
   };
 };
 
@@ -364,6 +343,31 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchInstrumentsByIds = async (instrumentIds: number[]): Promise<Instrument[]> => {
+    try {
+      const response = await fetch(`http://localhost:9090/stock/by-ids?ids=${instrumentIds.join(',')}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (result.result) {
+        return result.data;
+      } else {
+        throw new Error(result.error || 'Failed to fetch instruments');
+      }
+    } catch (error) {
+      console.error('Error fetching instruments:', error);
+      throw error;
+    }
+  };
 
   const isFormValid = () => {
     return !!(
@@ -970,14 +974,23 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       try {
         setLoading(true);
 
+        // Fetch instrument details if not already in selectedInstruments
+        let instruments = selectedInstruments;
+        if (formData.instruments.length > 0 && selectedInstruments.length === 0) {
+          instruments = await fetchInstrumentsByIds(formData.instruments);
+          setSelectedInstruments(instruments);
+        }
+
         // Helper function to get indicator string
         const getIndicatorString = (indicator: Indicator): string => {
           if (indicator.name === 'Number') {
             return indicator.config.value?.toString() || '0';
           }
           const params = [
-            'close',
-            ...Object.values(indicator.config || {}).map(val => val.toString())
+            indicator.config.offset ? `close[${indicator.config.offset}]` : 'close',
+            ...Object.values(indicator.config || {})
+              .filter(val => val !== indicator.config.offset) // Exclude offset from other params
+              .map(val => val.toString())
           ];
           return `${indicator.name}(${params.join(', ')})`;
         };
@@ -1286,6 +1299,13 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       if (data.result) {
         const strategyData = data.data;
         
+        // First fetch the instrument details
+        let instrumentsData: Instrument[] = [];
+        if (strategyData.instruments && strategyData.instruments.length > 0) {
+          instrumentsData = await fetchInstrumentsByIds(strategyData.instruments);
+          setSelectedInstruments(instrumentsData);
+        }
+        
         const entryConditions = parseExpressions(strategyData.entry_expression);
         const exitConditions = parseExpressions(strategyData.exit_expression);
         
@@ -1294,7 +1314,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           name: strategyData.name,
           description: strategyData.description,
           buyOrSell: strategyData.position_type === 'LONG' ? 'buy' : 'sell',
-          instruments: strategyData.instruments,
+          instruments: strategyData.instruments || [],
           candlestickType: strategyData.chart_type || 'CANDLESTICK',
           timeframe: strategyData.chart_timeframe,
           tradeType: strategyData.trade_type || 'MIS',

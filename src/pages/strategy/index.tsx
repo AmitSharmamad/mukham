@@ -15,7 +15,7 @@ import {
   DialogContentText,
   DialogActions 
 } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import type { Strategy } from '../../types/strategy';
 
@@ -28,6 +28,7 @@ export default function StrategyList() {
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [cloning, setCloning] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; strategy: Strategy | null }>({
     open: false,
     strategy: null
@@ -127,6 +128,33 @@ export default function StrategyList() {
     }
   };
 
+  const handleCloneStrategy = async (event: React.MouseEvent, strategy: Strategy) => {
+    event.stopPropagation(); // Prevent card click when clicking clone
+    try {
+      setCloning(strategy.id);
+      const response = await fetch(`http://localhost:9090/strategy/${strategy.id}/clone`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.result) {
+        // Refresh the strategies list to show the cloned strategy
+        await fetchStrategies();
+      } else {
+        throw new Error(data.error || 'Failed to clone strategy');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error cloning strategy';
+      setError(errorMessage);
+    } finally {
+      setCloning(null);
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
@@ -212,23 +240,38 @@ export default function StrategyList() {
                   <CardContent sx={{ position: 'relative' }}>
                     <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                       <Typography variant="h6" gutterBottom>{strategy.name}</Typography>
-                      <IconButton 
-                        size="small" 
-                        onClick={(e) => handleDeleteClick(e, strategy)}
-                        disabled={deleting === strategy.id}
-                        sx={{ 
-                          position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          '&:hover': { color: 'error.main' }
-                        }}
-                      >
-                        {deleting === strategy.id ? (
-                          <CircularProgress size={20} />
-                        ) : (
-                          <DeleteIcon />
-                        )}
-                      </IconButton>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton 
+                          size="small" 
+                          onClick={(e) => handleCloneStrategy(e, strategy)}
+                          disabled={cloning === strategy.id}
+                          title="Clone Strategy"
+                          sx={{ 
+                            '&:hover': { color: 'primary.main' }
+                          }}
+                        >
+                          {cloning === strategy.id ? (
+                            <CircularProgress size={20} />
+                          ) : (
+                            <ContentCopyIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                        <IconButton 
+                          size="small" 
+                          onClick={(e) => handleDeleteClick(e, strategy)}
+                          disabled={deleting === strategy.id}
+                          title="Delete Strategy"
+                          sx={{ 
+                            '&:hover': { color: 'error.main' }
+                          }}
+                        >
+                          {deleting === strategy.id ? (
+                            <CircularProgress size={20} />
+                          ) : (
+                            <DeleteIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </Box>
                     </Box>
                     <Typography color="textSecondary" noWrap>{strategy.description}</Typography>
                     <Typography variant="body2" sx={{ mt: 1 }}>

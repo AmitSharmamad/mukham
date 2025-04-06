@@ -51,47 +51,84 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const limit = 20;
 
+  // Load selected instruments when selectedInstruments prop changes
   useEffect(() => {
-    const fetchInstruments = async () => {
-      if (!selectedExchange) {
-        setInstruments([]);
-        return;
-      }
+    setTempSelected(selectedInstruments);
+  }, [selectedInstruments]);
 
+  // Search functionality - only triggered when modal is open
+  useEffect(() => {
+    if (!open) {
+      setInstruments([]);
+      return;
+    }
+
+    let active = true;
+    const fetchInstruments = async () => {
       setLoading(true);
       try {
-        const queryParams = new URLSearchParams();
-        queryParams.append('exchange', selectedExchange);
-        if (selectedSegment) queryParams.append('segment', selectedSegment);
-        queryParams.append('page', page.toString());
-        queryParams.append('limit', limit.toString());
-        if (searchQuery) queryParams.append('search', searchQuery);
+        const queryParams = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+        
+        if (selectedExchange) {
+          queryParams.append('exchange', selectedExchange);
+        }
+        
+        if (selectedSegment) {
+          queryParams.append('segment', selectedSegment);
+        }
+        
+        if (searchQuery) {
+          queryParams.append('query', searchQuery);
+        }
 
         const response = await fetch(`http://localhost:9090/stock?${queryParams.toString()}`);
-        if (!response.ok) throw new Error('Failed to fetch instruments');
-        
         const responseData = await response.json();
-        console.log('API Response:', responseData); // Debug log
-        
-        setInstruments(responseData.data || []);
-        setTotalPages(responseData.total_pages || 1);
+        console.log('Response:', responseData); // Debug log
+
+        if (active) {
+          if (responseData.data) {
+            setInstruments(responseData.data);
+            setTotalPages(Math.ceil(responseData.total / limit) || 1);
+          } else {
+            setInstruments([]);
+            setTotalPages(1);
+          }
+          setLoading(false);
+        }
       } catch (error) {
-        console.error('Error fetching instruments:', error);
-        setInstruments([]);
-      } finally {
-        setLoading(false);
+        console.error('Error searching instruments:', error);
+        if (active) {
+          setInstruments([]);
+          setTotalPages(1);
+          setLoading(false);
+        }
       }
     };
 
-    fetchInstruments();
-  }, [selectedExchange, selectedSegment, page, searchQuery]);
+    if (searchQuery || selectedExchange || selectedSegment) {
+      const debounceTimeout = setTimeout(fetchInstruments, 300);
+      return () => {
+        active = false;
+        clearTimeout(debounceTimeout);
+      };
+    } else {
+      fetchInstruments();
+      return () => {
+        active = false;
+      };
+    }
+  }, [selectedExchange, selectedSegment, page, searchQuery, open, limit]);
 
   const handleClose = () => {
     setPage(1);
     setSearchQuery('');
-    setTempSelected(selectedInstruments);
+    setInstruments([]);
     setSelectedExchange(null);
     setSelectedSegment(null);
+    setTempSelected(selectedInstruments); // Reset to original selection
     onClose();
   };
 
@@ -116,7 +153,6 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 options={exchanges}
                 value={selectedExchange}
                 onChange={(_, newValue) => {
-                  console.log('Selected Exchange:', newValue); // Debug log
                   setSelectedExchange(newValue);
                   setSelectedSegment(null);
                   setPage(1);
@@ -152,64 +188,65 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
               />
             </Grid>
             <Grid item xs={12}>
-              {loading ? (
-                <Box display="flex" justifyContent="center" my={2}>
-                  <CircularProgress />
-                </Box>
-              ) : (
-                <>
-                  <Autocomplete
-                    multiple
-                    filterSelectedOptions
-                    options={instruments}
-                    getOptionLabel={(option) => `${option.symbol} - ${option.instrument_name}`}
-                    value={tempSelected}
-                    onChange={(_, newValue) => {
-                      setTempSelected(newValue);
-                    }}
-                    onInputChange={(_, value) => {
-                      setSearchQuery(value);
-                      setPage(1);
-                    }}
-                    renderOption={(props, option) => (
-                      <li {...props}>
-                        <Box>
-                          <strong>{option.symbol}</strong> - {option.instrument_name}
-                        </Box>
-                      </li>
-                    )}
-                    renderTags={(value, getTagProps) =>
-                      value.map((option, index) => (
-                        <Box
-                          component="span"
-                          {...getTagProps({ index })}
-                          key={option.instrument_id}
-                        >
-                          {option.symbol}
-                        </Box>
-                      ))
-                    }
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        variant="outlined"
-                        label="Search Instruments"
-                        placeholder="Type to search"
-                      />
-                    )}
-                    disabled={!selectedExchange}
-                  />
-                  {instruments.length > 0 && (
-                    <Box display="flex" justifyContent="center" mt={2}>
-                      <Pagination
-                        count={totalPages}
-                        page={page}
-                        onChange={handlePageChange}
-                        color="primary"
-                      />
+              <Autocomplete
+                multiple
+                options={instruments}
+                loading={loading}
+                getOptionLabel={(option) => `${option.symbol} - ${option.instrument_name}`}
+                value={tempSelected}
+                onChange={(_, newValue) => {
+                  setTempSelected(newValue);
+                }}
+                onInputChange={(_, value) => {
+                  setSearchQuery(value);
+                  setPage(1);
+                }}
+                isOptionEqualToValue={(option, value) => option.instrument_id === value.instrument_id}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <Box>
+                      <strong>{option.symbol}</strong> - {option.instrument_name}
                     </Box>
-                  )}
-                </>
+                  </li>
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Box
+                      component="span"
+                      {...getTagProps({ index })}
+                      key={option.instrument_id}
+                    >
+                      {option.symbol}
+                    </Box>
+                  ))
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="outlined"
+                    label="Search Instruments"
+                    placeholder="Type to search"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+              {instruments.length > 0 && (
+                <Box display="flex" justifyContent="center" mt={2}>
+                  <Pagination
+                    count={totalPages}
+                    page={page}
+                    onChange={handlePageChange}
+                    color="primary"
+                  />
+                </Box>
               )}
             </Grid>
           </Grid>
