@@ -1,29 +1,43 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { ThemeMode, ThemeColor, themes } from '../theme';
 
 interface ThemeContextType {
-  isDarkMode: boolean;
-  toggleTheme: () => void;
+  mode: ThemeMode;
+  color: ThemeColor;
+  toggleMode: () => void;
+  setThemeColor: (color: ThemeColor) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextType>({
-  isDarkMode: true,
-  toggleTheme: () => {},
+  mode: 'dark',
+  color: 'default',
+  toggleMode: () => {},
+  setThemeColor: () => {},
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mounted, setMounted] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  const [mode, setMode] = useState<ThemeMode>('dark');
+  const [color, setColor] = useState<ThemeColor>('default');
 
   useEffect(() => {
     setMounted(true);
-    const savedTheme = localStorage.getItem('theme');
-    setIsDarkMode(savedTheme ? savedTheme === 'dark' : true);
+    const savedMode = localStorage.getItem('themeMode') as ThemeMode;
+    const savedColor = localStorage.getItem('themeColor') as ThemeColor;
+    
+    setMode(savedMode || 'dark');
+    setColor(savedColor && themes.includes(savedColor) ? savedColor : 'default');
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = !isDarkMode;
-    setIsDarkMode(newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+  const toggleMode = () => {
+    const newMode = mode === 'dark' ? 'light' : 'dark';
+    setMode(newMode);
+    localStorage.setItem('themeMode', newMode);
+  };
+
+  const setThemeColor = (newColor: ThemeColor) => {
+    setColor(newColor);
+    localStorage.setItem('themeColor', newColor);
   };
 
   // Prevent flash of incorrect theme
@@ -32,7 +46,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
+    <ThemeContext.Provider value={{ mode, color, toggleMode, setThemeColor }}>
       {children}
     </ThemeContext.Provider>
   );
