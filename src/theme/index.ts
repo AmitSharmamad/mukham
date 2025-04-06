@@ -1,5 +1,8 @@
 import { createTheme, ThemeOptions } from '@mui/material';
 
+export type ThemeMode = 'light' | 'dark';
+export type ThemeColor = 'default' | 'ubuntu' | 'github' | 'dracula' | 'nord';
+
 // Common theme properties
 const commonProperties: ThemeOptions = {
   typography: {
@@ -66,62 +69,204 @@ const commonProperties: ThemeOptions = {
   },
 };
 
-export const lightTheme: ThemeOptions = {
-  ...commonProperties,
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#cf087c',
-      light: '#e54a9e',
-      dark: '#a8005f',
-      contrastText: '#ffffff',
+const themeColors = {
+  default: {
+    light: {
+      primary: {
+        main: '#1976d2',
+        light: '#42a5f5',
+        dark: '#1565c0',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#9c27b0',
+        light: '#ba68c8',
+        dark: '#7b1fa2',
+        contrastText: '#ffffff',
+      },
     },
-    secondary: {
-      main: '#424242',
-      light: '#6d6d6d',
-      dark: '#1b1b1b',
-      contrastText: '#ffffff',
-    },
-    background: {
-      default: '#f7f7f7',
-      paper: '#ffffff',
-    },
-    text: {
-      primary: '#2c2c2c',
-      secondary: '#575757',
-    },
-    divider: 'rgba(0, 0, 0, 0.12)',
+    dark: {
+      primary: {
+        main: '#90caf9',
+        light: '#e3f2fd',
+        dark: '#42a5f5',
+        contrastText: '#000000',
+      },
+      secondary: {
+        main: '#ce93d8',
+        light: '#f3e5f5',
+        dark: '#ab47bc',
+        contrastText: '#000000',
+      },
+    }
   },
+  ubuntu: {
+    light: {
+      primary: {
+        main: '#E95420',
+        light: '#F07746',
+        dark: '#C03F11',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#AEA79F',
+        light: '#C4C4C4',
+        dark: '#878787',
+        contrastText: '#000000',
+      },
+    },
+    dark: {
+      primary: {
+        main: '#E95420',
+        light: '#F07746',
+        dark: '#C03F11',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#AEA79F',
+        light: '#C4C4C4',
+        dark: '#878787',
+        contrastText: '#000000',
+      },
+      background: {
+        default: '#300A24',
+        paper: '#2C001E',
+      },
+    }
+  },
+  github: {
+    light: {
+      primary: {
+        main: '#2188ff',
+        light: '#79b8ff',
+        dark: '#0366d6',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#6f42c1',
+        light: '#8a63d2',
+        dark: '#5a32a3',
+        contrastText: '#ffffff',
+      },
+    },
+    dark: {
+      primary: {
+        main: '#2188ff',
+        light: '#79b8ff',
+        dark: '#0366d6',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#6f42c1',
+        light: '#8a63d2',
+        dark: '#5a32a3',
+        contrastText: '#ffffff',
+      },
+      background: {
+        default: '#0d1117',
+        paper: '#161b22',
+      },
+    }
+  },
+  dracula: {
+    light: {
+      primary: {
+        main: '#bd93f9',
+        light: '#d8b9ff',
+        dark: '#9580ff',
+        contrastText: '#282a36',
+      },
+      secondary: {
+        main: '#ff79c6',
+        light: '#ff9cdb',
+        dark: '#ff56b1',
+        contrastText: '#282a36',
+      },
+    },
+    dark: {
+      primary: {
+        main: '#bd93f9',
+        light: '#d8b9ff',
+        dark: '#9580ff',
+        contrastText: '#282a36',
+      },
+      secondary: {
+        main: '#ff79c6',
+        light: '#ff9cdb',
+        dark: '#ff56b1',
+        contrastText: '#282a36',
+      },
+      background: {
+        default: '#282a36',
+        paper: '#44475a',
+      },
+    }
+  },
+  nord: {
+    light: {
+      primary: {
+        main: '#5E81AC',
+        light: '#81A1C1',
+        dark: '#4C566A',
+        contrastText: '#ECEFF4',
+      },
+      secondary: {
+        main: '#88C0D0',
+        light: '#8FBCBB',
+        dark: '#5E81AC',
+        contrastText: '#2E3440',
+      },
+    },
+    dark: {
+      primary: {
+        main: '#88C0D0',
+        light: '#8FBCBB',
+        dark: '#5E81AC',
+        contrastText: '#2E3440',
+      },
+      secondary: {
+        main: '#81A1C1',
+        light: '#5E81AC',
+        dark: '#4C566A',
+        contrastText: '#ECEFF4',
+      },
+      background: {
+        default: '#2E3440',
+        paper: '#3B4252',
+      },
+    }
+  }
 };
 
-export const darkTheme: ThemeOptions = {
-  ...commonProperties,
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#cf087c',
-      light: '#e54a9e',
-      dark: '#a8005f',
-      contrastText: '#ffffff',
+export const getTheme = (mode: ThemeMode, color: ThemeColor) => {
+  const baseTheme: ThemeOptions = {
+    ...commonProperties,
+    palette: {
+      mode,
+      ...(mode === 'light' ? {
+        background: {
+          default: '#f7f7f7',
+          paper: '#ffffff',
+        },
+        text: {
+          primary: '#2c2c2c',
+          secondary: '#575757',
+        },
+      } : {
+        background: {
+          default: '#121212',
+          paper: '#1e1e1e',
+        },
+        text: {
+          primary: '#ffffff',
+          secondary: '#b3b3b3',
+        },
+      }),
+      ...themeColors[color][mode],
     },
-    secondary: {
-      main: '#90caf9',
-      light: '#e3f2fd',
-      dark: '#42a5f5',
-      contrastText: '#000000',
-    },
-    background: {
-      default: '#121212',
-      paper: '#1e1e1e',
-    },
-    text: {
-      primary: '#ffffff',
-      secondary: '#b3b3b3',
-    },
-    divider: 'rgba(255, 255, 255, 0.12)',
-  },
+  };
+
+  return createTheme(baseTheme);
 };
 
-// Create and export the actual themes
-export const light = createTheme(lightTheme);
-export const dark = createTheme(darkTheme);
+export const themes = Object.keys(themeColors) as ThemeColor[];

@@ -1,32 +1,42 @@
 import { useState } from 'react';
-import { AppBar, Box, Container, IconButton, Menu, MenuItem, Toolbar, Typography, useMediaQuery } from '@mui/material';
+import { AppBar, Box, Container, IconButton, Menu, MenuItem, Toolbar, Typography, useMediaQuery, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { AccountCircle, Brightness4, Brightness7 } from '@mui/icons-material';
+import { AccountCircle, Brightness4, Brightness7, Palette } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Button } from '../Button';
 import { Footer } from '../Footer';
-
-interface MainLayoutProps {
-  children: React.ReactNode;
-  onToggleTheme: () => void;
-  isDarkMode: boolean;
-}
+import { ThemeColor, themes } from '../../theme';
 
 const navItems = [
   { label: 'Home', path: '/home' },
   { label: 'Strategy', path: '/strategy' },
   { label: 'Reports', path: '/reports' },
-  { label: 'Docs', path: '/docs' },
+  { label: 'Docs', path: '/docs' }
 ];
 
 const profileMenuItems = [
   { label: 'Profile', path: '/profile' },
-  { label: 'Support', path: '/support' },
+  { label: 'Support', path: '/support' }
 ];
 
-export const MainLayout = ({ children, onToggleTheme, isDarkMode }: MainLayoutProps) => {
+interface MainLayoutProps {
+  children: React.ReactNode;
+  onToggleTheme: () => void;
+  isDarkMode: boolean;
+  onChangeThemeColor: (color: ThemeColor) => void;
+  currentTheme: ThemeColor;
+}
+
+export const MainLayout = ({ 
+  children, 
+  onToggleTheme, 
+  isDarkMode,
+  onChangeThemeColor,
+  currentTheme 
+}: MainLayoutProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [themeAnchorEl, setThemeAnchorEl] = useState<null | HTMLElement>(null);
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -42,6 +52,19 @@ export const MainLayout = ({ children, onToggleTheme, isDarkMode }: MainLayoutPr
   const handleMenuItemClick = (path: string) => {
     router.push(path);
     handleClose();
+  };
+
+  const handleThemeMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setThemeAnchorEl(event.currentTarget);
+  };
+
+  const handleThemeMenuClose = () => {
+    setThemeAnchorEl(null);
+  };
+
+  const handleThemeSelect = (theme: ThemeColor) => {
+    onChangeThemeColor(theme);
+    handleThemeMenuClose();
   };
 
   return (
@@ -94,9 +117,36 @@ export const MainLayout = ({ children, onToggleTheme, isDarkMode }: MainLayoutPr
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <IconButton onClick={onToggleTheme} color="inherit">
-              {isDarkMode ? <Brightness7 /> : <Brightness4 />}
-            </IconButton>
+            <Tooltip title="Toggle light/dark mode">
+              <IconButton onClick={onToggleTheme} color="inherit">
+                {isDarkMode ? <Brightness7 /> : <Brightness4 />}
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="Change theme color">
+              <IconButton
+                onClick={handleThemeMenuOpen}
+                color="inherit"
+              >
+                <Palette />
+              </IconButton>
+            </Tooltip>
+
+            <Menu
+              anchorEl={themeAnchorEl}
+              open={Boolean(themeAnchorEl)}
+              onClose={handleThemeMenuClose}
+            >
+              {themes.map((theme) => (
+                <MenuItem
+                  key={theme}
+                  onClick={() => handleThemeSelect(theme)}
+                  selected={theme === currentTheme}
+                >
+                  {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                </MenuItem>
+              ))}
+            </Menu>
 
             {/* Profile icon with increased spacing */}
             <Box sx={{ 
