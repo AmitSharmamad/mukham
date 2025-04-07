@@ -1,7 +1,7 @@
 import { createTheme, ThemeOptions } from '@mui/material';
 
 export type ThemeMode = 'light' | 'dark';
-export type ThemeColor = 'default' | 'ubuntu' | 'github' | 'dracula' | 'nord';
+export type ThemeColor = 'default' | 'ubuntu' | 'github' | 'dracula' | 'nord' | 'forest' | 'bull' | 'bear';
 
 // Common theme properties
 const commonProperties: ThemeOptions = {
@@ -233,6 +233,148 @@ const themeColors = {
       background: {
         default: '#2E3440',
         paper: '#3B4252',
+      },
+    }
+  },
+  forest: {
+    light: {
+      primary: {
+        main: '#638C6D',
+        light: '#E7FBB4',
+        dark: '#4A6B52',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#DF6D2D',
+        light: '#E88B55',
+        dark: '#C84C05',
+        contrastText: '#ffffff',
+      },
+    },
+    dark: {
+      primary: {
+        main: '#638C6D',
+        light: '#E7FBB4',
+        dark: '#4A6B52',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#DF6D2D',
+        light: '#E88B55',
+        dark: '#C84C05',
+        contrastText: '#ffffff',
+      },
+      background: {
+        default: '#2C3B2E',
+        paper: '#364839',
+      },
+    }
+  },
+  bull: {
+    light: {
+      primary: {
+        main: '#00C805',
+        light: '#92E399',
+        dark: '#007F03',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#2E7D32',
+        light: '#4CAF50',
+        dark: '#1B5E20',
+        contrastText: '#ffffff',
+      },
+      success: {
+        main: '#00C805',
+        light: '#92E399',
+        dark: '#007F03',
+      },
+      error: {
+        main: '#FF4D4D',
+        light: '#FF8080',
+        dark: '#CC0000',
+      }
+    },
+    dark: {
+      primary: {
+        main: '#00C805',
+        light: '#92E399',
+        dark: '#007F03',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#2E7D32',
+        light: '#4CAF50',
+        dark: '#1B5E20',
+        contrastText: '#ffffff',
+      },
+      success: {
+        main: '#00C805',
+        light: '#92E399',
+        dark: '#007F03',
+      },
+      error: {
+        main: '#FF4D4D',
+        light: '#FF8080',
+        dark: '#CC0000',
+      },
+      background: {
+        default: '#0A1F0C',
+        paper: '#122815',
+      },
+    }
+  },
+  bear: {
+    light: {
+      primary: {
+        main: '#FF4D4D',
+        light: '#FF8080',
+        dark: '#CC0000',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#D32F2F',
+        light: '#EF5350',
+        dark: '#C62828',
+        contrastText: '#ffffff',
+      },
+      success: {
+        main: '#00C805',
+        light: '#92E399',
+        dark: '#007F03',
+      },
+      error: {
+        main: '#FF4D4D',
+        light: '#FF8080',
+        dark: '#CC0000',
+      }
+    },
+    dark: {
+      primary: {
+        main: '#FF4D4D',
+        light: '#FF8080',
+        dark: '#CC0000',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#D32F2F',
+        light: '#EF5350',
+        dark: '#C62828',
+        contrastText: '#ffffff',
+      },
+      success: {
+        main: '#00C805',
+        light: '#92E399',
+        dark: '#007F03',
+      },
+      error: {
+        main: '#FF4D4D',
+        light: '#FF8080',
+        dark: '#CC0000',
+      },
+      background: {
+        default: '#1F0A0A',
+        paper: '#281212',
       },
     }
   }
