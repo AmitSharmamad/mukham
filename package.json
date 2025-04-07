@@ -10,6 +10,8 @@
     "@date-io/dayjs": "^3.2.0",
     "@emotion/react": "^11.0.0",
     "@emotion/styled": "^11.0.0",
+    "@fontsource/bungee-spice": "^5.2.6",
+    "@fontsource/bungee-tint": "^5.2.6",
     "@mui/icons-material": "^5.0.0",
     "@mui/material": "^5.0.0",
     "@mui/x-date-pickers": "^7.28.2",

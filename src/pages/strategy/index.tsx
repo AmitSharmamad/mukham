@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions 
+  DialogActions,
+  Snackbar
 } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
@@ -33,6 +34,27 @@ export default function StrategyList() {
     open: false,
     strategy: null
   });
+  const [toast, setToast] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info' | 'warning';
+  }>({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
+
+  const handleCloseToast = () => {
+    setToast(prev => ({ ...prev, open: false }));
+  };
+
+  const showToast = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setToast({
+      open: true,
+      message,
+      severity
+    });
+  };
 
   const fetchStrategies = async () => {
     try {
@@ -107,22 +129,17 @@ export default function StrategyList() {
         method: 'DELETE',
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
       if (data.result) {
-        // Remove the strategy from both arrays
+        showToast('Strategy deleted successfully', 'success');
         setStrategies(prev => prev.filter(s => s.id !== deleteDialog.strategy!.id));
         setFilteredStrategies(prev => prev.filter(s => s.id !== deleteDialog.strategy!.id));
         handleCloseDeleteDialog();
       } else {
-        throw new Error(data.error || 'Failed to delete strategy');
+        showToast(data.error || 'Failed to delete strategy', 'error');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error deleting strategy';
-      setError(errorMessage);
+      showToast('Error deleting strategy', 'error');
     } finally {
       setDeleting(null);
     }
@@ -136,20 +153,15 @@ export default function StrategyList() {
         method: 'POST',
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
       if (data.result) {
-        // Refresh the strategies list to show the cloned strategy
+        showToast('Strategy cloned successfully', 'success');
         await fetchStrategies();
       } else {
-        throw new Error(data.error || 'Failed to clone strategy');
+        showToast(data.error || 'Failed to clone strategy', 'error');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error cloning strategy';
-      setError(errorMessage);
+      showToast('Error cloning strategy', 'error');
     } finally {
       setCloning(null);
     }
@@ -314,6 +326,17 @@ export default function StrategyList() {
               </Button>
             </DialogActions>
           </Dialog>
+
+          <Snackbar
+            open={toast.open}
+            autoHideDuration={6000}
+            onClose={handleCloseToast}
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%' }}>
+              {toast.message}
+            </Alert>
+          </Snackbar>
         </>
       )}
     </Box>

@@ -12,7 +12,9 @@ import {
   Radio,
   RadioGroup,
   Typography,
-  Tooltip
+  Tooltip,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -343,6 +345,27 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info' | 'warning';
+  }>({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
+
+  const handleCloseToast = () => {
+    setToast(prev => ({ ...prev, open: false }));
+  };
+
+  const showToast = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setToast({
+      open: true,
+      message,
+      severity
+    });
+  };
 
   const fetchInstrumentsByIds = async (instrumentIds: number[]): Promise<Instrument[]> => {
     try {
@@ -1053,6 +1076,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
 
         const result = await response.json();
         if (result.result) {
+          showToast('Strategy saved successfully', 'success');
           router.push('/strategy');
         } else {
           throw new Error(result.error || 'Failed to save strategy');
@@ -1063,6 +1087,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           ...prev,
           submit: errorMessage
         }));
+        showToast(errorMessage, 'error');
       } finally {
         setLoading(false);
       }
@@ -1135,17 +1160,20 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
             }
           };
           setBacktestResults(transformedResults);
+          showToast('Backtest completed successfully', 'success');
         } else {
           setErrors(prev => ({
             ...prev,
             submit: 'Failed to run backtest'
           }));
+          showToast('Failed to run backtest', 'error');
         }
       } catch (error) {
         setErrors(prev => ({
           ...prev,
           submit: 'Error connecting to server'
         }));
+        showToast('Error connecting to server', 'error');
       } finally {
         setIsBacktesting(false);
       }
@@ -1175,12 +1203,16 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           ...prev,
           submit: `Failed to deploy strategy for instrument ${instrumentId}`
         }));
+        showToast(`Failed to deploy strategy for instrument ${instrumentId}`, 'error');
+      } else {
+        showToast(`Strategy deployed successfully for instrument ${instrumentId}`, 'success');
       }
     } catch (error) {
       setErrors(prev => ({
         ...prev,
         submit: 'Error connecting to server'
       }));
+      showToast('Error connecting to server', 'error');
     } finally {
       const newSet = new Set(deployingInstruments);
       newSet.delete(instrumentId);
@@ -1445,6 +1477,17 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       </Box>
 
       {backtestResults && renderBacktestResults()}
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={6000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%' }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </form>
   );
 };
