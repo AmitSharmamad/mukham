@@ -25,7 +25,7 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import Cancel from '@mui/icons-material/Cancel';
 import dayjs, { Dayjs } from 'dayjs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../Button';
 import { Select } from '../Select';
 import { TextField } from '../TextField';
@@ -190,13 +190,28 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
       if (indicator.name === 'Number') {
         return indicator.config.value?.toString() || '0';
       }
-      const params = [
-        indicator.config.offset ? `close[${indicator.config.offset}]` : 'close',
-        ...Object.values(indicator.config || {})
-          .filter(val => val !== indicator.config.offset) // Exclude offset from other params
-          .map(val => val.toString())
-      ];
-      return `${indicator.name}(${params.join(', ')})`;
+      switch (indicator.name) {
+        case 'SMA':
+        case 'EMA':
+        case 'RSI':
+          return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
+        case 'MACD':
+          return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || ''}, ${indicator.config?.slowPeriod || ''}, ${indicator.config?.signalPeriod || ''}, ${indicator.config?.offset || 0})`;
+        case 'BB_UPPER':
+        case 'BB_LOWER':
+        case 'BB_MIDDLE':
+          return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.deviations || ''}, ${indicator.config?.offset || 0})`;
+        case 'CLOSE':
+          return `CLOSE(${indicator.config?.offset || 0})`;
+        case 'OPEN':
+        case 'HIGH':
+        case 'LOW':
+        case 'VOLUME':
+        case 'MARKET_POSITION':
+          return indicator.name;
+        default:
+          return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
+      }
     };
 
     const expr = `${getIndicatorString(expression.indicator1)} ${expression.operator} ${getIndicatorString(expression.indicator2)}`;
@@ -231,10 +246,10 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
     target_profit_type: formData.targetProfitType,
     trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
     trailing_stop_loss_type: formData.trailingStopLossType,
-    entry_start_time: formData.entryStartTime?.isValid() ? formData.entryStartTime.format('HH:mm:ss') : null,
-    entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('HH:mm:ss') : null,
-    start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DD') : null,
-    end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DD') : null,
+    entry_start_time: formData.entryStartTime?.isValid() ? formData.entryStartTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+    entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+    start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+    end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
     max_trades: 5
   };
 };
@@ -354,6 +369,37 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
     message: '',
     severity: 'info'
   });
+
+  useEffect(() => {
+    if (initialData) {
+      const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z";
+      
+      setFormData({
+        name: initialData?.name || '',
+        description: initialData?.description || '',
+        buyOrSell: initialData?.buyOrSell || 'buy',
+        instruments: initialData?.instruments || [],
+        candlestickType: initialData?.candlestickType || 'CANDLESTICK',
+        timeframe: initialData?.timeframe || '1 Minute',
+        tradeType: initialData?.tradeType || 'MIS',
+        maxAllocation: initialData?.maxAllocation || '',
+        maxQuantity: initialData?.maxQuantity || '',
+        entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [],
+        exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
+        stopLoss: initialData?.stopLoss || '',
+        stopLossType: initialData?.stopLossType || 'ABSOLUTE',
+        targetProfit: initialData?.targetProfit || '',
+        targetProfitType: initialData?.targetProfitType || 'ABSOLUTE',
+        trailingStopLoss: initialData?.trailingStopLoss || '',
+        trailingStopLossType: initialData?.trailingStopLossType || 'ABSOLUTE',
+        initialCapital: initialData?.initialCapital || '',
+        entryStartTime: isNullTime(initialData.entryStartTime) ? null : dayjs(initialData.entryStartTime),
+        entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime),
+        startDate: dayjs(initialData.startDate),
+        endDate: dayjs(initialData.endDate),
+      });
+    }
+  }, [initialData]);
 
   const handleCloseToast = () => {
     setToast(prev => ({ ...prev, open: false }));
@@ -1009,13 +1055,28 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           if (indicator.name === 'Number') {
             return indicator.config.value?.toString() || '0';
           }
-          const params = [
-            indicator.config.offset ? `close[${indicator.config.offset}]` : 'close',
-            ...Object.values(indicator.config || {})
-              .filter(val => val !== indicator.config.offset) // Exclude offset from other params
-              .map(val => val.toString())
-          ];
-          return `${indicator.name}(${params.join(', ')})`;
+          switch (indicator.name) {
+            case 'SMA':
+            case 'EMA':
+            case 'RSI':
+              return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
+            case 'MACD':
+              return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || ''}, ${indicator.config?.slowPeriod || ''}, ${indicator.config?.signalPeriod || ''}, ${indicator.config?.offset || 0})`;
+            case 'BB_UPPER':
+            case 'BB_LOWER':
+            case 'BB_MIDDLE':
+              return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.deviations || ''}, ${indicator.config?.offset || 0})`;
+            case 'CLOSE':
+              return `CLOSE(${indicator.config?.offset || 0})`;
+            case 'OPEN':
+            case 'HIGH':
+            case 'LOW':
+            case 'VOLUME':
+            case 'MARKET_POSITION':
+              return indicator.name;
+            default:
+              return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
+          }
         };
 
         // Helper function to stringify a single expression
@@ -1053,10 +1114,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           target_profit_type: formData.targetProfitType,
           trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
           trailing_stop_loss_type: formData.trailingStopLossType,
-          entry_start_time: formData.entryStartTime?.isValid() ? formData.entryStartTime.format('HH:mm:ss') : null,
-          entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('HH:mm:ss') : null,
-          start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DD') : null,
-          end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DD') : null,
+          entry_start_time: formData.entryStartTime?.isValid() ? formData.entryStartTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+          entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+          start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+          end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
         };
 
         const isEdit = !!initialData?.id;

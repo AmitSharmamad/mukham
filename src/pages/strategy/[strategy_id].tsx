@@ -25,8 +25,8 @@ interface FormattedStrategy {
   targetProfitType: 'ABSOLUTE' | 'PERCENTAGE';
   trailingStopLoss: string;
   initialCapital: string;
-  entryStartTime: string;
-  entryEndTime: string;
+  entryStartTime: string | null;
+  entryEndTime: string | null;
   startDate: string;
   endDate: string;
 }
@@ -58,6 +58,7 @@ export default function EditStrategy() {
       
       if (data.result) {
         const strategyData = data.data;
+        const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z";
         
         const formData: FormattedStrategy = {
           id: strategyData.id,
@@ -78,8 +79,8 @@ export default function EditStrategy() {
           targetProfitType: strategyData.target_profit_type || 'ABSOLUTE',
           trailingStopLoss: strategyData.trailing_stop_loss?.toString() || '',
           initialCapital: strategyData.capital?.toString() || '',
-          entryStartTime: dayjs(strategyData.entry_start_time).format('HH:mm'),
-          entryEndTime: dayjs(strategyData.entry_end_time).format('HH:mm'),
+          entryStartTime: isNullTime(strategyData.entry_start_time) ? null : dayjs(strategyData.entry_start_time).format('HH:mm'),
+          entryEndTime: isNullTime(strategyData.entry_end_time) ? null : dayjs(strategyData.entry_end_time).format('HH:mm'),
           startDate: dayjs(strategyData.start_date).format('YYYY-MM-DD'),
           endDate: dayjs(strategyData.end_date).format('YYYY-MM-DD'),
         };
