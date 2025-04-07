@@ -20,7 +20,6 @@ interface Instrument {
   symbol: string;
   instrument: string;
   instrument_id: number;
-  instrument_name: string;
   start_date: string;
   expiry: string;
 }
@@ -192,7 +191,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 multiple
                 options={instruments}
                 loading={loading}
-                getOptionLabel={(option) => `${option.symbol} - ${option.instrument} - ${option.instrument_name}`}
+                getOptionLabel={(option) => `${option.symbol} - ${option.instrument}`}
                 value={tempSelected}
                 onChange={(_, newValue) => {
                   setTempSelected(newValue);
@@ -205,7 +204,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 renderOption={(props, option) => (
                   <li {...props}>
                     <Box>
-                      <strong>{option.symbol}</strong> - {option.instrument_name}
+                      <strong>{option.symbol}</strong> - {option.instrument}
                     </Box>
                   </li>
                 )}
