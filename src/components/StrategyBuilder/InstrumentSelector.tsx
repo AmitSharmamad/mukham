@@ -192,7 +192,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 multiple
                 options={instruments}
                 loading={loading}
-                getOptionLabel={(option) => `${option.symbol} - ${option.instrument_name}`}
+                getOptionLabel={(option) => `${option.symbol} - ${option.instrument} - ${option.instrument_name}`}
                 value={tempSelected}
                 onChange={(_, newValue) => {
                   setTempSelected(newValue);

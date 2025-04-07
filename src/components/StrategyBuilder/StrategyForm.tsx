@@ -1030,10 +1030,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           target_profit_type: formData.targetProfitType,
           trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
           trailing_stop_loss_type: formData.trailingStopLossType,
-          entry_start_time: formData.entryStartTime ? formData.entryStartTime.format() : null,
-          entry_end_time: formData.entryEndTime ? formData.entryEndTime.format() : null,
-          start_date: formData.startDate ? formData.startDate.format() : null,
-          end_date: formData.endDate ? formData.endDate.format() : null,
+          entry_start_time: formData.entryStartTime?.isValid() ? formData.entryStartTime.format('HH:mm:ss') : null,
+          entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('HH:mm:ss') : null,
+          start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DD') : null,
+          end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DD') : null,
         };
 
         const isEdit = !!initialData?.id;
