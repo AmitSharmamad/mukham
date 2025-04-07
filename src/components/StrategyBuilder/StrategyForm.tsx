@@ -369,9 +369,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     message: '',
     severity: 'info'
   });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     if (initialData) {
+      setHasUnsavedChanges(false);
       const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z";
       
       setFormData({
@@ -475,6 +477,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         [field]: undefined
       }));
     }
+
+    setHasUnsavedChanges(true);
   };
 
   const validateForm = () => {
@@ -588,6 +592,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         }));
       }
     }
+
+    setHasUnsavedChanges(true);
   };
 
   const handleTimeChange = (field: 'entryStartTime' | 'entryEndTime') => (value: Dayjs | null) => {
@@ -620,6 +626,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         }));
       }
     }
+
+    setHasUnsavedChanges(true);
   };
 
   const handleInstrumentSelect = (instruments: Instrument[]) => {
@@ -1056,76 +1064,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           setSelectedInstruments(instruments);
         }
 
-        // Helper function to get indicator string
-        const getIndicatorString = (indicator: Indicator): string => {
-          if (indicator.name === 'Number') {
-            return indicator.config.value?.toString() || '0';
-          }
-          switch (indicator.name) {
-            case 'SMA':
-            case 'EMA':
-            case 'RSI':
-              return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-            case 'MACD':
-              return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || ''}, ${indicator.config?.slowPeriod || ''}, ${indicator.config?.signalPeriod || ''}, ${indicator.config?.offset || 0})`;
-            case 'BB_UPPER':
-            case 'BB_LOWER':
-            case 'BB_MIDDLE':
-              return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.deviations || ''}, ${indicator.config?.offset || 0})`;
-            case 'CLOSE':
-              return `CLOSE(${indicator.config?.offset || 0})`;
-            case 'OPEN':
-            case 'HIGH':
-            case 'LOW':
-            case 'VOLUME':
-            case 'MARKET_POSITION':
-              return indicator.name;
-            default:
-              return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
-          }
-        };
-
-        // Helper function to stringify a single expression
-        const stringifyExpression = (expression: IndicatorExpression): string => {
-          const expr = `${getIndicatorString(expression.indicator1)} ${expression.operator} ${getIndicatorString(expression.indicator2)}`;
-          return expr;
-        };
-        
-        // Helper function to convert expressions array to string
-        const stringifyConditions = (conditions: IndicatorExpression[]): string => {
-          if (conditions.length === 0) return '';
-          if (conditions.length === 1) return stringifyExpression(conditions[0]);
-
-          return conditions.reduce((acc, condition, index) => {
-            if (index === 0) return stringifyExpression(condition);
-            return `${acc} ${condition.logicalOperator} ${stringifyExpression(condition)}`;
-          }, '');
-        };
-
-        const apiData = {
-          name: formData.name,
-          description: formData.description,
-          position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
-          instruments: selectedInstruments.map(i => i.id),
-          chart_type: formData.candlestickType,
-          chart_timeframe: formData.timeframe,
-          trade_type: formData.tradeType,
-          qty: parseInt(formData.maxQuantity) || 0,
-          capital: parseInt(formData.maxAllocation) || 0,
-          entry_expression: stringifyConditions(formData.entryConditions),
-          exit_expression: stringifyConditions(formData.exitConditions),
-          stop_loss: parseFloat(formData.stopLoss) || 0,
-          stop_loss_type: formData.stopLossType,
-          target_profit: parseFloat(formData.targetProfit) || 0,
-          target_profit_type: formData.targetProfitType,
-          trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
-          trailing_stop_loss_type: formData.trailingStopLossType,
-          entry_start_time: formData.entryStartTime?.isValid() ? formData.entryStartTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-          entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-          start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-          end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-        };
-
+        const apiData = convertFormToApiData(formData);
         const isEdit = !!initialData?.id;
         const url = isEdit ? `http://localhost:9090/strategy/${initialData.id}` : 'http://localhost:9090/strategy';
         
@@ -1144,7 +1083,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         const result = await response.json();
         if (result.result) {
           showToast('Strategy saved successfully', 'success');
-          router.push('/strategy');
+          setHasUnsavedChanges(false); // Reset unsaved changes after successful save
+          if (!isEdit) {
+            router.push('/strategy'); // Only redirect if it's a new strategy
+          }
         } else {
           throw new Error(result.error || 'Failed to save strategy');
         }
@@ -1158,21 +1100,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       } finally {
         setLoading(false);
       }
-    } else {
-      const sectionsWithErrors = new Set<string>();
-      Object.keys(errors).forEach(errorKey => {
-        const section = sections.find(s => 
-          (s.id === 'name' && errorKey === 'name') ||
-          (s.id === 'positions' && ['buyOrSell', 'candlestickType', 'timeframe', 'tradeType'].includes(errorKey)) ||
-          (s.id === 'entry' && errorKey === 'entryConditions') ||
-          (s.id === 'exit' && ['stopLoss', 'targetProfit'].includes(errorKey)) ||
-          (s.id === 'backtest' && ['initialCapital', 'startDate', 'endDate', 'entryStartTime', 'entryEndTime'].includes(errorKey))
-        );
-        if (section) {
-          sectionsWithErrors.add(section.id);
-        }
-      });
-      setExpandedSections(Array.from(sectionsWithErrors));
     }
   };
 
@@ -1452,10 +1379,16 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     setBacktestResults(null);
     setErrors({});
     setAttemptedSubmit(false);
+    setHasUnsavedChanges(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleSave();
   };
 
   return (
-    <form>
+    <form onSubmit={handleSubmit}>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, gap: 2 }}>
         <Button 
           variant="outlined" 
@@ -1531,14 +1464,16 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
         <Button 
           variant="contained" 
-          onClick={handleSave}
+          onClick={handleSubmit}
+          disabled={loading}
+          type="submit"
         >
-          Save
+          {loading ? <CircularProgress size={24} /> : 'Save'}
         </Button>
         <Button 
           variant="contained" 
           onClick={handleBacktest}
-          disabled={isBacktesting || !isFormValid()}
+          disabled={isBacktesting || (initialData && hasUnsavedChanges)}
         >
           {isBacktesting ? <CircularProgress size={24} /> : 'Backtest'}
         </Button>
