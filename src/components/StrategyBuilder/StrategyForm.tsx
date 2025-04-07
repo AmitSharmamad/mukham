@@ -51,7 +51,6 @@ export interface Instrument {
   symbol: string;
   instrument: string;
   instrument_id: number;
-  instrument_name: string;
   start_date: string;
   expiry: string;
 }
@@ -108,11 +107,11 @@ const initialFormData: FormData = {
   entryConditions: [],
   exitConditions: [],
   stopLoss: '',
-  stopLossType: 'ABSOLUTE',
+  stopLossType: 'PERCENTAGE',
   targetProfit: '',
-  targetProfitType: 'ABSOLUTE',
+  targetProfitType: 'PERCENTAGE',
   trailingStopLoss: '',
-  trailingStopLossType: 'ABSOLUTE',
+  trailingStopLossType: 'PERCENTAGE',
   initialCapital: '',
   entryStartTime: null,
   entryEndTime: null,
@@ -339,11 +338,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [],
     exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
     stopLoss: initialData?.stopLoss || '',
-    stopLossType: initialData?.stopLossType || 'ABSOLUTE',
+    stopLossType: initialData?.stopLossType || 'PERCENTAGE',
     targetProfit: initialData?.targetProfit || '',
-    targetProfitType: initialData?.targetProfitType || 'ABSOLUTE',
+    targetProfitType: initialData?.targetProfitType || 'PERCENTAGE',
     trailingStopLoss: initialData?.trailingStopLoss || '',
-    trailingStopLossType: initialData?.trailingStopLossType || 'ABSOLUTE',
+    trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
     initialCapital: initialData?.initialCapital || '',
     entryStartTime: initialData?.entryStartTime ? dayjs(initialData.entryStartTime, 'HH:mm') : null,
     entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm') : null,
@@ -388,11 +387,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [],
         exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
         stopLoss: initialData?.stopLoss || '',
-        stopLossType: initialData?.stopLossType || 'ABSOLUTE',
+        stopLossType: initialData?.stopLossType || 'PERCENTAGE',
         targetProfit: initialData?.targetProfit || '',
-        targetProfitType: initialData?.targetProfitType || 'ABSOLUTE',
+        targetProfitType: initialData?.targetProfitType || 'PERCENTAGE',
         trailingStopLoss: initialData?.trailingStopLoss || '',
-        trailingStopLossType: initialData?.trailingStopLossType || 'ABSOLUTE',
+        trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
         initialCapital: initialData?.initialCapital || '',
         entryStartTime: isNullTime(initialData.entryStartTime) ? null : dayjs(initialData.entryStartTime),
         entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime),
@@ -1457,7 +1456,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   return (
     <form>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, gap: 2 }}>
+        <Button 
+          variant="outlined" 
+          onClick={handleClear}
+          size="small"
+        >
+          Clear
+        </Button>
         <Button 
           variant="text" 
           onClick={toggleExpandAll}
@@ -1523,12 +1529,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       />
       
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
-        <Button 
-          variant="outlined" 
-          onClick={handleClear}
-        >
-          Clear
-        </Button>
         <Button 
           variant="contained" 
           onClick={handleSave}

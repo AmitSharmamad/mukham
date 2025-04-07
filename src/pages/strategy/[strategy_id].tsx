@@ -13,7 +13,6 @@ interface Instrument {
   symbol: string;
   instrument: string;
   instrument_id: number;
-  instrument_name: string;
   start_date: string;
   expiry: string;
 }
@@ -184,7 +183,7 @@ export default function EditStrategy() {
             {instrumentDetails.map((instrument) => (
               <Chip
                 key={instrument.id}
-                label={`${instrument.symbol} - ${instrument.instrument_name}`}
+                label={`${instrument.symbol} - ${instrument.instrument}`}
                 color="primary"
                 variant="outlined"
               />

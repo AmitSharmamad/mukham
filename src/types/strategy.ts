@@ -33,6 +33,17 @@ export interface StrategyResponse {
   data: Strategy[];
 }
 
+export interface Instrument {
+  id: number;
+  exchange: string;
+  segment: string;
+  symbol: string;
+  instrument: string;
+  instrument_id: number;
+  start_date: string;
+  expiry: string;
+}
+
 export interface BacktestMetrics {
   totalTrades: number;
   winningTrades: number;
