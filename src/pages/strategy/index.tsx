@@ -87,6 +87,8 @@ export default function StrategyList() {
   }, []);
 
   useEffect(() => {
+    if (!strategies) return;
+    
     const filtered = strategies.filter(strategy => 
       strategy.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (strategy.description && strategy.description.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -202,7 +204,7 @@ export default function StrategyList() {
         <>
           <Box display="flex" alignItems="center" gap={3} mb={4}>
             <Typography variant="h4">Strategies</Typography>
-            {strategies.length > 0 && (
+            {strategies && strategies.length > 0 && (
               <TextField
                 size="small"
                 variant="outlined"
@@ -229,7 +231,7 @@ export default function StrategyList() {
             </Button>
           </Box>
 
-          {strategies.length === 0 ? (
+          {!strategies || strategies.length === 0 ? (
             <Box textAlign="center" py={8}>
               <Typography variant="h6" gutterBottom>No strategies found</Typography>
               <Button variant="contained" color="primary" onClick={handleCreateStrategy}>

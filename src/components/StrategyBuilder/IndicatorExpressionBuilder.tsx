@@ -146,18 +146,22 @@ const getIndicatorFormula = (name: string): string => {
   }
 };
 
-const getIndicatorValueString = (indicator: Indicator): string => {
+const getIndicatorString = (indicator: Indicator): string => {
   if (!indicator.name) return '';
   
   switch (indicator.name) {
-    case 'Number':
-      return `${indicator.config?.value || ''}`;
+    case 'SMA':
+    case 'EMA':
+    case 'RSI':
+      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
     case 'MACD':
       return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || ''}, ${indicator.config?.slowPeriod || ''}, ${indicator.config?.signalPeriod || ''}, ${indicator.config?.offset || 0})`;
     case 'BB_UPPER':
     case 'BB_LOWER':
     case 'BB_MIDDLE':
       return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.deviations || ''}, ${indicator.config?.offset || 0})`;
+    case 'Number':
+      return indicator.config?.value?.toString() || '';
     case 'CLOSE':
       return `CLOSE(${indicator.config?.offset || 0})`;
     case 'OPEN':
@@ -366,7 +370,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
   const renderIndicatorChip = (indicator: Indicator, field: 'indicator1' | 'indicator2') => {
     if (!indicator.name) return null;
     
-    const label = getIndicatorValueString(indicator);
+    const label = getIndicatorString(indicator);
     const formula = getIndicatorFormula(indicator.name);
     
     return (
