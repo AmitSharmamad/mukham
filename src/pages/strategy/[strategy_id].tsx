@@ -1,10 +1,22 @@
-import { Box, Typography, CircularProgress, Alert, Button } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Button, Chip, Stack } from '@mui/material';
 import { StrategyForm } from '../../components/StrategyBuilder/StrategyForm';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import type { Strategy } from '../../types/strategy';
 import dayjs from 'dayjs';
 import { mapTimeframeToDisplay } from '../../constants';
+
+interface Instrument {
+  id: number;
+  exchange: string;
+  segment: string;
+  symbol: string;
+  instrument: string;
+  instrument_id: number;
+  instrument_name: string;
+  start_date: string;
+  expiry: string;
+}
 
 interface FormattedStrategy {
   id: string;
@@ -37,6 +49,7 @@ export default function EditStrategy() {
   const [strategy, setStrategy] = useState<FormattedStrategy | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [instrumentDetails, setInstrumentDetails] = useState<Instrument[]>([]);
 
   useEffect(() => {
     if (strategy_id) {
@@ -65,7 +78,7 @@ export default function EditStrategy() {
           name: strategyData.name,
           description: strategyData.description,
           buyOrSell: strategyData.position_type === 'LONG' ? 'buy' : 'sell',
-          instruments: strategyData.instruments,
+          instruments: strategyData.instruments, // These are already the correct ids
           candlestickType: strategyData.chart_type || 'CANDLESTICK',
           timeframe: mapTimeframeToDisplay(strategyData.chart_timeframe),
           tradeType: strategyData.trade_type || 'MIS',
@@ -86,6 +99,11 @@ export default function EditStrategy() {
         };
         
         setStrategy(formData);
+
+        // Fetch instrument details if needed
+        if (strategyData.instruments?.length > 0) {
+          fetchInstrumentDetails(strategyData.instruments);
+        }
       } else {
         throw new Error(data.error || 'Failed to fetch strategy');
       }
@@ -94,6 +112,23 @@ export default function EditStrategy() {
       setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchInstrumentDetails = async (instrumentIds: number[]): Promise<void> => {
+    try {
+      const response = await fetch(`http://localhost:9090/stock/by-ids?ids=${instrumentIds.join(',')}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.result && data.data) {
+        setInstrumentDetails(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching instrument details:', err);
     }
   };
 
@@ -140,7 +175,24 @@ export default function EditStrategy() {
       <Typography variant="h4" gutterBottom>
         Edit Strategy: {strategy.name}
       </Typography>
-      <StrategyForm initialData={strategy} />
+      {instrumentDetails.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Selected Instruments:
+          </Typography>
+          <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+            {instrumentDetails.map((instrument) => (
+              <Chip
+                key={instrument.id}
+                label={`${instrument.symbol} - ${instrument.instrument_name}`}
+                color="primary"
+                variant="outlined"
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
+      <StrategyForm initialData={strategy} initialInstruments={instrumentDetails} />
     </Box>
   );
 }

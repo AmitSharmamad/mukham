@@ -201,7 +201,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                   setSearchQuery(value);
                   setPage(1);
                 }}
-                isOptionEqualToValue={(option, value) => option.instrument_id === value.instrument_id}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
                 renderOption={(props, option) => (
                   <li {...props}>
                     <Box>
@@ -214,7 +214,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                     <Box
                       component="span"
                       {...getTagProps({ index })}
-                      key={option.instrument_id}
+                      key={option.id}
                     >
                       {option.symbol}
                     </Box>

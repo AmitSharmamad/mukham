@@ -128,8 +128,9 @@ const setErrorsWithType = (prev: ValidationErrors) => ({
   ...prev,
 });
 
-interface StrategyFormProps {
+export interface StrategyFormProps {
   initialData?: any;
+  initialInstruments?: Instrument[];
 }
 
 interface ApiFormData {
@@ -323,7 +324,7 @@ const sampleBacktestResults: BacktestResult = {
   }
 };
 
-export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
+export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initialInstruments = [] }) => {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
     name: initialData?.name || '',
@@ -354,7 +355,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isInstrumentSelectorOpen, setInstrumentSelectorOpen] = useState(false);
-  const [selectedInstruments, setSelectedInstruments] = useState<Instrument[]>([]);
+  const [selectedInstruments, setSelectedInstruments] = useState<Instrument[]>(initialInstruments);
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(sampleBacktestResults);
   const [isBacktesting, setIsBacktesting] = useState(false);
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
@@ -400,6 +401,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
       });
     }
   }, [initialData]);
+
+  useEffect(() => {
+    if (initialInstruments.length > 0) {
+      setSelectedInstruments(initialInstruments);
+    }
+  }, [initialInstruments]);
 
   const handleCloseToast = () => {
     setToast(prev => ({ ...prev, open: false }));
@@ -618,7 +625,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
 
   const handleInstrumentSelect = (instruments: Instrument[]) => {
     setSelectedInstruments(instruments);
-    handleChange('instruments')(instruments.map(i => i.instrument_id));
+    handleChange('instruments')(instruments.map(i => i.id));
   };
 
   const isSectionComplete = (sectionId: string): boolean => {
@@ -729,12 +736,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
                 <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                   {selectedInstruments.map((instrument) => (
                     <Chip
-                      key={instrument.instrument_id}
+                      key={instrument.id}
                       label={instrument.symbol}
                       onDelete={() => {
-                        const newInstruments = selectedInstruments.filter(i => i.instrument_id !== instrument.instrument_id);
+                        const newInstruments = selectedInstruments.filter(i => i.id !== instrument.id);
                         setSelectedInstruments(newInstruments);
-                        handleChange('instruments')(newInstruments.map(i => i.instrument_id));
+                        handleChange('instruments')(newInstruments.map(i => i.id));
                       }}
                     />
                   ))}
@@ -1100,7 +1107,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData }) => {
           name: formData.name,
           description: formData.description,
           position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
-          instruments: selectedInstruments.map(i => i.instrument_id),
+          instruments: selectedInstruments.map(i => i.id),
           chart_type: formData.candlestickType,
           chart_timeframe: formData.timeframe,
           trade_type: formData.tradeType,
