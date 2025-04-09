@@ -1373,15 +1373,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     }
   };
 
-  const handleClear = () => {
-    setFormData(initialFormData);
-    setSelectedInstruments([]);
-    setBacktestResults(null);
-    setErrors({});
-    setAttemptedSubmit(false);
-    setHasUnsavedChanges(false);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleSave();
@@ -1390,13 +1381,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   return (
     <form onSubmit={handleSubmit}>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, gap: 2 }}>
-        <Button 
-          variant="outlined" 
-          onClick={handleClear}
-          size="small"
-        >
-          Clear
-        </Button>
         <Button 
           variant="text" 
           onClick={toggleExpandAll}
