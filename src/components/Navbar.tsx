@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { AppBar, Toolbar, IconButton, Menu, MenuItem, Typography, Box, Button, useTheme } from '@mui/material';
 import { useState } from 'react';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const theme = useTheme();
+  const { isLoggedIn } = useAuth();
   
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -13,6 +15,10 @@ export default function Navbar() {
   
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleLoginClick = () => {
+    window.location.href = 'http://localhost:9090/auth/google/login';
   };
   
   return (
@@ -27,7 +33,6 @@ export default function Navbar() {
       }}
     >
       <Toolbar>
-        {/* Brand text on the left */}
         <Typography
           variant="h6"
           component={Link}
@@ -44,7 +49,6 @@ export default function Navbar() {
           सूत्रम्
         </Typography>
         
-        {/* Centered navigation items */}
         <Box sx={{ 
           display: 'flex', 
           gap: 2,
@@ -85,29 +89,39 @@ export default function Navbar() {
           </Button>
         </Box>
         
-        {/* Profile icon with further increased spacing */}
         <Box sx={{ 
           paddingLeft: '72px',
           paddingRight: '72px'
         }}>
-          <IconButton 
-            size="large" 
-            onClick={handleMenu} 
-            color="inherit"
-            sx={{ fontSize: '1.75rem' }}
-          >
-            <AccountCircle />
-          </IconButton>
+          {isLoggedIn ? (
+            <>
+              <IconButton 
+                size="large" 
+                onClick={handleMenu} 
+                color="inherit"
+                sx={{ fontSize: '1.75rem' }}
+              >
+                <AccountCircle />
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+              >
+                <MenuItem component={Link} href="/profile" onClick={handleClose}>Profile</MenuItem>
+                <MenuItem component={Link} href="/support" onClick={handleClose}>Support</MenuItem>
+              </Menu>
+            </>
+          ) : (
+            <Button 
+              color="inherit"
+              onClick={handleLoginClick}
+              sx={{ fontSize: '1.1rem' }}
+            >
+              Login
+            </Button>
+          )}
         </Box>
-        
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleClose}
-        >
-          <MenuItem component={Link} href="/profile" onClick={handleClose}>Profile</MenuItem>
-          <MenuItem component={Link} href="/support" onClick={handleClose}>Support</MenuItem>
-        </Menu>
       </Toolbar>
     </AppBar>
   );
