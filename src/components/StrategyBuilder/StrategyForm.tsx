@@ -1057,38 +1057,49 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       try {
         setLoading(true);
 
-        // Fetch instrument details if not already in selectedInstruments
-        let instruments = selectedInstruments;
-        if (formData.instruments.length > 0 && selectedInstruments.length === 0) {
-          instruments = await fetchInstrumentsByIds(formData.instruments);
-          setSelectedInstruments(instruments);
-        }
+        // Make sure we have the instrument IDs correctly set in formData before sending
+        if (selectedInstruments.length > 0) {
+          // Update formData.instruments with the correct instrument IDs from selectedInstruments
+          const instrumentIds = selectedInstruments.map(instrument => instrument.id);
+          setFormData(prev => ({
+            ...prev,
+            instruments: instrumentIds
+          }));
+          
+          // Create a modified copy of the form data with the correct instrument ids for the API call
+          const modifiedFormData = {
+            ...formData,
+            instruments: instrumentIds
+          };
+          
+          const apiData = convertFormToApiData(modifiedFormData);
+          const isEdit = !!initialData?.id;
+          const url = isEdit ? `http://localhost:9090/strategy/${initialData.id}` : 'http://localhost:9090/strategy';
+          
+          const response = await fetch(url, {
+            method: isEdit ? 'PUT' : 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiData),
+          });
 
-        const apiData = convertFormToApiData(formData);
-        const isEdit = !!initialData?.id;
-        const url = isEdit ? `http://localhost:9090/strategy/${initialData.id}` : 'http://localhost:9090/strategy';
-        
-        const response = await fetch(url, {
-          method: isEdit ? 'PUT' : 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(apiData),
-        });
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        if (result.result) {
-          showToast('Strategy saved successfully', 'success');
-          setHasUnsavedChanges(false); // Reset unsaved changes after successful save
-          if (!isEdit) {
-            router.push('/strategy'); // Only redirect if it's a new strategy
+          const result = await response.json();
+          if (result.result) {
+            showToast('Strategy saved successfully', 'success');
+            setHasUnsavedChanges(false); // Reset unsaved changes after successful save
+            if (!isEdit) {
+              router.push('/strategy'); // Only redirect if it's a new strategy
+            }
+          } else {
+            throw new Error(result.error || 'Failed to save strategy');
           }
         } else {
-          throw new Error(result.error || 'Failed to save strategy');
+          throw new Error('No instruments selected');
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Error connecting to server';
