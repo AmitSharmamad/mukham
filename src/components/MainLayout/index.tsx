@@ -9,7 +9,7 @@ import { Footer } from '../Footer';
 import { ThemeColor, themes } from '../../theme';
 
 const navItems = [
-  { label: 'Home', path: '/home' },
+  { label: 'Home', path: '/' },
   { label: 'Strategy', path: '/strategy' },
   { label: 'Reports', path: '/reports' },
   { label: 'Docs', path: '/docs' }
@@ -84,7 +84,7 @@ export const MainLayout = ({
           <Typography
             variant="h6"
             component={Link}
-            href="/home"
+            href="/"
             sx={{
               fontFamily: 'Arial, sans-serif',
               paddingLeft: '90px',
