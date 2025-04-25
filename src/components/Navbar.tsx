@@ -82,6 +82,14 @@ export default function Navbar() {
           <Button 
             color="inherit" 
             component={Link} 
+            href="/community"
+            sx={{ fontSize: '1.1rem' }}
+          >
+            Community
+          </Button>
+          <Button 
+            color="inherit" 
+            component={Link} 
             href="/docs"
             sx={{ fontSize: '1.1rem' }}
           >
