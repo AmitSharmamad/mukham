@@ -14,108 +14,22 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { Card } from '../components/Card';
 import { DashboardWidget } from '../components/DashboardWidget';
 import { Button } from '../components/Button';
-
-// Mock categories data
-const categories = [
-  { id: '1', name: 'Trend Following', description: 'Strategies that follow market trends' },
-  { id: '2', name: 'Mean Reversion', description: 'Strategies that capitalize on price reversals' },
-  { id: '3', name: 'Momentum', description: 'Strategies based on momentum indicators' },
-  { id: '4', name: 'Arbitrage', description: 'Strategies that exploit price differences' },
-  { id: '5', name: 'Breakout', description: 'Strategies that trade on price breakouts' },
-  { id: '6', name: 'Volatility', description: 'Strategies that trade based on market volatility' },
-  { id: '7', name: 'Options', description: 'Strategies focused on options trading' },
-  { id: '8', name: 'Multi-Factor', description: 'Strategies using multiple factors for decisions' }
-];
-
-// Mock marketplace listings
-const mockMarketplaceListings = [
-  {
-    id: '1',
-    title: 'Advanced Momentum Strategy',
-    description: 'A strategy that uses multiple momentum indicators to identify strong trends',
-    price: 49.99,
-    subscription_type: 'monthly',
-    user_id: '1',
-    ratings: 4.5,
-    views: 1250,
-    categoryIds: ['3', '8'],
-    performance: {
-      sharpe_ratio: 1.8,
-      total_return_pct: 32.5,
-      win_rate: 68.7,
-    }
-  },
-  {
-    id: '2',
-    title: 'Classic Mean Reversion',
-    description: 'Identifies overbought and oversold conditions to capitalize on price reversals',
-    price: 99.00,
-    subscription_type: 'one-time',
-    user_id: '2',
-    ratings: 4.2,
-    views: 875,
-    categoryIds: ['2'],
-    performance: {
-      sharpe_ratio: 1.5,
-      total_return_pct: 28.3,
-      win_rate: 62.1,
-    }
-  },
-  {
-    id: '3',
-    title: 'Volatility Breakout Detector',
-    description: 'Takes advantage of high volatility periods to identify breakouts',
-    price: 79.99,
-    subscription_type: 'yearly',
-    user_id: '3',
-    ratings: 4.8,
-    views: 2100,
-    categoryIds: ['5', '6'],
-    performance: {
-      sharpe_ratio: 2.1,
-      total_return_pct: 41.2,
-      win_rate: 73.5,
-    }
-  },
-  {
-    id: '4',
-    title: 'Options Premium Collector',
-    description: 'Consistently collects premium through strategic options selling',
-    price: 129.99,
-    subscription_type: 'monthly',
-    user_id: '2',
-    ratings: 4.1,
-    views: 940,
-    categoryIds: ['7'],
-    performance: {
-      sharpe_ratio: 1.2,
-      total_return_pct: 22.8,
-      win_rate: 85.3,
-    }
-  },
-  {
-    id: '5',
-    title: 'Trend-Following ETF Rotator',
-    description: 'Rotates between different ETFs based on trend strength indicators',
-    price: 59.99,
-    subscription_type: 'monthly',
-    user_id: '4',
-    ratings: 3.9,
-    views: 720,
-    categoryIds: ['1', '8'],
-    performance: {
-      sharpe_ratio: 1.6,
-      total_return_pct: 31.7,
-      win_rate: 65.9,
-    }
-  }
-];
+import {
+  getAllCategories,
+  getFilteredListings,
+  getUserSubscriptions,
+  getSellerListings,
+  Category,
+  MarketplaceListing
+} from '../services/marketplaceService';
 
 // Tab interface
 interface TabPanelProps {
@@ -157,7 +71,16 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<string>('popularity');
-  const [filteredListings, setFilteredListings] = useState(mockMarketplaceListings);
+  
+  // API data states
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [listings, setListings] = useState<MarketplaceListing[]>([]);
+  const [userSubscriptions, setUserSubscriptions] = useState<any[]>([]);
+  const [sellerListings, setSellerListings] = useState<MarketplaceListing[]>([]);
+  
+  // UI states
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -179,42 +102,76 @@ export default function Marketplace() {
     router.push(`/marketplace/${listingId}`);
   };
 
-  // Apply filters and sorting
+  // Load categories on component mount
   useEffect(() => {
-    let listings = [...mockMarketplaceListings];
-    
-    // Apply search filter
-    if (searchQuery) {
-      listings = listings.filter(item => 
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        item.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    // Apply category filter
-    if (selectedCategory) {
-      listings = listings.filter(item => item.categoryIds.includes(selectedCategory));
-    }
-    
-    // Apply sorting
-    switch(sortOrder) {
-      case 'price_low':
-        listings.sort((a, b) => a.price - b.price);
-        break;
-      case 'price_high':
-        listings.sort((a, b) => b.price - a.price);
-        break;
-      case 'rating':
-        listings.sort((a, b) => b.ratings - a.ratings);
-        break;
-      case 'popularity':
-      default:
-        listings.sort((a, b) => b.views - a.views);
-        break;
-    }
-    
-    setFilteredListings(listings);
+    const fetchCategories = async () => {
+      try {
+        const data = await getAllCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Load listings based on filters
+  useEffect(() => {
+    const fetchListings = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Use the category ID from selectedCategory
+        const data = await getFilteredListings(
+          selectedCategory,
+          sortOrder,
+          searchQuery
+        );
+        setListings(data);
+      } catch (err) {
+        console.error("Error fetching listings:", err);
+        setError("Failed to load marketplace listings. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchListings();
   }, [searchQuery, selectedCategory, sortOrder]);
+
+  // Load user subscriptions and seller listings when tab changes
+  useEffect(() => {
+    if (tabValue === 1) {
+      // Load user's purchased strategies
+      const fetchUserSubscriptions = async () => {
+        setIsLoading(true);
+        try {
+          const data = await getUserSubscriptions();
+          setUserSubscriptions(data);
+        } catch (err) {
+          console.error("Error fetching user subscriptions:", err);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchUserSubscriptions();
+    } else if (tabValue === 2) {
+      // Load user's listed strategies
+      const fetchSellerListings = async () => {
+        setIsLoading(true);
+        try {
+          const data = await getSellerListings();
+          setSellerListings(data);
+        } catch (err) {
+          console.error("Error fetching seller listings:", err);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchSellerListings();
+    }
+  }, [tabValue]);
 
   // Get category names for a listing
   const getCategoryNames = (categoryIds: string[]) => {
@@ -254,14 +211,14 @@ export default function Marketplace() {
         <Grid item xs={12} sm={6} md={4}>
           <DashboardWidget 
             title="Available Strategies" 
-            value={mockMarketplaceListings.length.toString()}
+            value={listings.length.toString()}
             subtitle="Ready to deploy" 
           />
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
           <DashboardWidget 
             title="My Subscriptions" 
-            value="0"
+            value={userSubscriptions.length.toString()}
             subtitle="Active strategies" 
             href="/profile"
           />
@@ -269,8 +226,8 @@ export default function Marketplace() {
         <Grid item xs={12} sm={6} md={4}>
           <DashboardWidget 
             title="Trending" 
-            value={mockMarketplaceListings[0]?.title || "No trending strategies"}
-            subtitle={`${mockMarketplaceListings[0]?.views || 0} views`} 
+            value={listings.length > 0 ? listings[0]?.title : "No trending strategies"}
+            subtitle={`${listings.length > 0 ? listings[0]?.views : 0} views`} 
           />
         </Grid>
       </Grid>
@@ -346,9 +303,18 @@ export default function Marketplace() {
             </Grid>
           </Grid>
 
-          {/* Strategy listings */}
-          {filteredListings.length > 0 ? (
-            filteredListings.map((listing) => (
+          {/* Loading state */}
+          {isLoading ? (
+            <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Grid>
+          ) : error ? (
+            <Grid item xs={12}>
+              <Alert severity="error">{error}</Alert>
+            </Grid>
+          ) : listings.length > 0 ? (
+            // Display strategy listings
+            listings.map((listing) => (
               <Grid item xs={12} md={6} key={listing.id}>
                 <Card 
                   sx={{ 
@@ -434,6 +400,7 @@ export default function Marketplace() {
               </Grid>
             ))
           ) : (
+            // No results found
             <Grid item xs={12}>
               <Box sx={{ textAlign: 'center', p: 4 }}>
                 <Typography variant="h6">
@@ -450,40 +417,107 @@ export default function Marketplace() {
 
       {/* My Purchased Strategies Tab */}
       <TabPanel value={tabValue} index={1}>
-        <Box sx={{ textAlign: 'center', p: 4 }}>
-          <Typography variant="h6">
-            You haven't purchased any strategies yet
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Browse the marketplace to find and subscribe to strategies
-          </Typography>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={() => setTabValue(0)}
-          >
-            Browse Strategies
-          </Button>
-        </Box>
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : userSubscriptions.length > 0 ? (
+          <Grid container spacing={3}>
+            {userSubscriptions.map((subscription) => (
+              <Grid item xs={12} md={6} key={subscription.id}>
+                <Card sx={{ p: 3 }}>
+                  <Typography variant="h6">{subscription.listing.title}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {formatSubscriptionType(subscription.subscription_type)} - 
+                    {subscription.status === 'active' ? (
+                      <Chip label="Active" color="success" size="small" sx={{ ml: 1 }} />
+                    ) : (
+                      <Chip label={subscription.status} color="default" size="small" sx={{ ml: 1 }} />
+                    )}
+                  </Typography>
+                  <Button 
+                    variant="outlined" 
+                    onClick={() => handleViewDetails(subscription.listing_id)}
+                  >
+                    View Strategy
+                  </Button>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Box sx={{ textAlign: 'center', p: 4 }}>
+            <Typography variant="h6">
+              You haven't purchased any strategies yet
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Browse the marketplace to find and subscribe to strategies
+            </Typography>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={() => setTabValue(0)}
+            >
+              Browse Strategies
+            </Button>
+          </Box>
+        )}
       </TabPanel>
 
       {/* My Listed Strategies Tab */}
       <TabPanel value={tabValue} index={2}>
-        <Box sx={{ textAlign: 'center', p: 4 }}>
-          <Typography variant="h6">
-            You haven't listed any strategies for sale
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Share your successful trading strategies with others and earn revenue
-          </Typography>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            href="/strategy"
-          >
-            Manage My Strategies
-          </Button>
-        </Box>
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : sellerListings.length > 0 ? (
+          <Grid container spacing={3}>
+            {sellerListings.map((listing) => (
+              <Grid item xs={12} md={6} key={listing.id}>
+                <Card sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                    <Typography variant="h6">{listing.title}</Typography>
+                    <Typography variant="h6" color="primary">${listing.price}</Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    {listing.views} views • {listing.ratings} ⭐
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button 
+                      variant="outlined" 
+                      onClick={() => handleViewDetails(listing.id)}
+                    >
+                      View Listing
+                    </Button>
+                    <Button 
+                      variant="contained" 
+                      color="primary"
+                      onClick={() => router.push(`/strategy/${listing.id}`)}
+                    >
+                      Edit Listing
+                    </Button>
+                  </Box>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Box sx={{ textAlign: 'center', p: 4 }}>
+            <Typography variant="h6">
+              You haven't listed any strategies for sale
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Share your successful trading strategies with others and earn revenue
+            </Typography>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              href="/strategy"
+            >
+              Manage My Strategies
+            </Button>
+          </Box>
+        )}
       </TabPanel>
     </Container>
   );
