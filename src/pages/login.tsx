@@ -3,7 +3,7 @@ import GoogleIcon from '@mui/icons-material/Google';
 
 export default function LoginPage() {
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:9090/auth/google/login';
+    window.location.href = 'http://localhost:9090/api/auth/google/login';
   };
 
   return (

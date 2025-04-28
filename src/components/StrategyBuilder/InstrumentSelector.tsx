@@ -40,7 +40,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   onSelect,
   selectedInstruments,
 }) => {
-  const [tempSelected, setTempSelected] = useState<Instrument[]>(selectedInstruments);
+  const [tempSelected, setTempSelected] = useState<Instrument[]>(Array.isArray(selectedInstruments) ? selectedInstruments : []);
   const [selectedExchange, setSelectedExchange] = useState<string | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<string | null>(null);
   const [instruments, setInstruments] = useState<Instrument[]>([]);
@@ -52,7 +52,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
 
   // Load selected instruments when selectedInstruments prop changes
   useEffect(() => {
-    setTempSelected(selectedInstruments);
+    setTempSelected(Array.isArray(selectedInstruments) ? selectedInstruments : []);
   }, [selectedInstruments]);
 
   // Search functionality - only triggered when modal is open
@@ -83,12 +83,12 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
           queryParams.append('query', searchQuery);
         }
 
-        const response = await fetch(`http://localhost:9090/stock?${queryParams.toString()}`);
+        const response = await fetch(`http://localhost:9090/api/stock?${queryParams.toString()}`);
         const responseData = await response.json();
         console.log('Response:', responseData); // Debug log
 
         if (active) {
-          if (responseData.data) {
+          if (responseData.data && Array.isArray(responseData.data)) {
             setInstruments(responseData.data);
             setTotalPages(Math.ceil(responseData.total / limit) || 1);
           } else {
@@ -127,7 +127,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
     setInstruments([]);
     setSelectedExchange(null);
     setSelectedSegment(null);
-    setTempSelected(selectedInstruments); // Reset to original selection
+    setTempSelected(Array.isArray(selectedInstruments) ? selectedInstruments : []); // Reset to original selection
     onClose();
   };
 
@@ -189,10 +189,10 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
             <Grid item xs={12}>
               <Autocomplete
                 multiple
-                options={instruments}
+                options={Array.isArray(instruments) ? instruments : []}
                 loading={loading}
                 getOptionLabel={(option) => `${option.symbol} - ${option.instrument}`}
-                value={tempSelected}
+                value={Array.isArray(tempSelected) ? tempSelected : []}
                 onChange={(_, newValue) => {
                   setTempSelected(newValue);
                 }}
