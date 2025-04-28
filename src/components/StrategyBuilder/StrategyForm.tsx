@@ -423,7 +423,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const fetchInstrumentsByIds = async (instrumentIds: number[]): Promise<Instrument[]> => {
     try {
-      const response = await fetch(`http://localhost:9090/stock/by-ids?ids=${instrumentIds.join(',')}`, {
+      const response = await fetch(`http://localhost:9090/api/stock/by-ids?ids=${instrumentIds.join(',')}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -1074,7 +1074,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           
           const apiData = convertFormToApiData(modifiedFormData);
           const isEdit = !!initialData?.id;
-          const url = isEdit ? `http://localhost:9090/strategy/${initialData.id}` : 'http://localhost:9090/strategy';
+          const url = isEdit ? `http://localhost:9090/api/strategy/${initialData.id}` : 'http://localhost:9090/api/strategy';
           
           const response = await fetch(url, {
             method: isEdit ? 'PUT' : 'POST',
@@ -1119,7 +1119,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     if (validateForm()) {
       try {
         setIsBacktesting(true);
-        const response = await fetch(`http://localhost:9090/bt/start?strategy_id=${initialData?.id}`, {
+        const response = await fetch(`http://localhost:9090/api/bt/start?strategy_id=${initialData?.id}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1191,7 +1191,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       newSet.add(instrumentId);
       setDeployingInstruments(newSet);
       
-      const response = await fetch('http://localhost:9090/strategy/deploy', {
+      const response = await fetch('http://localhost:9090/api/strategy/deploy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1325,7 +1325,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:9090/strategy/${id}`);
+      const response = await fetch(`http://localhost:9090/api/strategy/${id}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

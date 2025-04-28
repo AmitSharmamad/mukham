@@ -1,7 +1,7 @@
 // API client utilities for the application
 import axios from 'axios';
 
-const API_BASE_URL = "http://localhost:9090"
+const API_BASE_URL = "http://localhost:9090/api"
 
 // Create axios instance with default config
 const apiClient = axios.create({

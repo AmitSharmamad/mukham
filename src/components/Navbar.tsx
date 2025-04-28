@@ -18,7 +18,7 @@ export default function Navbar() {
   };
 
   const handleLoginClick = () => {
-    window.location.href = 'http://localhost:9090/auth/google/login';
+    window.location.href = 'http://localhost:9090/api/auth/google/login';
   };
   
   return (

@@ -111,7 +111,7 @@ once select button is clicked, display the chips adjacent to Add Instrument butt
 
 ### api integration
 
-add an api call to /localhost:9090/strategy the get the list of strategies and render it in the /strategy page
+add an api call to /localhost:9090/api/strategy the get the list of strategies and render it in the /strategy page
 the api response is as below
 {
     "result": true,

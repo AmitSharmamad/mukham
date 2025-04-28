@@ -9,7 +9,7 @@ This document outlines all the API endpoints required for the marketplace featur
 Retrieves a paginated list of all available strategy listings in the marketplace.
 
 ```bash
-curl -X GET "http://localhost:9090/marketplace/listings" \
+curl -X GET "http://localhost:9090/api/marketplace/listings" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -19,7 +19,7 @@ curl -X GET "http://localhost:9090/marketplace/listings" \
 Retrieves a filtered list of marketplace listings based on category, sorting preference, and search terms.
 
 ```bash
-curl -X GET "http://localhost:9090/marketplace/listings?category=trend-following&sort=rating&search=momentum" \
+curl -X GET "http://localhost:9090/api/marketplace/listings?category=trend-following&sort=rating&search=momentum" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -29,7 +29,7 @@ curl -X GET "http://localhost:9090/marketplace/listings?category=trend-following
 Retrieves detailed information about a specific marketplace listing.
 
 ```bash
-curl -X GET "http://localhost:9090/marketplace/listings/{listing_id}" \
+curl -X GET "http://localhost:9090/api/marketplace/listings/{listing_id}" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -39,7 +39,7 @@ curl -X GET "http://localhost:9090/marketplace/listings/{listing_id}" \
 Creates a new marketplace listing for a strategy.
 
 ```bash
-curl -X POST "http://localhost:9090/marketplace/listings" \
+curl -X POST "http://localhost:9090/api/marketplace/listings" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -64,7 +64,7 @@ curl -X POST "http://localhost:9090/marketplace/listings" \
 Updates an existing marketplace listing.
 
 ```bash
-curl -X PUT "http://localhost:9090/marketplace/listings/{listing_id}" \
+curl -X PUT "http://localhost:9090/api/marketplace/listings/{listing_id}" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -90,7 +90,7 @@ curl -X PUT "http://localhost:9090/marketplace/listings/{listing_id}" \
 Removes a marketplace listing from the platform.
 
 ```bash
-curl -X DELETE "http://localhost:9090/marketplace/listings/{listing_id}" \
+curl -X DELETE "http://localhost:9090/api/marketplace/listings/{listing_id}" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -102,7 +102,7 @@ curl -X DELETE "http://localhost:9090/marketplace/listings/{listing_id}" \
 Retrieves all available strategy categories for the marketplace.
 
 ```bash
-curl -X GET "http://localhost:9090/marketplace/categories" \
+curl -X GET "http://localhost:9090/api/marketplace/categories" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -114,7 +114,7 @@ curl -X GET "http://localhost:9090/marketplace/categories" \
 Updates performance metrics for a specific marketplace listing.
 
 ```bash
-curl -X PUT "http://localhost:9090/marketplace/listings/{listing_id}/performance" \
+curl -X PUT "http://localhost:9090/api/marketplace/listings/{listing_id}/performance" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -136,7 +136,7 @@ curl -X PUT "http://localhost:9090/marketplace/listings/{listing_id}/performance
 Creates a new subscription for the user to access a strategy.
 
 ```bash
-curl -X POST "http://localhost:9090/marketplace/subscriptions" \
+curl -X POST "http://localhost:9090/api/marketplace/subscriptions" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -153,7 +153,7 @@ curl -X POST "http://localhost:9090/marketplace/subscriptions" \
 Retrieves all subscriptions for the authenticated user.
 
 ```bash
-curl -X GET "http://localhost:9090/marketplace/subscriptions/user" \
+curl -X GET "http://localhost:9090/api/marketplace/subscriptions/user" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -163,7 +163,7 @@ curl -X GET "http://localhost:9090/marketplace/subscriptions/user" \
 Cancels an active subscription.
 
 ```bash
-curl -X PUT "http://localhost:9090/marketplace/subscriptions/{subscription_id}" \
+curl -X PUT "http://localhost:9090/api/marketplace/subscriptions/{subscription_id}" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -179,7 +179,7 @@ curl -X PUT "http://localhost:9090/marketplace/subscriptions/{subscription_id}" 
 Retrieves all reviews for a specific marketplace listing.
 
 ```bash
-curl -X GET "http://localhost:9090/marketplace/listings/{listing_id}/reviews" \
+curl -X GET "http://localhost:9090/api/marketplace/listings/{listing_id}/reviews" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -189,7 +189,7 @@ curl -X GET "http://localhost:9090/marketplace/listings/{listing_id}/reviews" \
 Submits a new review for a marketplace listing.
 
 ```bash
-curl -X POST "http://localhost:9090/marketplace/listings/{listing_id}/reviews" \
+curl -X POST "http://localhost:9090/api/marketplace/listings/{listing_id}/reviews" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -203,7 +203,7 @@ curl -X POST "http://localhost:9090/marketplace/listings/{listing_id}/reviews" \
 Updates an existing review submitted by the user.
 
 ```bash
-curl -X PUT "http://localhost:9090/marketplace/reviews/{review_id}" \
+curl -X PUT "http://localhost:9090/api/marketplace/reviews/{review_id}" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -217,7 +217,7 @@ curl -X PUT "http://localhost:9090/marketplace/reviews/{review_id}" \
 Removes a review submitted by the user.
 
 ```bash
-curl -X DELETE "http://localhost:9090/marketplace/reviews/{review_id}" \
+curl -X DELETE "http://localhost:9090/api/marketplace/reviews/{review_id}" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -229,7 +229,7 @@ curl -X DELETE "http://localhost:9090/marketplace/reviews/{review_id}" \
 Retrieves the transaction history for the authenticated user.
 
 ```bash
-curl -X GET "http://localhost:9090/marketplace/transactions" \
+curl -X GET "http://localhost:9090/api/marketplace/transactions" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -239,7 +239,7 @@ curl -X GET "http://localhost:9090/marketplace/transactions" \
 Retrieves details for a specific transaction.
 
 ```bash
-curl -X GET "http://localhost:9090/marketplace/transactions/{transaction_id}" \
+curl -X GET "http://localhost:9090/api/marketplace/transactions/{transaction_id}" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -251,7 +251,7 @@ curl -X GET "http://localhost:9090/marketplace/transactions/{transaction_id}" \
 Retrieves earnings and analytics data for a seller.
 
 ```bash
-curl -X GET "http://localhost:9090/marketplace/seller/analytics" \
+curl -X GET "http://localhost:9090/api/marketplace/seller/analytics" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -261,7 +261,7 @@ curl -X GET "http://localhost:9090/marketplace/seller/analytics" \
 Retrieves all listings created by the authenticated seller.
 
 ```bash
-curl -X GET "http://localhost:9090/marketplace/seller/listings" \
+curl -X GET "http://localhost:9090/api/marketplace/seller/listings" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
