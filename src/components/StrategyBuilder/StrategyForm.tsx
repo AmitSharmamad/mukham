@@ -100,7 +100,7 @@ const initialFormData: FormData = {
   buyOrSell: 'buy',
   instruments: [],
   candlestickType: 'CANDLESTICK',
-  timeframe: '1 Minute',
+  timeframe: '1m',
   tradeType: 'MIS',
   maxAllocation: '',
   maxQuantity: '',
@@ -331,7 +331,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     buyOrSell: initialData?.buyOrSell || 'buy',
     instruments: initialData?.instruments || [],
     candlestickType: initialData?.candlestickType || 'CANDLESTICK',
-    timeframe: initialData?.timeframe || '1 Minute',
+    timeframe: initialData?.timeframe || '1m',
     tradeType: initialData?.tradeType || 'MIS',
     maxAllocation: initialData?.maxAllocation || '',
     maxQuantity: initialData?.maxQuantity || '',
@@ -382,7 +382,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         buyOrSell: initialData?.buyOrSell || 'buy',
         instruments: initialData?.instruments || [],
         candlestickType: initialData?.candlestickType || 'CANDLESTICK',
-        timeframe: initialData?.timeframe || '1 Minute',
+        timeframe: initialData?.timeframe || '1m',
         tradeType: initialData?.tradeType || 'MIS',
         maxAllocation: initialData?.maxAllocation || '',
         maxQuantity: initialData?.maxQuantity || '',
@@ -423,7 +423,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const fetchInstrumentsByIds = async (instrumentIds: number[]): Promise<Instrument[]> => {
     try {
-      const response = await fetch(`/api/stock/by-ids?ids=${instrumentIds.join(',')}`, {
+      const response = await fetch(`/api/instrument-master/by-ids?ids=${instrumentIds.join(',')}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -435,7 +435,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       }
       
       const result = await response.json();
-      if (result.result) {
+      if (result.success) {
         return result.data;
       } else {
         throw new Error(result.error || 'Failed to fetch instruments');
@@ -466,6 +466,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   };
 
   const handleChange = (field: keyof FormData) => (value: any) => {
+    // Log timeframe changes for debugging
+    if (field === 'timeframe') {
+      console.log('Timeframe changed to:', value);
+    }
+    
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -1074,7 +1079,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           
           const apiData = convertFormToApiData(modifiedFormData);
           const isEdit = !!initialData?.id;
+          
+          // Determine the appropriate API endpoint based on whether this is an edit or create operation
           const url = isEdit ? `/api/strategy/${initialData.id}` : '/api/strategy';
+          
+          // Log the API data to console for debugging
+          console.log('Submitting strategy data:', apiData);
           
           const response = await fetch(url, {
             method: isEdit ? 'PUT' : 'POST',
@@ -1089,7 +1099,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           }
 
           const result = await response.json();
-          if (result.result) {
+          if (result.success) {
             showToast('Strategy saved successfully', 'success');
             setHasUnsavedChanges(false); // Reset unsaved changes after successful save
             if (!isEdit) {
@@ -1127,7 +1137,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         });
 
         const result = await response.json();
-        if (result.result) {
+        if (result.success) {
           const backtestData: BacktestData = result.data;
           // Transform the API response to match our BacktestResult interface
           const transformedResults: BacktestResult = {
@@ -1203,7 +1213,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       });
 
       const result = await response.json();
-      if (!result.result) {
+      if (!result.success) {
         setErrors(prev => ({
           ...prev,
           submit: `Failed to deploy strategy for instrument ${instrumentId}`
@@ -1333,7 +1343,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
       const data = await response.json();
       
-      if (data.result) {
+      if (data.success) {
         const strategyData = data.data;
         
         // First fetch the instrument details

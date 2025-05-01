@@ -68,7 +68,7 @@ export default function StrategyList() {
       
       const data = await response.json();
       
-      if (data.result) {
+      if (data.success) {
         setStrategies(data.data);
         setFilteredStrategies(data.data);
       } else {
@@ -132,7 +132,7 @@ export default function StrategyList() {
       });
 
       const data = await response.json();
-      if (data.result) {
+      if (data.success) {
         showToast('Strategy deleted successfully', 'success');
         setStrategies(prev => prev.filter(s => s.id !== deleteDialog.strategy!.id));
         setFilteredStrategies(prev => prev.filter(s => s.id !== deleteDialog.strategy!.id));
@@ -156,7 +156,7 @@ export default function StrategyList() {
       });
 
       const data = await response.json();
-      if (data.result) {
+      if (data.success) {
         showToast('Strategy cloned successfully', 'success');
         await fetchStrategies();
       } else {
