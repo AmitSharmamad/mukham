@@ -60,7 +60,7 @@ export default function StrategyList() {
     try {
       setError(null);
       setRetrying(false);
-      const response = await fetch('http://localhost:9090/api/strategy');
+      const response = await fetch('/api/strategy');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -127,7 +127,7 @@ export default function StrategyList() {
 
     try {
       setDeleting(deleteDialog.strategy.id);
-      const response = await fetch(`http://localhost:9090/api/strategy/${deleteDialog.strategy.id}`, {
+      const response = await fetch(`/api/strategy/${deleteDialog.strategy.id}`, {
         method: 'DELETE',
       });
 
@@ -151,7 +151,7 @@ export default function StrategyList() {
     event.stopPropagation(); // Prevent card click when clicking clone
     try {
       setCloning(strategy.id);
-      const response = await fetch(`http://localhost:9090/api/strategy/${strategy.id}/clone`, {
+      const response = await fetch(`/api/strategy/${strategy.id}/clone`, {
         method: 'POST',
       });
 

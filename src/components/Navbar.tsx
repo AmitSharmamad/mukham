@@ -1,12 +1,16 @@
 import Link from 'next/link';
-import { AppBar, Toolbar, IconButton, Menu, MenuItem, Typography, Box, Button, useTheme } from '@mui/material';
+import { AppBar, Toolbar, IconButton, Menu, MenuItem, Typography, Box, Button, useTheme as useMuiTheme, Tooltip } from '@mui/material';
 import { useState } from 'react';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const theme = useTheme();
+  const muiTheme = useMuiTheme();
+  const { mode, toggleMode } = useTheme();
   const { isLoggedIn } = useAuth();
   
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -18,18 +22,18 @@ export default function Navbar() {
   };
 
   const handleLoginClick = () => {
-    window.location.href = 'http://localhost:9090/api/auth/google/login';
+    window.location.href = '/login';
   };
   
   return (
     <AppBar 
       position="fixed" 
       sx={{ 
-        backgroundColor: theme.palette.mode === 'dark' 
-          ? theme.palette.background.paper
-          : theme.palette.primary.dark,
+        backgroundColor: muiTheme.palette.mode === 'dark' 
+          ? muiTheme.palette.background.paper
+          : muiTheme.palette.primary.dark,
         boxShadow: 1,
-        zIndex: theme.zIndex.drawer + 1
+        zIndex: muiTheme.zIndex.drawer + 1
       }}
     >
       <Toolbar>
@@ -99,8 +103,20 @@ export default function Navbar() {
         
         <Box sx={{ 
           paddingLeft: '72px',
-          paddingRight: '72px'
+          paddingRight: '72px', 
+          display: 'flex',
+          alignItems: 'center'
         }}>
+          <Tooltip title={`Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`}>
+            <IconButton 
+              color="inherit" 
+              onClick={toggleMode} 
+              sx={{ mr: 2 }}
+            >
+              {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+          </Tooltip>
+
           {isLoggedIn ? (
             <>
               <IconButton 

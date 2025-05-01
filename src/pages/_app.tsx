@@ -7,25 +7,47 @@ import { getTheme } from '../theme';
 import MainLayout from '../components/MainLayout';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
+import AuthGuard from '../components/AuthGuard';
+import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import '../styles/globals.css';
 
 function AppContent({ Component, pageProps }: AppProps) {
   const { mode, color, toggleMode, setThemeColor } = useTheme();
   const theme = getTheme(mode, color);
+  const [mounted, setMounted] = useState(false);
+
+  // When the component mounts, mark it as ready to render
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // During SSR and initial client render, use a basic theme
+  if (!mounted) {
+    // Return a minimal version for SSR without components that use browser APIs
+    return (
+      <MUIThemeProvider theme={getTheme('dark', 'default')}>
+        <CssBaseline />
+        <div style={{ visibility: 'hidden' }} />
+      </MUIThemeProvider>
+    );
+  }
 
   return (
     <MUIThemeProvider theme={theme}>
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <MainLayout onToggleTheme={toggleMode} isDarkMode={mode === 'dark'} onChangeThemeColor={setThemeColor} currentTheme={color}>
-          <Component {...pageProps} />
+          <AuthGuard>
+            <Component {...pageProps} />
+          </AuthGuard>
         </MainLayout>
       </LocalizationProvider>
     </MUIThemeProvider>
   );
 }
 
-export default function App(props: AppProps) {
+function MyApp(props: AppProps) {
   return (
     <AuthProvider>
       <ThemeProvider>
@@ -34,3 +56,25 @@ export default function App(props: AppProps) {
     </AuthProvider>
   );
 }
+
+// Add explicit type annotation for getInitialProps
+MyApp.getInitialProps = async ({ Component, ctx }: {
+  Component: any;
+  ctx: any;
+}) => {
+  let pageProps = {};
+  
+  try {
+    // Call the page's getInitialProps if it has one
+    if (Component.getInitialProps) {
+      pageProps = await Component.getInitialProps(ctx);
+    }
+  } catch (error) {
+    console.error('Error in getInitialProps:', error);
+    // Return empty props in case of error
+  }
+  
+  return { pageProps };
+};
+
+export default MyApp;

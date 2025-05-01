@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { Box, Grid, Paper, Typography, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Box, Grid, Typography, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
-import { TextField } from '../components/TextField';
-import { Button } from '../components/Button';
-import { Select } from '../components/Select';
+import { TextField, Button, Select, Paper } from '../components';
 
 const SUPPORT_CATEGORIES = [
   { value: 'technical', label: 'Technical Issue' },

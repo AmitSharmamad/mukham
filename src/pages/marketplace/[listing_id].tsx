@@ -5,7 +5,6 @@ import {
   Typography, 
   Grid, 
   Container, 
-  Paper, 
   Chip,
   Divider,
   Rating,
@@ -20,13 +19,14 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  TextField,
-  CircularProgress
+  TextField as MuiTextField,
+  CircularProgress,
+  Paper as MuiPaper
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import { Button } from '../../components/Button';
+import { Button, Paper } from '../../components';
 import {
   getListingDetails,
   getListingReviews,
@@ -539,7 +539,7 @@ export default function StrategyDetails() {
               }}
             />
           </Box>
-          <TextField
+          <MuiTextField
             autoFocus
             margin="dense"
             id="review-comment"
@@ -549,7 +549,7 @@ export default function StrategyDetails() {
             rows={4}
             variant="outlined"
             value={reviewComment}
-            onChange={(e) => setReviewComment(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReviewComment(e.target.value)}
             error={reviewComment.length > 0 && reviewComment.length < 10}
             helperText={reviewComment.length > 0 && reviewComment.length < 10 
               ? "Review must be at least 10 characters" 
