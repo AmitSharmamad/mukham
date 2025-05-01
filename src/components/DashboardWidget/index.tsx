@@ -11,13 +11,11 @@ interface DashboardWidgetProps {
 export const DashboardWidget = ({ title, value, subtitle, href }: DashboardWidgetProps) => {
   const content = (
     <Card
-      component={href ? "a" : "div"}
       href={href}
       sx={{ 
         p: 3,
         height: '100%',
         cursor: href ? 'pointer' : 'default',
-        textDecoration: 'none',
         transition: 'transform 0.2s ease-in-out',
         '&:hover': href ? {
           transform: 'translateY(-4px)',

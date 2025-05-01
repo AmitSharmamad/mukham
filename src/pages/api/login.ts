@@ -1,10 +1,22 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import jwt from 'jsonwebtoken';
 
 type LoginBody = {
   username: string;
   email: string;
   password: string;
 };
+
+// Mock user data - in a real app, this would come from a database
+const users = [
+  {
+    id: '1',
+    email: 'demo@example.com',
+    username: 'demo',
+    password: 'password', // In a real app, never store plain text passwords
+    name: 'Demo User'
+  }
+];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Only process POST requests
@@ -23,20 +35,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Here you would normally authenticate against your actual backend
-    // For now, we're mocking a response
+    // Find the user by username or email
+    const user = users.find(u => 
+      (email && u.email === email) || 
+      (username && u.username === username)
+    );
 
-    // This is a simplified mock - in a real app, you'd validate credentials
-    // against your database and generate a proper JWT token
-    const mockToken = Buffer.from(`${email || username}:${Date.now()}`).toString('base64');
+    // User not found or password doesn't match
+    if (!user || user.password !== password) {
+      return res.status(401).json({
+        message: 'Invalid credentials',
+        field: !user ? 'username/email' : 'password'
+      });
+    }
+
+    // Generate JWT token
+    const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
+    const token = jwt.sign(
+      { userId: user.id },
+      SECRET_KEY,
+      { expiresIn: '24h' }
+    );
 
     // Return a successful response with token
     return res.status(200).json({
-      token: mockToken,
+      token,
       user: {
-        id: 'user123',
-        username: username || email.split('@')[0],
-        email: email || `${username}@example.com`
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name
       }
     });
 

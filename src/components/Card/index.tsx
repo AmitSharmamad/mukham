@@ -3,6 +3,7 @@ import { styled } from '@mui/material/styles';
 
 interface CardProps extends MuiCardProps {
   elevation?: number;
+  href?: string;
 }
 
 const StyledCard = styled(MuiCard)<CardProps>(({ theme }) => ({
@@ -14,9 +15,16 @@ const StyledCard = styled(MuiCard)<CardProps>(({ theme }) => ({
   }
 }));
 
-export const Card = ({ children, ...props }: CardProps) => {
+export const Card = ({ children, href, ...props }: CardProps) => {
+  // Configure the card props depending on whether it's being used as a link
+  const cardProps = {
+    ...props,
+    component: href ? 'a' : props.component || 'div',
+    ...(href && { href, sx: { textDecoration: 'none', ...props.sx } })
+  };
+
   return (
-    <StyledCard {...props}>
+    <StyledCard {...cardProps}>
       <CardContent>
         {children}
       </CardContent>

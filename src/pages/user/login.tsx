@@ -97,17 +97,12 @@ export default function UserLoginPage() {
       password: ''
     };
     
-    // Username validation
-    if (!formData.username.trim()) {
-      errors.username = 'Username is required';
+    // Either username or email is required, not both
+    if (!formData.username.trim() && !formData.email.trim()) {
+      errors.username = 'Either username or email is required';
+      errors.email = 'Either username or email is required';
       valid = false;
-    }
-    
-    // Email validation
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required';
-      valid = false;
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = 'Email is invalid';
       valid = false;
     }
@@ -258,9 +253,8 @@ export default function UserLoginPage() {
                 onChange={handleChange}
                 autoComplete="username"
                 fullWidth
-                required
                 error={!!formErrors.username}
-                helperText={formErrors.username}
+                helperText={formErrors.username || "Enter either username or email"}
               />
               
               <TextField
@@ -271,9 +265,8 @@ export default function UserLoginPage() {
                 onChange={handleChange}
                 autoComplete="email"
                 fullWidth
-                required
                 error={!!formErrors.email}
-                helperText={formErrors.email}
+                helperText={formErrors.email || "Enter either username or email"}
               />
               
               <TextField
