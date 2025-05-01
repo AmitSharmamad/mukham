@@ -1,6 +1,5 @@
-import { Box, Grid, Paper, Typography } from '@mui/material';
-import { TextField } from '../components/TextField';
-import { Button } from '../components/Button';
+import { Box, Grid, Typography } from '@mui/material';
+import { TextField, Button, Paper } from '../components';
 
 // This would come from an API in a real application
 const mockUserData = {

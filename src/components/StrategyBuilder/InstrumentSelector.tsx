@@ -83,7 +83,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
           queryParams.append('query', searchQuery);
         }
 
-        const response = await fetch(`http://localhost:9090/api/stock?${queryParams.toString()}`);
+        const response = await fetch(`/api/stock?${queryParams.toString()}`);
         const responseData = await response.json();
         console.log('Response:', responseData); // Debug log
 

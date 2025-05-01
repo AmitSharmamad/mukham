@@ -104,73 +104,128 @@ export default function Marketplace() {
 
   // Load categories on component mount
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+    
     const fetchCategories = async () => {
       try {
-        const data = await getAllCategories();
-        setCategories(data);
-      } catch (err) {
-        console.error("Error fetching categories:", err);
+        const data = await getAllCategories(controller.signal);
+        if (isMounted) {
+          setCategories(data);
+        }
+      } catch (err: any) {
+        if (isMounted && err.name !== 'AbortError') {
+          console.error("Error fetching categories:", err);
+        }
       }
     };
 
     fetchCategories();
+    
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, []);
 
   // Load listings based on filters
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+    
     const fetchListings = async () => {
+      if (!isMounted) return;
+      
       setIsLoading(true);
       setError(null);
       try {
-        // Use the category ID from selectedCategory
+        // Pass the abort signal to the API client
         const data = await getFilteredListings(
           selectedCategory,
           sortOrder,
-          searchQuery
+          searchQuery,
+          controller.signal
         );
-        setListings(data);
-      } catch (err) {
-        console.error("Error fetching listings:", err);
-        setError("Failed to load marketplace listings. Please try again later.");
+        if (isMounted) {
+          setListings(data);
+        }
+      } catch (err: any) {
+        // Don't update state if the request was aborted or component unmounted
+        if (isMounted && err.name !== 'AbortError') {
+          console.error("Error fetching listings:", err);
+          setError("Failed to load marketplace listings. Please try again later.");
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchListings();
+    
+    // Cleanup function to abort fetch on unmount or deps change
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [searchQuery, selectedCategory, sortOrder]);
 
   // Load user subscriptions and seller listings when tab changes
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+    
     if (tabValue === 1) {
       // Load user's purchased strategies
       const fetchUserSubscriptions = async () => {
+        if (!isMounted) return;
+        
         setIsLoading(true);
         try {
-          const data = await getUserSubscriptions();
-          setUserSubscriptions(data);
-        } catch (err) {
-          console.error("Error fetching user subscriptions:", err);
+          const data = await getUserSubscriptions(controller.signal);
+          if (isMounted) {
+            setUserSubscriptions(data);
+          }
+        } catch (err: any) {
+          if (isMounted && err.name !== 'AbortError') {
+            console.error("Error fetching user subscriptions:", err);
+          }
         } finally {
-          setIsLoading(false);
+          if (isMounted) {
+            setIsLoading(false);
+          }
         }
       };
       fetchUserSubscriptions();
     } else if (tabValue === 2) {
       // Load user's listed strategies
       const fetchSellerListings = async () => {
+        if (!isMounted) return;
+        
         setIsLoading(true);
         try {
-          const data = await getSellerListings();
-          setSellerListings(data);
-        } catch (err) {
-          console.error("Error fetching seller listings:", err);
+          const data = await getSellerListings(controller.signal);
+          if (isMounted) {
+            setSellerListings(data);
+          }
+        } catch (err: any) {
+          if (isMounted && err.name !== 'AbortError') {
+            console.error("Error fetching seller listings:", err);
+          }
         } finally {
-          setIsLoading(false);
+          if (isMounted) {
+            setIsLoading(false);
+          }
         }
       };
       fetchSellerListings();
     }
+    
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [tabValue]);
 
   // Get category names for a listing
@@ -211,14 +266,14 @@ export default function Marketplace() {
         <Grid item xs={12} sm={6} md={4}>
           <DashboardWidget 
             title="Available Strategies" 
-            value={listings.length.toString()}
+            value={(listings?.length || 0).toString()}
             subtitle="Ready to deploy" 
           />
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
           <DashboardWidget 
             title="My Subscriptions" 
-            value={userSubscriptions.length.toString()}
+            value={(userSubscriptions?.length || 0).toString()}
             subtitle="Active strategies" 
             href="/profile"
           />
@@ -226,8 +281,8 @@ export default function Marketplace() {
         <Grid item xs={12} sm={6} md={4}>
           <DashboardWidget 
             title="Trending" 
-            value={listings.length > 0 ? listings[0]?.title : "No trending strategies"}
-            subtitle={`${listings.length > 0 ? listings[0]?.views : 0} views`} 
+            value={listings?.length > 0 ? listings[0]?.title : "No trending strategies"}
+            subtitle={`${listings?.length > 0 ? listings[0]?.views : 0} views`} 
           />
         </Grid>
       </Grid>
@@ -275,11 +330,11 @@ export default function Marketplace() {
                     <MenuItem value="">
                       <em>All Categories</em>
                     </MenuItem>
-                    {categories.map((category) => (
+                    {Array.isArray(categories) ? categories.map((category) => (
                       <MenuItem key={category.id} value={category.id}>
                         {category.name}
                       </MenuItem>
-                    ))}
+                    )) : null}
                   </Select>
                 </FormControl>
               </Grid>
@@ -312,7 +367,7 @@ export default function Marketplace() {
             <Grid item xs={12}>
               <Alert severity="error">{error}</Alert>
             </Grid>
-          ) : listings.length > 0 ? (
+          ) : listings?.length > 0 ? (
             // Display strategy listings
             listings.map((listing) => (
               <Grid item xs={12} md={6} key={listing.id}>
@@ -421,7 +476,7 @@ export default function Marketplace() {
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
             <CircularProgress />
           </Box>
-        ) : userSubscriptions.length > 0 ? (
+        ) : userSubscriptions?.length > 0 ? (
           <Grid container spacing={3}>
             {userSubscriptions.map((subscription) => (
               <Grid item xs={12} md={6} key={subscription.id}>
@@ -470,7 +525,7 @@ export default function Marketplace() {
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
             <CircularProgress />
           </Box>
-        ) : sellerListings.length > 0 ? (
+        ) : sellerListings?.length > 0 ? (
           <Grid container spacing={3}>
             {sellerListings.map((listing) => (
               <Grid item xs={12} md={6} key={listing.id}>

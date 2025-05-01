@@ -50,6 +50,47 @@ const commonProperties: ThemeOptions = {
         },
       },
     },
+    MuiPaper: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          borderRadius: 12,
+          backgroundImage: 'none',
+          transition: theme.transitions.create(['background-color', 'box-shadow', 'border-color']),
+          ...(theme.palette.mode === 'dark' && {
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
+            backgroundColor: theme.palette.background.paper,
+            borderColor: theme.palette.divider,
+          }),
+          ...(theme.palette.mode === 'light' && {
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.05)',
+            backgroundColor: theme.palette.background.paper,
+          }),
+        }),
+        elevation0: {
+          boxShadow: 'none',
+        },
+        elevation1: ({ theme }) => ({
+          ...(theme.palette.mode === 'dark' && {
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.4)',
+          }),
+        }),
+        elevation2: ({ theme }) => ({
+          ...(theme.palette.mode === 'dark' && {
+            boxShadow: '0 3px 5px rgba(0, 0, 0, 0.5)',
+          }),
+        }),
+        elevation3: ({ theme }) => ({
+          ...(theme.palette.mode === 'dark' && {
+            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.6)',
+          }),
+        }),
+        elevation4: ({ theme }) => ({
+          ...(theme.palette.mode === 'dark' && {
+            boxShadow: '0 5px 10px rgba(0, 0, 0, 0.7)',
+          }),
+        }),
+      },
+    },
     MuiTypography: {
       styleOverrides: {
         root: {
@@ -394,10 +435,9 @@ export const getTheme = (mode: ThemeMode, color: ThemeColor) => {
           primary: '#2c2c2c',
           secondary: '#575757',
         },
-      } : {
-        background: {
-          default: '#121212',
-          paper: '#1e1e1e',
+      } : {      background: {
+        default: '#121212',
+        paper: '#1e1e1e',
         },
         text: {
           primary: '#ffffff',

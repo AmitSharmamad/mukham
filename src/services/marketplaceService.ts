@@ -85,14 +85,15 @@ export const getAllListings = async () => {
 export const getFilteredListings = async (
   category?: string,
   sort?: string,
-  search?: string
+  search?: string,
+  signal?: AbortSignal
 ) => {
   const queryParams = new URLSearchParams();
   if (category) queryParams.append('category', category);
   if (sort) queryParams.append('sort', sort);
   if (search) queryParams.append('search', search);
 
-  const response = await apiClient.get(`/marketplace/listings?${queryParams}`);
+  const response = await apiClient.get(`/marketplace/listings?${queryParams}`, { signal });
   return response.data;
 };
 
@@ -120,8 +121,8 @@ export const deleteListing = async (listingId: string) => {
 };
 
 // Categories APIs
-export const getAllCategories = async () => {
-  const response = await apiClient.get('/marketplace/categories');
+export const getAllCategories = async (signal?: AbortSignal) => {
+  const response = await apiClient.get('/marketplace/categories', { signal });
   return response.data;
 };
 
@@ -150,8 +151,8 @@ export const purchaseStrategy = async (
   return response.data;
 };
 
-export const getUserSubscriptions = async () => {
-  const response = await apiClient.get('/marketplace/subscriptions/user');
+export const getUserSubscriptions = async (signal?: AbortSignal) => {
+  const response = await apiClient.get('/marketplace/subscriptions/user', { signal });
   return response.data;
 };
 
@@ -224,7 +225,7 @@ export const getSellerAnalytics = async () => {
   return response.data;
 };
 
-export const getSellerListings = async () => {
-  const response = await apiClient.get('/marketplace/seller/listings');
+export const getSellerListings = async (signal?: AbortSignal) => {
+  const response = await apiClient.get('/marketplace/seller/listings', { signal });
   return response.data;
 };

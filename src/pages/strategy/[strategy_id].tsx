@@ -60,7 +60,7 @@ export default function EditStrategy() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:9090/api/strategy/${id}`);
+      const response = await fetch(`/api/strategy/${id}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -116,7 +116,7 @@ export default function EditStrategy() {
 
   const fetchInstrumentDetails = async (instrumentIds: number[]): Promise<void> => {
     try {
-      const response = await fetch(`http://localhost:9090/api/stock/by-ids?ids=${instrumentIds.join(',')}`);
+      const response = await fetch(`/api/stock/by-ids?ids=${instrumentIds.join(',')}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

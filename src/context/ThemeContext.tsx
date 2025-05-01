@@ -40,14 +40,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('themeColor', newColor);
   };
 
-  // Prevent flash of incorrect theme
-  if (!mounted) {
-    return null;
-  }
-
+  // Create values object to maintain consistent structure
+  const value = {
+    mode,
+    color,
+    toggleMode,
+    setThemeColor
+  };
+  
   return (
-    <ThemeContext.Provider value={{ mode, color, toggleMode, setThemeColor }}>
-      {children}
+    <ThemeContext.Provider value={value}>
+      {mounted ? children : 
+        // Render an empty div with the same structure during SSR to prevent hydration issues
+        <div style={{ visibility: 'hidden' }} />
+      }
     </ThemeContext.Provider>
   );
 };
