@@ -22,6 +22,12 @@ interface Instrument {
   instrument_id: number;
   start_date: string;
   expiry: string;
+  name?: string;
+  instrumentToken?: number;
+  tradingSymbol?: string;
+  lotSize?: number;
+  tickSize?: number;
+  expiryDate?: string;
 }
 
 interface InstrumentSelectorProps {
@@ -48,7 +54,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const limit = 20;
+  const pageSize = 20;
 
   // Load selected instruments when selectedInstruments prop changes
   useEffect(() => {
@@ -68,7 +74,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
       try {
         const queryParams = new URLSearchParams({
           page: page.toString(),
-          limit: limit.toString(),
+          pageSize: pageSize.toString(),
         });
         
         if (selectedExchange) {
@@ -83,14 +89,27 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
           queryParams.append('query', searchQuery);
         }
 
-        const response = await fetch(`/api/stock?${queryParams.toString()}`);
+        const response = await fetch(`/api/instrument-master?${queryParams.toString()}`);
         const responseData = await response.json();
         console.log('Response:', responseData); // Debug log
 
         if (active) {
-          if (responseData.data && Array.isArray(responseData.data)) {
-            setInstruments(responseData.data);
-            setTotalPages(Math.ceil(responseData.total / limit) || 1);
+          if (responseData.success && responseData.data && Array.isArray(responseData.data.data)) {
+            // Map the API response to match our Instrument interface
+            const mappedInstruments = responseData.data.data.map((item: any) => ({
+              id: item.instrumentToken || item.id,
+              exchange: item.exchange,
+              segment: item.segment,
+              symbol: item.tradingSymbol || item.symbol,
+              instrument: item.name || item.tradingSymbol || item.symbol,
+              instrument_id: item.instrumentToken || item.id,
+              start_date: item.start_date || '',
+              expiry: item.expiryDate || item.expiry || '',
+              lotSize: item.lotSize,
+              tickSize: item.tickSize
+            }));
+            setInstruments(mappedInstruments);
+            setTotalPages(responseData.data.totalPages || 1);
           } else {
             setInstruments([]);
             setTotalPages(1);
@@ -119,7 +138,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
         active = false;
       };
     }
-  }, [selectedExchange, selectedSegment, page, searchQuery, open, limit]);
+  }, [selectedExchange, selectedSegment, page, searchQuery, open, pageSize]);
 
   const handleClose = () => {
     setPage(1);
@@ -191,7 +210,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 multiple
                 options={Array.isArray(instruments) ? instruments : []}
                 loading={loading}
-                getOptionLabel={(option) => `${option.symbol} - ${option.instrument}`}
+                getOptionLabel={(option) => `${option.symbol} - ${option.exchange}`}
                 value={Array.isArray(tempSelected) ? tempSelected : []}
                 onChange={(_, newValue) => {
                   setTempSelected(newValue);
@@ -204,7 +223,9 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 renderOption={(props, option) => (
                   <li {...props}>
                     <Box>
-                      <strong>{option.symbol}</strong> - {option.instrument}
+                      <strong>{option.symbol}</strong> - {option.exchange}
+                      {option.lotSize && ` (Lot: ${option.lotSize})`}
+                      {option.expiry && ` (Expiry: ${new Date(option.expiry).toLocaleDateString()})`}
                     </Box>
                   </li>
                 )}
@@ -215,7 +236,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                       {...getTagProps({ index })}
                       key={option.id}
                     >
-                      {option.symbol}
+                      {option.symbol} - {option.exchange}
                     </Box>
                   ))
                 }
