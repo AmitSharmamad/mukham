@@ -1,7 +1,9 @@
 import Link from 'next/link';
-import { AppBar, Toolbar, IconButton, Menu, MenuItem, Typography, Box, Button, useTheme as useMuiTheme, Tooltip } from '@mui/material';
-import { useState } from 'react';
+import { AppBar, Toolbar, IconButton, Menu, MenuItem, Typography, Box, Button, useTheme as useMuiTheme, Tooltip, Divider } from '@mui/material';
+import { useState, useEffect } from 'react';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import LoginIcon from '@mui/icons-material/Login';
+import LogoutIcon from '@mui/icons-material/Logout';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +13,12 @@ export default function Navbar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const muiTheme = useMuiTheme();
   const { mode, toggleMode } = useTheme();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user, logout, checkUserAuth } = useAuth();
+  
+  // Check authentication status on component mount
+  useEffect(() => {
+    checkUserAuth();
+  }, []);
   
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -19,6 +26,11 @@ export default function Navbar() {
   
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    handleClose();
+    logout();
   };
 
   const handleLoginClick = () => {
@@ -134,6 +146,13 @@ export default function Navbar() {
               >
                 <MenuItem component={Link} href="/profile" onClick={handleClose}>Profile</MenuItem>
                 <MenuItem component={Link} href="/support" onClick={handleClose}>Support</MenuItem>
+                <Divider />
+                <MenuItem onClick={handleLogout}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
+                    Logout
+                  </Box>
+                </MenuItem>
               </Menu>
             </>
           ) : (
@@ -141,6 +160,7 @@ export default function Navbar() {
               color="inherit"
               onClick={handleLoginClick}
               sx={{ fontSize: '1.1rem' }}
+              startIcon={<LoginIcon />}
             >
               Login
             </Button>

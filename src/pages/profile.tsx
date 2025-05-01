@@ -1,15 +1,33 @@
-import { Box, Grid, Typography } from '@mui/material';
+import { Box, Grid, Typography, CircularProgress } from '@mui/material';
 import { TextField, Button, Paper } from '../components';
-
-// This would come from an API in a real application
-const mockUserData = {
-  name: 'John Doe',
-  email: 'john.doe@example.com',
-  phone: '+91 9876543210',
-  tradingExperience: '5+ years',
-};
+import { useAuth } from '../context/AuthContext';
+import { useEffect, useState } from 'react';
 
 export default function Profile() {
+  const { user, loading } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  // Handle client-side mounting to avoid hydration issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Only render content on client-side to ensure we have user data
+  if (!mounted) return null;
+
+  if (loading) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="80vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -26,46 +44,36 @@ export default function Profile() {
           border: (theme) => `1px solid ${theme.palette.divider}`,
         }}
       >
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Name"
-              value={mockUserData.name}
-              disabled
-            />
+        {user ? (
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Name"
+                value={user.name || 'Not provided'}
+                disabled
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Email"
+                value={user.email || 'Not provided'}
+                disabled
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+                <Button variant="outlined">Change Password</Button>
+                <Button variant="contained">Edit Profile</Button>
+              </Box>
+            </Grid>
           </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Email"
-              value={mockUserData.email}
-              disabled
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Phone"
-              value={mockUserData.phone}
-              disabled
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Trading Experience"
-              value={mockUserData.tradingExperience}
-              disabled
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
-              <Button variant="outlined">Change Password</Button>
-              <Button variant="contained">Edit Profile</Button>
-            </Box>
-          </Grid>
-        </Grid>
+        ) : (
+          <Typography variant="body1" align="center">
+            Please login to view your profile
+          </Typography>
+        )}
       </Paper>
     </Box>
   );

@@ -73,33 +73,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       
+      // Create a flag to prevent multiple simultaneous auth checks
+      setAuthCheckInProgress(true);
+      
       if (token) {
-        // Create a flag to prevent multiple simultaneous auth checks
-        setAuthCheckInProgress(true);
-        
-        // Only perform the auth check if we're not on a login page or public route
-        const isPublicRoute = window.location.pathname === '/login' || 
-                              window.location.pathname === '/user/login' ||
-                              window.location.pathname === '/auth/callback' ||
-                              window.location.pathname === '/community' ||
-                              window.location.pathname === '/marketplace' ||
-                              window.location.pathname === '/docs' ||
-                              window.location.pathname.startsWith('/community/') ||
-                              window.location.pathname.startsWith('/marketplace/') ||
-                              window.location.pathname.startsWith('/docs/');
-                            
-        if (!isPublicRoute) {
-          checkUserAuth().finally(() => {
-            setAuthCheckInProgress(false);
-          });
-        } else {
-          // For login pages, just mark as not loading
-          setLoading(false);
+        // Always check auth status on every page
+        checkUserAuth().finally(() => {
           setAuthCheckInProgress(false);
-        }
+        });
       } else {
         // No token, just mark as not loading
         setLoading(false);
+        setAuthCheckInProgress(false);
       }
     }
   }, [mounted, authCheckInProgress]);

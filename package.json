@@ -17,6 +17,7 @@
     "@mui/x-date-pickers": "^7.28.3",
     "axios": "^1.8.4",
     "dayjs": "^1.11.13",
+    "jsonwebtoken": "^9.0.2",
     "next": "latest",
     "react": "latest",
     "react-dnd": "^16.0.1",
@@ -24,6 +25,7 @@
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "22.13.11",
     "@types/react": "^19.0.12",
     "typescript": "latest"
