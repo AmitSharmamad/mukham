@@ -29,7 +29,7 @@ export interface Strategy {
 }
 
 export interface StrategyResponse {
-  result: boolean;
+  success: boolean;
   data: Strategy[];
 }
 
