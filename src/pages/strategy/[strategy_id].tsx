@@ -68,7 +68,7 @@ export default function EditStrategy() {
 
       const data = await response.json();
       
-      if (data.result) {
+      if (data.success) {
         const strategyData = data.data;
         const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z";
         
@@ -116,14 +116,14 @@ export default function EditStrategy() {
 
   const fetchInstrumentDetails = async (instrumentIds: number[]): Promise<void> => {
     try {
-      const response = await fetch(`/api/stock/by-ids?ids=${instrumentIds.join(',')}`);
+      const response = await fetch(`/api/instrument-master/by-ids?ids=${instrumentIds.join(',')}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      if (data.result && data.data) {
+      if (data.success && data.data) {
         setInstrumentDetails(data.data);
       }
     } catch (err) {
