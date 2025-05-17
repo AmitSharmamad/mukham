@@ -9,3 +9,4 @@ export { default as Select } from './Select';
 export { default as TextField } from './TextField';
 export { default as DashboardWidget } from './DashboardWidget';
 export { default as AuthGuard } from './AuthGuard';
+export { DocsLayout } from './DocsLayout';

@@ -1129,7 +1129,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     if (validateForm()) {
       try {
         setIsBacktesting(true);
-        const response = await fetch(`/api/bt/start?strategy_id=${initialData?.id}`, {
+        const response = await fetch(`/api/backtest/start?strategy_id=${initialData?.id}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
