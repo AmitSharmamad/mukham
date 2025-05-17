@@ -1,40 +1,44 @@
+import { useEffect } from 'react';
 import { Box, Grid, Typography } from '@mui/material';
 import { Card } from '../components/Card';
+import { useRouter } from 'next/router';
 
 const docSections = [
   {
     title: 'Getting Started',
     description: 'Learn the basics of using the Algo Trading Platform',
-    path: '/docs/getting-started',
+    path: '/docs/getting-started/introduction',
   },
   {
-    title: 'Building Strategies',
+    title: 'Strategy',
     description: 'Learn how to create and customize trading strategies',
-    path: '/docs/building-strategies',
+    path: '/docs/strategy/overview',
   },
   {
-    title: 'Platform Features',
-    description: 'Explore all features and capabilities of the platform',
-    path: '/docs/features',
-  },
-  {
-    title: 'Technical Indicators',
+    title: 'Indicators',
     description: 'Understanding technical indicators and their usage',
-    path: '/docs/indicators',
+    path: '/docs/indicators/overview',
   },
   {
-    title: 'Backtesting',
-    description: 'Learn how to backtest your strategies effectively',
-    path: '/docs/backtesting',
+    title: 'Reports',
+    description: 'Explore reports and performance analytics',
+    path: '/docs/reports/overview',
   },
   {
-    title: 'FAQs',
-    description: 'Frequently asked questions and troubleshooting',
-    path: '/docs/faqs',
+    title: 'Advanced',
+    description: 'Advanced topics and best practices',
+    path: '/docs/advanced/api-reference',
   },
 ];
 
 export default function Docs() {
+  const router = useRouter();
+  
+  // Redirect to Introduction page if user lands on /docs
+  useEffect(() => {
+    router.push('/docs/getting-started/introduction');
+  }, [router]);
+
   return (
     <Box>
       <Box sx={{ mb: 6, textAlign: 'center' }}>
