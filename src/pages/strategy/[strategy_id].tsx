@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Alert, Button, Chip, Stack } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Button, Chip, Stack, Grid } from '@mui/material';
 import { StrategyForm } from '../../components/StrategyBuilder/StrategyForm';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
@@ -171,27 +171,7 @@ export default function EditStrategy() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Edit Strategy: {strategy.name}
-      </Typography>
-      {instrumentDetails.length > 0 && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" gutterBottom>
-            Selected Instruments:
-          </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-            {instrumentDetails.map((instrument) => (
-              <Chip
-                key={instrument.id}
-                label={`${instrument.symbol} - ${instrument.instrument}`}
-                color="primary"
-                variant="outlined"
-              />
-            ))}
-          </Stack>
-        </Box>
-      )}
-      <StrategyForm initialData={strategy} initialInstruments={instrumentDetails} />
+      <StrategyForm initialData={strategy} initialInstruments={instrumentDetails} pageTitle={`Edit Strategy: ${strategy.name}`} />
     </Box>
   );
 }
