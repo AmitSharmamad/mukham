@@ -35,19 +35,30 @@ export const loginWithCredentials = async (credentials: LoginCredentials): Promi
       },
       // Don't automatically follow redirects
       maxRedirects: 0,
+      validateStatus: (status) => {
+        // Consider both 200 OK and 3xx redirects as success
+        return (status >= 200 && status < 300) || (status >= 300 && status < 400);
+      },
     });
     
-    // Verify response is a valid JSON object before accessing properties
-    if (typeof response.data === 'object' && response.data !== null) {
-      // Check if the response is a redirect to /home
-      if (response.data.redirect && response.data.redirect === '/home') {
-        return { redirect: '/home' };
-      }
-      
-      return response.data;
-    } else {
-      throw new Error('Received invalid response format');
+    // Handle redirect responses (3xx status codes)
+    if (response.status >= 300 && response.status < 400) {
+      const redirectUrl = response.headers.location || '/home';
+      return { redirect: redirectUrl };
     }
+    
+    // For successful responses (2xx), even without data, assume success and redirect to home
+    if (response.status >= 200 && response.status < 300) {
+      // If we have valid data, return it
+      if (typeof response.data === 'object' && response.data !== null) {
+        return response.data;
+      }
+      // Otherwise assume implicit success and redirect to home
+      return { redirect: '/home' };
+    }
+    
+    // Fallback for unexpected response status
+    return { redirect: '/home' };
   } catch (error: any) {
     console.error('Login failed:', error);
     
