@@ -1,15 +1,15 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Divider, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function PlatformOverview() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Platform Overview
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
+      <DocContent
+        title="Platform Overview"
+        subtitle="Understanding the core components and architecture of सूत्रम्"
+        sx={{ mb: 4 }}
+      >
         <Typography variant="body1" paragraph>
           सूत्रम् (Sutram) offers a comprehensive set of tools designed to help traders build, test, and deploy
           algorithmic trading strategies. This overview will help you understand the platform's architecture and main components.
@@ -127,7 +127,7 @@ export default function PlatformOverview() {
             <strong>Support:</strong> Access to customer support and help resources.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

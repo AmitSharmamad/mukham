@@ -1,16 +1,16 @@
-import { Box, Typography, Paper, Divider, Grid, List, ListItem, ListItemText } from '@mui/material';
+import { Box, Typography, Divider, Grid, List, ListItem, ListItemText } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 import Link from 'next/link';
 
 export default function IndicatorsOverview() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Technical Indicators Overview
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
+      <DocContent
+        title="Technical Indicators Overview"
+        subtitle="Leveraging mathematical calculations to forecast market movements"
+        sx={{ mb: 4 }}
+      >
         <Typography variant="body1" paragraph>
           Technical indicators are mathematical calculations based on historical price, volume, or open interest information
           that aim to forecast financial market direction. सूत्रम् (Sutram) provides a comprehensive suite of indicators
@@ -280,7 +280,7 @@ export default function IndicatorsOverview() {
             <strong>Backtest Thoroughly:</strong> Test indicators across different market conditions.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

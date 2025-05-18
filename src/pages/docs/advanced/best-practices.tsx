@@ -1,15 +1,15 @@
-import { Box, Typography, Paper, Divider } from '@mui/material';
+import { Box, Typography, Divider } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function BestPractices() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Best Practices for Algorithmic Trading
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
+      <DocContent
+        title="Best Practices for Algorithmic Trading"
+        subtitle="Proven approaches to develop robust and profitable trading systems"
+        sx={{ mb: 4 }}
+      >
         <Typography variant="body1" paragraph>
           Implementing successful algorithmic trading strategies in सूत्रम् (Sutram) requires more than just technical knowledge.
           This guide outlines best practices for strategy development, risk management, and system optimization to help you
@@ -324,7 +324,7 @@ export default function BestPractices() {
             <strong>Build a Strategy Portfolio:</strong> Develop multiple uncorrelated strategies to diversify your approach.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }
