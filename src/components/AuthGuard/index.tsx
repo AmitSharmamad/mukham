@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../context/AuthContext';
 import { CircularProgress, Box } from '@mui/material';
+import { checkPageAuth } from '../../utils/pageAuthUtils';
 
 interface AuthGuardProps {
   children: ReactNode;
@@ -42,33 +43,21 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
         return;
       }
 
-      // If auth context is still loading, wait for it
-      if (loading) {
-        return;
+      // Always perform a fresh auth check for protected routes
+      setIsAuthChecking(true);
+      try {
+        // Use the centralized auth check function
+        const isAuthenticated = await checkPageAuth(router);
+        setIsAuthChecking(false);
+        setChecking(false);
+      } catch (error) {
+        setIsAuthChecking(false);
+        setChecking(false);
       }
-
-      // If user is not logged in, perform a check
-      if (!isLoggedIn) {
-        setIsAuthChecking(true);
-        try {
-          const isAuthenticated = await checkUserAuth();
-          
-          if (!isAuthenticated) {
-            // Only redirect if we're not already on a login page
-            if (!router.pathname.includes('/login')) {
-              router.replace('/login');
-            }
-          }
-        } finally {
-          setIsAuthChecking(false);
-        }
-      }
-      
-      setChecking(false);
     };
 
     checkAuthentication();
-  }, [router.pathname, isLoggedIn, loading, router, checkUserAuth, mounted, isAuthChecking]);
+  }, [router.pathname, mounted, isAuthChecking, router]);
 
   // Don't render anything until we're mounted on the client
   if (!mounted) {

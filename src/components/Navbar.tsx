@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Router from 'next/router';
 import { AppBar, Toolbar, IconButton, Menu, MenuItem, Typography, Box, Button, useTheme as useMuiTheme, Tooltip, Divider } from '@mui/material';
 import { useState, useEffect } from 'react';
 import AccountCircle from '@mui/icons-material/AccountCircle';
@@ -8,16 +9,81 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { isAuthenticated, logout as logoutService, checkAPIServer } from '../services/authService';
 
 export default function Navbar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const muiTheme = useMuiTheme();
   const { mode, toggleMode } = useTheme();
-  const { isLoggedIn, user, logout, checkUserAuth } = useAuth();
+  const { user, logout, checkUserAuth } = useAuth();
+  const [authStatus, setAuthStatus] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [apiAvailable, setApiAvailable] = useState(true);
   
-  // Check authentication status on component mount
+  // Check authentication status on component mount and when route changes
   useEffect(() => {
-    checkUserAuth();
+    let isMounted = true;
+    
+    const checkAuth = async () => {
+      if (!isMounted) return;
+      
+      setLoading(true);
+      try {
+        // First check if API server is available
+        const isAPIUp = await checkAPIServer();
+        
+        if (isMounted) {
+          setApiAvailable(isAPIUp);
+          
+          // Only attempt authentication if API is up
+          if (isAPIUp) {
+            const isAuth = await isAuthenticated();
+            if (isMounted) {
+              setAuthStatus(isAuth);
+            }
+          } else {
+            // If API is down, assume not authenticated
+            if (isMounted) {
+              setAuthStatus(false);
+            }
+          }
+          
+          setLoading(false);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setApiAvailable(false);
+          setAuthStatus(false);
+          setLoading(false);
+        }
+      }
+    };
+    
+    // Initial check
+    checkAuth();
+    
+    // Set up router event listeners to check auth status on route change
+    const handleRouteChange = () => {
+      // Only check auth if the component is still mounted
+      if (isMounted) {
+        checkAuth();
+      }
+    };
+    
+    Router.events.on('routeChangeComplete', handleRouteChange);
+    
+    // Check auth status regularly (every minute)
+    const intervalId = setInterval(() => {
+      if (isMounted) {
+        checkAuth();
+      }
+    }, 60 * 1000);
+    
+    return () => {
+      isMounted = false;
+      Router.events.off('routeChangeComplete', handleRouteChange);
+      clearInterval(intervalId);
+    };
   }, []);
   
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -28,13 +94,21 @@ export default function Navbar() {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     handleClose();
-    logout();
+    await logoutService();
+    setAuthStatus(false);
   };
 
   const handleLoginClick = () => {
-    window.location.href = '/login';
+    // Store the current URL to redirect back after login
+    if (typeof window !== 'undefined') {
+      const currentPath = Router.pathname;
+      if (currentPath !== '/login') {
+        sessionStorage.setItem('redirectAfterLogin', currentPath);
+      }
+    }
+    Router.push('/login');
   };
   
   return (
@@ -129,7 +203,7 @@ export default function Navbar() {
             </IconButton>
           </Tooltip>
 
-          {isLoggedIn ? (
+          {!loading && (authStatus ? (
             <>
               <IconButton 
                 size="large" 
@@ -164,7 +238,7 @@ export default function Navbar() {
             >
               Login
             </Button>
-          )}
+          ))}
         </Box>
       </Toolbar>
     </AppBar>

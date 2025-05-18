@@ -2,7 +2,7 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import Router from 'next/router';
 import { UserData, checkAuth } from '../utils/authUtils';
 import apiClient from '../utils/api';
-import { loginWithCredentials, LoginError } from '../services/authService';
+import { loginWithCredentials, LoginError, isAuthenticated, getCurrentUser } from '../services/authService';
 
 interface LoginCredentials {
   username: string;
@@ -32,8 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkUserAuth = async (): Promise<boolean> => {
     setLoading(true);
     try {
-      const userData = await checkAuth();
-      if (userData) {
+      const isAuth = await isAuthenticated();
+      if (isAuth) {
+        const userData = await getCurrentUser();
         setUser(userData);
         setIsLoggedIn(true);
         setLoading(false);
@@ -58,36 +59,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMounted(true);
   }, []);
   
-  // Track if an auth check is already in progress
-  const [authCheckInProgress, setAuthCheckInProgress] = useState(false);
-
   // Check auth on initial load
   useEffect(() => {
     // Skip during SSR
     if (!mounted) return;
     
-    // Skip if we're already checking
-    if (authCheckInProgress) return;
-    
     // Check if we're in the browser before trying to access localStorage
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       
-      // Create a flag to prevent multiple simultaneous auth checks
-      setAuthCheckInProgress(true);
-      
       if (token) {
         // Always check auth status on every page
-        checkUserAuth().finally(() => {
-          setAuthCheckInProgress(false);
-        });
+        checkUserAuth()
       } else {
         // No token, just mark as not loading
         setLoading(false);
-        setAuthCheckInProgress(false);
       }
     }
-  }, [mounted, authCheckInProgress]);
+  }, [mounted]);
+
+  // Check authentication periodically (every minute)
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const intervalId = setInterval(() => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        checkUserAuth();
+      }
+    }, 60 * 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [mounted]);
 
   const login = (token: string) => {
     localStorage.setItem('token', token);
