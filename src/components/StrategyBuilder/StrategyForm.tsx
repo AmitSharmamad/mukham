@@ -7,6 +7,7 @@ import {
   Chip,
   FormControl,
   FormControlLabel,
+  FormHelperText,
   FormLabel,
   Grid,
   Radio,
@@ -14,7 +15,8 @@ import {
   Typography,
   Tooltip,
   Snackbar,
-  Alert
+  Alert,
+  Switch
 } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -31,6 +33,7 @@ import { Select } from '../Select';
 import { TextField } from '../TextField';
 import InstrumentSelector from './InstrumentSelector';
 import { IndicatorExpressionBuilder } from './IndicatorExpressionBuilder';
+import { OptionsLegBuilder, OptionLeg } from './OptionsLegBuilder';
 import { PROFIT_LOSS_TYPES, TIMEFRAME_OPTIONS } from '../../constants';
 import {
   Table,
@@ -82,6 +85,10 @@ interface FormData {
   maxQuantity: string;
   entryConditions: any[];
   exitConditions: any[];
+  // New fields for options legs
+  entryOptionLegs: OptionLeg[];
+  exitOptionLegs: OptionLeg[];
+  expirationStrategy: 'EXPIRE' | 'CLOSE' | 'EXERCISE';
   stopLoss: string;
   stopLossType: 'ABSOLUTE' | 'PERCENTAGE';
   targetProfit: string;
@@ -108,6 +115,9 @@ const initialFormData: FormData = {
   maxQuantity: '',
   entryConditions: [],
   exitConditions: [],
+  entryOptionLegs: [],
+  exitOptionLegs: [],
+  expirationStrategy: 'CLOSE',
   stopLoss: '',
   stopLossType: 'PERCENTAGE',
   targetProfit: '',
@@ -147,6 +157,9 @@ interface ApiFormData {
   qty: number;
   entry_expression: string;
   exit_expression: string;
+  entry_option_legs?: OptionLeg[];
+  exit_option_legs?: OptionLeg[];
+  expiration_strategy?: 'EXPIRE' | 'CLOSE' | 'EXERCISE';
   target_profit: number;
   target_profit_type: 'ABSOLUTE' | 'PERCENTAGE';
   stop_loss: number;
@@ -186,77 +199,89 @@ interface BacktestData {
   id: string;
   strategy_id: string;
   runs: BacktestRun[];
-}
+}  const convertFormToApiData = (formData: FormData): ApiFormData => {
+    const stringifyExpression = (expression: IndicatorExpression): string => {
+      const getIndicatorString = (indicator: Indicator): string => {
+        if (indicator.name === 'Number') {
+          return indicator.config.value?.toString() || '0';
+        }
+        switch (indicator.name) {
+          case 'SMA':
+          case 'EMA':
+          case 'RSI':
+            return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
+          case 'MACD':
+            return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || ''}, ${indicator.config?.slowPeriod || ''}, ${indicator.config?.signalPeriod || ''}, ${indicator.config?.offset || 0})`;
+          case 'BB_UPPER':
+          case 'BB_LOWER':
+          case 'BB_MIDDLE':
+            return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.deviations || ''}, ${indicator.config?.offset || 0})`;
+          case 'CLOSE':
+            return `CLOSE(${indicator.config?.offset || 0})`;
+          case 'OPEN':
+          case 'HIGH':
+          case 'LOW':
+          case 'VOLUME':
+          case 'MARKET_POSITION':
+            return indicator.name;
+          default:
+            return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
+        }
+      };
 
-const convertFormToApiData = (formData: FormData): ApiFormData => {
-  const stringifyExpression = (expression: IndicatorExpression): string => {
-    const getIndicatorString = (indicator: Indicator): string => {
-      if (indicator.name === 'Number') {
-        return indicator.config.value?.toString() || '0';
-      }
-      switch (indicator.name) {
-        case 'SMA':
-        case 'EMA':
-        case 'RSI':
-          return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-        case 'MACD':
-          return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || ''}, ${indicator.config?.slowPeriod || ''}, ${indicator.config?.signalPeriod || ''}, ${indicator.config?.offset || 0})`;
-        case 'BB_UPPER':
-        case 'BB_LOWER':
-        case 'BB_MIDDLE':
-          return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.deviations || ''}, ${indicator.config?.offset || 0})`;
-        case 'CLOSE':
-          return `CLOSE(${indicator.config?.offset || 0})`;
-        case 'OPEN':
-        case 'HIGH':
-        case 'LOW':
-        case 'VOLUME':
-        case 'MARKET_POSITION':
-          return indicator.name;
-        default:
-          return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
-      }
+      const expr = `${getIndicatorString(expression.indicator1)} ${expression.operator} ${getIndicatorString(expression.indicator2)}`;
+      return expr;
     };
 
-    const expr = `${getIndicatorString(expression.indicator1)} ${expression.operator} ${getIndicatorString(expression.indicator2)}`;
-    return expr;
-  };
+    const stringifyConditions = (conditions: IndicatorExpression[]): string => {
+      if (conditions.length === 0) return '';
+      if (conditions.length === 1) return stringifyExpression(conditions[0]);
 
-  const stringifyConditions = (conditions: IndicatorExpression[]): string => {
-    if (conditions.length === 0) return '';
-    if (conditions.length === 1) return stringifyExpression(conditions[0]);
+      return conditions.reduce((acc, condition, index) => {
+        if (index === 0) return stringifyExpression(condition);
+        return `${acc} ${condition.logicalOperator} ${stringifyExpression(condition)}`;
+      }, '');
+    };
+    
+    // Validate option legs before sending to ensure all required fields are filled
+    const validatedEntryOptionLegs = formData.instrumentType === 'options' 
+      ? formData.entryOptionLegs.filter(leg => 
+          leg.strike !== '' && leg.expiry !== '' && leg.quantity !== '')
+      : [];
+    
+    const validatedExitOptionLegs = formData.instrumentType === 'options'
+      ? formData.exitOptionLegs.filter(leg => 
+          leg.strike !== '' && leg.expiry !== '' && leg.quantity !== '')
+      : [];
 
-    return conditions.reduce((acc, condition, index) => {
-      if (index === 0) return stringifyExpression(condition);
-      return `${acc} ${condition.logicalOperator} ${stringifyExpression(condition)}`;
-    }, '');
-  };
-
-  return {
-    name: formData.name,
-    description: formData.description,
-    instrument_type: formData.instrumentType,
-    position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
-    instruments: formData.instruments,
-    chart_type: formData.candlestickType,
-    chart_timeframe: formData.timeframe,
-    trade_type: formData.tradeType,
-    qty: parseInt(formData.maxQuantity) || 0,
-    capital: parseInt(formData.maxAllocation) || 0,
-    entry_expression: stringifyConditions(formData.entryConditions),
-    exit_expression: stringifyConditions(formData.exitConditions),
-    stop_loss: parseFloat(formData.stopLoss) || 0,
-    stop_loss_type: formData.stopLossType,
-    target_profit: parseFloat(formData.targetProfit) || 0,
-    target_profit_type: formData.targetProfitType,
-    trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
-    trailing_stop_loss_type: formData.trailingStopLossType,
-    entry_start_time: formData.entryStartTime?.isValid() ? formData.entryStartTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-    entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-    start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-    end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-    max_trades: 5
-  };
+    return {
+      name: formData.name,
+      description: formData.description,
+      instrument_type: formData.instrumentType,
+      position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
+      instruments: formData.instruments,
+      chart_type: formData.candlestickType,
+      chart_timeframe: formData.timeframe,
+      trade_type: formData.tradeType,
+      qty: parseInt(formData.maxQuantity) || 0,
+      capital: parseInt(formData.maxAllocation) || 0,
+      entry_expression: formData.instrumentType !== 'options' ? stringifyConditions(formData.entryConditions) : '',
+      exit_expression: formData.instrumentType !== 'options' ? stringifyConditions(formData.exitConditions) : '',
+      entry_option_legs: formData.instrumentType === 'options' ? validatedEntryOptionLegs : undefined,
+      exit_option_legs: formData.instrumentType === 'options' ? validatedExitOptionLegs : undefined,
+      expiration_strategy: formData.instrumentType === 'options' ? formData.expirationStrategy : undefined,
+      stop_loss: parseFloat(formData.stopLoss) || 0,
+      stop_loss_type: formData.stopLossType,
+      target_profit: parseFloat(formData.targetProfit) || 0,
+      target_profit_type: formData.targetProfitType,
+      trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
+      trailing_stop_loss_type: formData.trailingStopLossType,
+      entry_start_time: formData.entryStartTime?.isValid() ? formData.entryStartTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+      entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+      start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+      end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+      max_trades: 5
+    };
 };
 
 const parseExpressions = (expressionStr: string): IndicatorExpression[] => {
@@ -343,6 +368,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     maxQuantity: initialData?.maxQuantity || '',
     entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [],
     exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
+    entryOptionLegs: initialData?.entryOptionLegs || [],
+    exitOptionLegs: initialData?.exitOptionLegs || [],
     stopLoss: initialData?.stopLoss || '',
     stopLossType: initialData?.stopLossType || 'PERCENTAGE',
     targetProfit: initialData?.targetProfit || '',
@@ -395,6 +422,9 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         maxQuantity: initialData?.maxQuantity || '',
         entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [],
         exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
+        entryOptionLegs: initialData?.entryOptionLegs || [],
+        exitOptionLegs: initialData?.exitOptionLegs || [],
+        expirationStrategy: initialData?.expirationStrategy || 'CLOSE',
         stopLoss: initialData?.stopLoss || '',
         stopLossType: initialData?.stopLossType || 'PERCENTAGE',
         targetProfit: initialData?.targetProfit || '',
@@ -454,6 +484,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   };
 
   const isFormValid = () => {
+    const isOptionsType = formData.instrumentType === 'options';
+    
     return !!(
       formData.name.trim() &&
       formData.instrumentType &&
@@ -462,7 +494,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       formData.candlestickType &&
       formData.timeframe &&
       formData.tradeType &&
-      formData.entryConditions.length > 0 &&
+      (isOptionsType ? formData.entryOptionLegs.length > 0 : formData.entryConditions.length > 0) &&
       formData.stopLoss &&
       formData.targetProfit &&
       formData.initialCapital &&
@@ -496,6 +528,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const validateForm = () => {
     const newErrors: ValidationErrors = {};
+    const isOptionsType = formData.instrumentType === 'options';
     
     if (!formData.name.trim()) {
       newErrors.name = 'Strategy name is required';
@@ -521,8 +554,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       newErrors.tradeType = 'Trade type is required';
     }
     
-    if (formData.entryConditions.length === 0) {
-      newErrors.entryConditions = 'At least one entry condition is required';
+    if (isOptionsType) {
+      if (formData.entryOptionLegs.length === 0) {
+        newErrors.entryOptionLegs = 'At least one entry option leg is required';
+      }
+    } else {
+      if (formData.entryConditions.length === 0) {
+        newErrors.entryConditions = 'At least one entry condition is required';
+      }
     }
     
     if (formData.stopLoss === '') {
@@ -653,6 +692,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   };
 
   const isSectionComplete = (sectionId: string): boolean => {
+    const isOptionsType = formData.instrumentType === 'options';
+    
     switch (sectionId) {
       case 'name':
         return !!formData.name.trim();
@@ -668,7 +709,9 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         );
       
       case 'entry':
-        return Array.isArray(formData.entryConditions) && formData.entryConditions.length > 0;
+        return isOptionsType
+          ? Array.isArray(formData.entryOptionLegs) && formData.entryOptionLegs.length > 0
+          : Array.isArray(formData.entryConditions) && formData.entryConditions.length > 0;
       
       case 'exit':
         return (
@@ -727,6 +770,25 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       title: 'Positions',
       component: (
         <Grid container spacing={3}>
+
+          <Grid item xs={12}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <FormControl component="fieldset">
+                <FormLabel component="legend">Instrument Type</FormLabel>
+                <RadioGroup
+                  row
+                  name="instrument_type"
+                  id="instrument_type"
+                  value={formData.instrumentType}
+                  onChange={(e) => handleChange('instrumentType')(e.target.value)}
+                >
+                  <FormControlLabel value="equity" control={<Radio />} label="Equity" />
+                  <FormControlLabel value="futures" control={<Radio />} label="Futures" />
+                  <FormControlLabel value="options" control={<Radio />} label="Options" />
+                </RadioGroup>
+              </FormControl>
+            </Box>
+          </Grid>
 
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -867,14 +929,31 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       title: 'Entry Condition',
       component: (
         <Box>
-          <IndicatorExpressionBuilder
-            value={formData.entryConditions}
-            onChange={handleChange('entryConditions')}
-            label="Entry Conditions"
-            error={attemptedSubmit && !!errors.entryConditions}
-            helperText={attemptedSubmit ? errors.entryConditions : undefined}
-            required
-          />
+          {formData.instrumentType === 'options' ? (
+            <>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Design your options strategy by adding one or more option legs. For complex strategies like spreads or 
+                condors, add multiple legs with different strike prices and option types.
+              </Typography>
+              <OptionsLegBuilder
+                value={formData.entryOptionLegs}
+                onChange={handleChange('entryOptionLegs')}
+                label="Entry Option Legs"
+                error={attemptedSubmit && !!errors.entryOptionLegs}
+                helperText={attemptedSubmit ? errors.entryOptionLegs : undefined}
+                required
+              />
+            </>
+          ) : (
+            <IndicatorExpressionBuilder
+              value={formData.entryConditions}
+              onChange={handleChange('entryConditions')}
+              label="Entry Conditions"
+              error={attemptedSubmit && !!errors.entryConditions}
+              helperText={attemptedSubmit ? errors.entryConditions : undefined}
+              required
+            />
+          )}
         </Box>
       ),
     },
@@ -884,12 +963,27 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       component: (
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <IndicatorExpressionBuilder
-              label="Exit Conditions"
-              value={formData.exitConditions}
-              onChange={handleChange('exitConditions')}
-              isOptional
-            />
+            {formData.instrumentType === 'options' ? (
+              <>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  Define how you want to exit your options position. You can add exit legs to close specific entry legs
+                  or let the stop loss and target profit handle your exits automatically.
+                </Typography>
+                <OptionsLegBuilder
+                  value={formData.exitOptionLegs}
+                  onChange={handleChange('exitOptionLegs')}
+                  label="Exit Option Legs"
+                  isOptional
+                />
+              </>
+            ) : (
+              <IndicatorExpressionBuilder
+                label="Exit Conditions"
+                value={formData.exitConditions}
+                onChange={handleChange('exitConditions')}
+                isOptional
+              />
+            )}
           </Grid>
           <Grid item xs={12} md={3}>
             <TextField
@@ -960,6 +1054,27 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               onChange={handleChange('trailingStopLossType')}
             />
           </Grid>
+          
+          {formData.instrumentType === 'options' && (
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" gutterBottom>Expiration Strategy</Typography>
+              <Select
+                fullWidth
+                id="expiration_strategy"
+                label="Strategy at Expiration"
+                options={[
+                  { label: 'Let options expire', value: 'EXPIRE' },
+                  { label: 'Close position before expiration', value: 'CLOSE' },
+                  { label: 'Exercise ITM options', value: 'EXERCISE' }
+                ]}
+                value={formData.expirationStrategy}
+                onChange={handleChange('expirationStrategy')}
+              />
+              <FormHelperText>
+                Determines what should happen when your options approach expiration
+              </FormHelperText>
+            </Grid>
+          )}
         </Grid>
       ),
     },
@@ -1384,6 +1499,9 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           maxQuantity: strategyData.qty?.toString() || '',
           entryConditions,
           exitConditions,
+          entryOptionLegs: strategyData.entry_option_legs || [],
+          exitOptionLegs: strategyData.exit_option_legs || [],
+          expirationStrategy: strategyData.expiration_strategy || 'CLOSE',
           stopLoss: strategyData.stop_loss?.toString() || '',
           stopLossType: strategyData.stop_loss_type || 'ABSOLUTE',
           targetProfit: strategyData.target_profit?.toString() || '',
@@ -1431,32 +1549,28 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             </Typography>
           )}
         </Box>
-        <Box sx={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <FormControl component="fieldset">
             <RadioGroup
               row
-              name="instrument_type"
-              id="instrument_type"
-              value={formData.instrumentType}
+              name="instrumentTypeRadio"
+              value={formData.instrumentType === 'options' ? 'options' : 'equity'}
               onChange={(e) => handleChange('instrumentType')(e.target.value)}
             >
-              <FormControlLabel value="equity" control={<Radio />} label="Equity" />
-              <FormControlLabel value="futures" control={<Radio />} label="Futures" />
+              <FormControlLabel value="equity" control={<Radio />} label="Equity / Futures" />
               <FormControlLabel value="options" control={<Radio />} label="Options" />
             </RadioGroup>
           </FormControl>
         </Box>
-        <Box sx={{ flex: 1 }}></Box>
-      </Box>
-
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, gap: 2 }}>
-        <Button 
-          variant="text" 
-          onClick={toggleExpandAll}
-          size="small"
-        >
-          {isAllExpanded ? 'Collapse All' : 'Expand All'}
-        </Button>
+        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end', mr: 2 }}>
+          <Button 
+            variant="text" 
+            onClick={toggleExpandAll}
+            size="small"
+          >
+            {isAllExpanded ? 'Collapse All' : 'Expand All'}
+          </Button>
+        </Box>
       </Box>
 
       {sections.map((section) => (
