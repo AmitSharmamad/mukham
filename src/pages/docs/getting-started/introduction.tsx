@@ -1,15 +1,15 @@
-import { Box, Typography, Paper, Divider } from '@mui/material';
+import { Box, Typography, Divider } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function Introduction() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Introduction to सूत्रम्
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
+      <DocContent 
+        title="Introduction to सूत्रम्"
+        subtitle="A comprehensive guide to our algorithmic trading platform"
+        sx={{ mb: 4 }}
+      >
         <Typography variant="body1" paragraph>
           Welcome to सूत्रम् (Sutram), a powerful algorithmic trading platform designed for professional traders. 
           This documentation will guide you through the platform's features, functionality, and best practices.
@@ -78,7 +78,7 @@ export default function Introduction() {
             <strong>Advanced:</strong> API references, best practices, and troubleshooting guides.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

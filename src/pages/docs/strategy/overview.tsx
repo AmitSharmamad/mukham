@@ -1,15 +1,15 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Divider, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function StrategyOverview() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Strategy Overview
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
+      <DocContent
+        title="Strategy Overview"
+        subtitle="Understanding the building blocks of trading strategies in सूत्रम्"
+        sx={{ mb: 4 }}
+      >
         <Typography variant="body1" paragraph>
           In सूत्रम् (Sutram), a strategy is a set of rules that define when to enter and exit trades. 
           This section provides an overview of how strategies work within the platform and their key components.
@@ -179,7 +179,7 @@ export default function StrategyOverview() {
             <strong>Delete Strategy:</strong> Remove strategies that are no longer needed.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }
