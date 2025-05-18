@@ -1,21 +1,23 @@
-import { Box, Typography, Divider } from '@mui/material';
+import { Box, Typography, Divider, useTheme } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
 import { DocContent } from '../../../components';
+import DocNavigation from '../../../components/DocNavigation';
 
 export default function Introduction() {
+  const theme = useTheme();
+  
   return (
     <DocsLayout>
       <DocContent 
         title="Introduction to सूत्रम्"
-        subtitle="A comprehensive guide to our algorithmic trading platform"
-        sx={{ mb: 4 }}
+        subtitle="A comprehensive guide to our algorithmic trading platform. Learn how to create, backtest, and deploy trading strategies with ease."
       >
         <Typography variant="body1" paragraph>
           Welcome to सूत्रम् (Sutram), a powerful algorithmic trading platform designed for professional traders. 
           This documentation will guide you through the platform's features, functionality, and best practices.
         </Typography>
         
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
           What is सूत्रम्?
         </Typography>
         <Typography variant="body1" paragraph>
@@ -24,7 +26,7 @@ export default function Introduction() {
           backtesting, and real-time trading.
         </Typography>
         
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
           Key Features
         </Typography>
         <Box component="ul" sx={{ pl: 4 }}>
@@ -46,7 +48,7 @@ export default function Introduction() {
           </Typography>
         </Box>
         
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
           Getting Started
         </Typography>
         <Typography variant="body1" paragraph>
@@ -55,7 +57,7 @@ export default function Introduction() {
           familiar with the interface and basic functionality.
         </Typography>
         
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
           Documentation Structure
         </Typography>
         <Typography variant="body1" paragraph>
@@ -78,6 +80,13 @@ export default function Introduction() {
             <strong>Advanced:</strong> API references, best practices, and troubleshooting guides.
           </Typography>
         </Box>
+        
+        <DocNavigation 
+          nextDoc={{
+            title: "Platform Overview",
+            path: "/docs/getting-started/platform-overview"
+          }}
+        />
       </DocContent>
     </DocsLayout>
   );

@@ -12,13 +12,14 @@ import {
   useMediaQuery, 
   IconButton,
   Collapse,
-  ListSubheader
+  ListSubheader,
+  Paper
 } from '@mui/material';
-import { ExpandLess, ExpandMore, Menu as MenuIcon } from '@mui/icons-material';
+import { ExpandLess, ExpandMore, Menu as MenuIcon, ChevronLeft } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
-const drawerWidth = 280;
+const drawerWidth = 260;
 
 // Documentation structure with nested categories
 const docNavigation = [
@@ -77,7 +78,9 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
   const theme = useTheme();
   const router = useRouter();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(!isTablet);
   const [openCategories, setOpenCategories] = useState<{ [key: string]: boolean }>({});
 
   // Initialize open state for categories based on current route
@@ -91,6 +94,11 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
     setOpenCategories(initialOpenState);
   }, [router.pathname]);
 
+  // Update drawer state based on screen size
+  useEffect(() => {
+    setDrawerOpen(!isTablet);
+  }, [isTablet]);
+
   const handleToggleCategory = (category: string) => {
     setOpenCategories(prev => ({
       ...prev,
@@ -99,20 +107,25 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
   };
 
   const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+    if (isMobile) {
+      setMobileOpen(!mobileOpen);
+    } else {
+      setDrawerOpen(!drawerOpen);
+    }
   };
 
   const isItemActive = (path: string) => router.pathname === path;
 
   const drawer = (
-    <Box sx={{ overflow: 'auto', mt: 2 }}>
+    <Box sx={{ overflow: 'auto', height: '100%', borderRight: `1px solid ${theme.palette.divider}` }}>
       <Typography 
         variant="h6" 
         sx={{ 
           px: 3, 
           py: 2, 
-          fontWeight: 400,
-          borderBottom: `1px solid ${theme.palette.divider}`
+          fontWeight: 500,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)'
         }}
       >
         Documentation
@@ -131,13 +144,16 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
               sx={{ 
                 py: 1.5,
                 borderBottom: `1px solid ${theme.palette.divider}`,
+                backgroundColor: openCategories[section.category] ? 
+                  (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)') : 
+                  'transparent'
               }}
             >
               <ListItemText 
                 primary={section.category} 
                 primaryTypographyProps={{ 
                   variant: 'subtitle1',
-                  fontWeight: 400
+                  fontWeight: 500
                 }}
               />
               {openCategories[section.category] ? <ExpandLess /> : <ExpandMore />}
@@ -157,7 +173,7 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
                         backgroundColor: theme.palette.mode === 'dark' 
                           ? 'rgba(255, 255, 255, 0.08)'
                           : 'rgba(0, 0, 0, 0.04)',
-                        borderRight: `3px solid ${theme.palette.primary.main}`,
+                        borderLeft: `3px solid ${theme.palette.primary.main}`,
                         '&:hover': {
                           backgroundColor: theme.palette.mode === 'dark' 
                             ? 'rgba(255, 255, 255, 0.12)'
@@ -168,7 +184,12 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
                   >
                     <ListItemText 
                       primary={item.title} 
-                      primaryTypographyProps={{ variant: 'body2' }}
+                      primaryTypographyProps={{ 
+                        variant: 'body2',
+                        sx: {
+                          fontWeight: isItemActive(item.path) ? 500 : 400
+                        }
+                      }}
                     />
                   </ListItemButton>
                 ))}
@@ -181,34 +202,36 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100%' }}>
-      {isMobile && (
-        <IconButton
-          color="inherit"
-          aria-label="open drawer"
-          edge="start"
-          onClick={handleDrawerToggle}
-          sx={{ 
-            mr: 2, 
-            ml: 1,
-            display: { sm: 'block', md: 'none' },
-            position: 'fixed',
-            top: 70,
-            left: 0,
-            zIndex: 1100,
-            backgroundColor: theme.palette.primary.main,
-            color: theme.palette.primary.contrastText,
-            '&:hover': {
-              backgroundColor: theme.palette.primary.dark,
-            }
-          }}
-        >
-          <MenuIcon />
-        </IconButton>
-      )}
+    <Box sx={{ display: 'flex', minHeight: '100%', backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.2)' : '#f5f7f9' }}>
+      <IconButton
+        color="inherit"
+        aria-label="toggle drawer"
+        edge="start"
+        onClick={handleDrawerToggle}
+        sx={{ 
+          mr: 2, 
+          ml: 1,
+          display: { xs: 'block' },
+          position: 'fixed',
+          top: 70,
+          left: drawerOpen && !isMobile ? drawerWidth - 12 : 10,
+          zIndex: 1100,
+          backgroundColor: theme.palette.primary.main,
+          color: theme.palette.primary.contrastText,
+          transition: theme.transitions.create(['left'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.standard,
+          }),
+          '&:hover': {
+            backgroundColor: theme.palette.primary.dark,
+          }
+        }}
+      >
+        {drawerOpen && !isMobile ? <ChevronLeft /> : <MenuIcon />}
+      </IconButton>
       <Drawer
-        variant={isMobile ? "temporary" : "permanent"}
-        open={isMobile ? mobileOpen : true}
+        variant={isMobile ? "temporary" : "persistent"}
+        open={isMobile ? mobileOpen : drawerOpen}
         onClose={handleDrawerToggle}
         sx={{
           width: drawerWidth,
@@ -218,7 +241,8 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
             boxSizing: 'border-box',
             top: { xs: 0, sm: 64 },
             height: { xs: '100%', sm: 'calc(100% - 64px)' },
-            borderRight: `1px solid ${theme.palette.divider}`
+            borderRight: 'none',
+            boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 0 15px rgba(0, 0, 0, 0.05)'
           },
         }}
       >
@@ -228,15 +252,33 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
         component="main" 
         sx={{ 
           flexGrow: 1, 
-          p: 3,
-          pt: { xs: 2, sm: 3 },
-          ml: { xs: 0, md: `${drawerWidth}px` },
-          width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
-          maxWidth: '100%'
+          p: { xs: 2, sm: 3, md: 4 },
+          ml: { xs: 0 },
+          width: '100%',
+          maxWidth: '100%',
+          transition: theme.transitions.create(['margin'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.standard,
+          }),
+          ...(drawerOpen && !isMobile && {
+            ml: `${drawerWidth}px`,
+            width: `calc(100% - ${drawerWidth}px)`,
+          }),
         }}
       >
         <Box sx={{ mb: 2, mt: { xs: 4, sm: 0 } }} />
-        {children}
+        <Paper 
+          elevation={1} 
+          sx={{ 
+            p: { xs: 3, sm: 4, md: 5 }, 
+            borderRadius: 1,
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : '#ffffff',
+            width: '100%',
+            minHeight: 'calc(100vh - 130px)',
+          }}
+        >
+          {children}
+        </Paper>
       </Box>
     </Box>
   );
