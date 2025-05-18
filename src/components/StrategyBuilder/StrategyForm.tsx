@@ -72,6 +72,7 @@ interface FormData {
   id?: string;  // Make id optional since it won't exist for new strategies
   name: string;
   description: string;
+  instrumentType: 'equity' | 'futures' | 'options';
   buyOrSell: 'buy' | 'sell';
   instruments: number[];
   candlestickType: string;
@@ -97,6 +98,7 @@ interface FormData {
 const initialFormData: FormData = {
   name: '',
   description: '',
+  instrumentType: 'equity',
   buyOrSell: 'buy',
   instruments: [],
   candlestickType: 'CANDLESTICK',
@@ -130,11 +132,13 @@ const setErrorsWithType = (prev: ValidationErrors) => ({
 export interface StrategyFormProps {
   initialData?: any;
   initialInstruments?: Instrument[];
+  pageTitle?: string;
 }
 
 interface ApiFormData {
   name: string;
   description: string;
+  instrument_type: 'equity' | 'futures' | 'options';
   position_type: 'LONG' | 'SHORT';
   instruments: number[];
   chart_type: string;
@@ -231,6 +235,7 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
   return {
     name: formData.name,
     description: formData.description,
+    instrument_type: formData.instrumentType,
     position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
     instruments: formData.instruments,
     chart_type: formData.candlestickType,
@@ -323,11 +328,12 @@ const sampleBacktestResults: BacktestResult = {
   }
 };
 
-export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initialInstruments = [] }) => {
+export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initialInstruments = [], pageTitle }) => {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
     name: initialData?.name || '',
     description: initialData?.description || '',
+    instrumentType: initialData?.instrumentType || 'equity',
     buyOrSell: initialData?.buyOrSell || 'buy',
     instruments: initialData?.instruments || [],
     candlestickType: initialData?.candlestickType || 'CANDLESTICK',
@@ -379,6 +385,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       setFormData({
         name: initialData?.name || '',
         description: initialData?.description || '',
+        instrumentType: initialData?.instrumentType || 'equity',
         buyOrSell: initialData?.buyOrSell || 'buy',
         instruments: initialData?.instruments || [],
         candlestickType: initialData?.candlestickType || 'CANDLESTICK',
@@ -449,6 +456,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const isFormValid = () => {
     return !!(
       formData.name.trim() &&
+      formData.instrumentType &&
       formData.buyOrSell &&
       selectedInstruments.length > 0 &&
       formData.candlestickType &&
@@ -491,6 +499,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     
     if (!formData.name.trim()) {
       newErrors.name = 'Strategy name is required';
+    }
+    
+    if (!formData.instrumentType) {
+      newErrors.instrumentType = 'Instrument type is required';
     }
     
     if (!formData.buyOrSell) {
@@ -647,6 +659,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       
       case 'positions':
         return (
+          !!formData.instrumentType &&
           !!formData.buyOrSell &&
           selectedInstruments.length > 0 &&
           !!formData.candlestickType &&
@@ -714,6 +727,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       title: 'Positions',
       component: (
         <Grid container spacing={3}>
+
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <FormControl component="fieldset">
@@ -1360,6 +1374,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           id: strategyData.id,
           name: strategyData.name,
           description: strategyData.description,
+          instrumentType: strategyData.instrument_type || 'equity',
           buyOrSell: strategyData.position_type === 'LONG' ? 'buy' : 'sell',
           instruments: strategyData.instruments || [],
           candlestickType: strategyData.chart_type || 'CANDLESTICK',
@@ -1401,6 +1416,39 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   return (
     <form onSubmit={handleSubmit}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'row',
+        alignItems: 'center', 
+        mb: 3,
+        pl: 2,
+        pt: 2
+      }}>
+        <Box sx={{ flex: 1 }}>
+          {pageTitle && (
+            <Typography variant="h4">
+              {pageTitle}
+            </Typography>
+          )}
+        </Box>
+        <Box sx={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
+          <FormControl component="fieldset">
+            <RadioGroup
+              row
+              name="instrument_type"
+              id="instrument_type"
+              value={formData.instrumentType}
+              onChange={(e) => handleChange('instrumentType')(e.target.value)}
+            >
+              <FormControlLabel value="equity" control={<Radio />} label="Equity" />
+              <FormControlLabel value="futures" control={<Radio />} label="Futures" />
+              <FormControlLabel value="options" control={<Radio />} label="Options" />
+            </RadioGroup>
+          </FormControl>
+        </Box>
+        <Box sx={{ flex: 1 }}></Box>
+      </Box>
+
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, gap: 2 }}>
         <Button 
           variant="text" 
