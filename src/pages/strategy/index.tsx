@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { 
   Box, 
   Button, 
@@ -19,6 +19,7 @@ import {
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import type { Strategy } from '../../types/strategy';
+import { checkPageAuth } from '../../utils/pageAuthUtils';
 
 export default function StrategyList() {
   const router = useRouter();
@@ -56,7 +57,7 @@ export default function StrategyList() {
     });
   };
 
-  const fetchStrategies = async () => {
+  const fetchStrategies = useCallback(async () => {
     try {
       setError(null);
       setRetrying(false);
@@ -80,11 +81,21 @@ export default function StrategyList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchStrategies();
-  }, []);
+    const initPage = async () => {
+      // Check authentication once when the page loads
+      const isAuthed = await checkPageAuth(router);
+      
+      // If authenticated, fetch strategies
+      if (isAuthed) {
+        await fetchStrategies();
+      }
+    };
+    
+    initPage();
+  }, [router, fetchStrategies]);
 
   useEffect(() => {
     if (!strategies) return;
@@ -128,7 +139,7 @@ export default function StrategyList() {
     try {
       setDeleting(deleteDialog.strategy.id);
       const response = await fetch(`/api/strategy/${deleteDialog.strategy.id}`, {
-        method: 'DELETE',
+        method: 'DELETE'
       });
 
       const data = await response.json();
@@ -152,7 +163,7 @@ export default function StrategyList() {
     try {
       setCloning(strategy.id);
       const response = await fetch(`/api/strategy/${strategy.id}/clone`, {
-        method: 'POST',
+        method: 'POST'
       });
 
       const data = await response.json();

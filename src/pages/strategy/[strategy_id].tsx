@@ -1,10 +1,11 @@
 import { Box, Typography, CircularProgress, Alert, Button, Chip, Stack, Grid } from '@mui/material';
 import { StrategyForm } from '../../components/StrategyBuilder/StrategyForm';
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Strategy } from '../../types/strategy';
 import dayjs from 'dayjs';
 import { mapTimeframeToDisplay } from '../../constants';
+import { checkPageAuth } from '../../utils/pageAuthUtils';
 
 interface Instrument {
   id: number;
@@ -51,15 +52,28 @@ export default function EditStrategy() {
   const [instrumentDetails, setInstrumentDetails] = useState<Instrument[]>([]);
 
   useEffect(() => {
-    if (strategy_id) {
-      fetchStrategy(strategy_id as string);
-    }
-  }, [strategy_id]);
+    // Only proceed when we have strategy_id and the page is mounted
+    if (!strategy_id) return;
+    
+    const initPage = async () => {
+      // Check authentication once when the page loads
+      const isAuthed = await checkPageAuth(router);
+      
+      // If authenticated, fetch the strategy data
+      if (isAuthed && strategy_id) {
+        fetchStrategy(strategy_id as string);
+      }
+    };
+    
+    initPage();
+  }, [strategy_id, router]);
 
   const fetchStrategy = async (id: string) => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Cookies are automatically sent with the request
       const response = await fetch(`/api/strategy/${id}`);
       
       if (!response.ok) {
