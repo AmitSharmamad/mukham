@@ -1,5 +1,5 @@
 import { Box, Grid, IconButton, Typography, FormHelperText, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, CheckCircle as CheckCircleIcon, Cancel as CancelIcon, Clear as ClearIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, CheckCircle as CheckCircleIcon, Cancel as CancelIcon, Clear as ClearIcon, AutoAwesome as CopilotIcon } from '@mui/icons-material';
 import { Select } from '../Select';
 import { TextField } from '../TextField';
 import { Button } from '../Button';
@@ -727,6 +727,62 @@ const DroppableBlock = ({
   );
 };
 
+// AI prompt modal interface
+interface AiPromptModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (prompt: string) => void;
+}
+
+// AI Prompt Modal Component
+const AiPromptModal = ({ open, onClose, onSubmit }: AiPromptModalProps) => {
+  const [prompt, setPrompt] = useState('');
+
+  const handleSubmit = () => {
+    if (prompt.trim()) {
+      onSubmit(prompt);
+      setPrompt('');
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <CopilotIcon color="primary" />
+        Generate Expression with AI
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ pt: 2, pb: 1 }}>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Describe the trading condition you want to create in natural language, and AI will help generate the appropriate expression.
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Describe your trading condition"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="For example: Buy when the 9-period EMA crosses above the 21-period EMA and RSI is above 50"
+            sx={{ mt: 1 }}
+          />
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} color="inherit">Cancel</Button>
+        <Button 
+          onClick={handleSubmit} 
+          variant="contained" 
+          startIcon={<CopilotIcon />}
+          disabled={!prompt.trim()}
+        >
+          Generate
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 export const IndicatorExpressionBuilder = ({
   value,
   onChange,
@@ -738,6 +794,7 @@ export const IndicatorExpressionBuilder = ({
   level = 0,
 }: IndicatorExpressionBuilderProps & { level?: number }) => {
   const conditions = Array.isArray(value) ? value : [];
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   
   const isComplete = useMemo(() => {
     if (conditions.length === 0) return isOptional;
@@ -751,6 +808,45 @@ export const IndicatorExpressionBuilder = ({
 
   const handleClearAll = () => {
     onChange([]);
+  };
+
+  const handleAiModalOpen = () => {
+    setAiModalOpen(true);
+  };
+
+  const handleAiModalClose = () => {
+    setAiModalOpen(false);
+  };
+
+  // Handle AI prompt submission and generate expression
+  const handleAiPromptSubmit = (prompt: string) => {
+    // In a real implementation, this would call an AI service to generate the expression
+    // For now, we'll add a simple example condition as a placeholder
+    const defaultLogicalOperator = conditions.length > 0 ? conditions[0].logicalOperator || 'AND' : 'AND';
+    
+    // Sample expression based on common patterns (in a real app, this would come from the AI)
+    const newCondition: IndicatorExpression = {
+      indicator1: { 
+        name: 'EMA', 
+        config: { period: 9, offset: 0, field: 'CLOSE' } 
+      },
+      operator: 'CrossesAbove',
+      indicator2: { 
+        name: 'EMA', 
+        config: { period: 21, offset: 0, field: 'CLOSE' } 
+      },
+      logicalOperator: defaultLogicalOperator,
+    };
+
+    onChange([
+      ...conditions.map(condition => ({
+        ...condition,
+        logicalOperator: defaultLogicalOperator
+      })),
+      newCondition,
+    ]);
+    
+    setAiModalOpen(false);
   };
 
   const handleAddCondition = (isNested: boolean = false) => {
@@ -844,13 +940,29 @@ export const IndicatorExpressionBuilder = ({
                 </Tooltip>
               )}
             </Box>
-            {isOptional && conditions.length > 0 && (
-              <Tooltip title="Clear all expressions">
-                <IconButton onClick={handleClearAll} size="small" color="error">
-                  <ClearIcon />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Tooltip title="Generate with AI">
+                <IconButton 
+                  onClick={handleAiModalOpen} 
+                  size="small" 
+                  color="primary" 
+                  sx={{ 
+                    bgcolor: 'primary.main', 
+                    color: 'primary.contrastText', 
+                    '&:hover': { bgcolor: 'primary.dark' } 
+                  }}
+                >
+                  <CopilotIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-            )}
+              {isOptional && conditions.length > 0 && (
+                <Tooltip title="Clear all expressions">
+                  <IconButton onClick={handleClearAll} size="small" color="error">
+                    <ClearIcon />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
           </Box>
         )}
 
@@ -958,6 +1070,13 @@ export const IndicatorExpressionBuilder = ({
           )}
         </Box>
       </Box>
+      
+      {/* AI Prompt Modal */}
+      <AiPromptModal 
+        open={aiModalOpen} 
+        onClose={handleAiModalClose} 
+        onSubmit={handleAiPromptSubmit} 
+      />
     </DndProvider>
   );
 };
