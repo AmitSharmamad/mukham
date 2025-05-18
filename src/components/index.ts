@@ -2,6 +2,7 @@ export { default as Button } from './Button';
 export { default as Card } from './Card';
 export { default as DateTimePicker } from './DateTimePicker';
 export { default as DocContent } from './DocContent';
+export { default as DocNavigation } from './DocNavigation';
 export { default as Footer } from './Footer';
 export { default as MainLayout } from './MainLayout';
 export { default as Navbar } from '../components/Navbar';
