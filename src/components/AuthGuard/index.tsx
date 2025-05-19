@@ -57,7 +57,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     };
 
     checkAuthentication();
-  }, [router.pathname, mounted, isAuthChecking, router]);
+  }, [router.pathname, mounted, router]); // Removed isAuthChecking and checkUserAuth
 
   // Don't render anything until we're mounted on the client
   if (!mounted) {

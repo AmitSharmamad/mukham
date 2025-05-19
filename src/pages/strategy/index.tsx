@@ -95,7 +95,7 @@ export default function StrategyList() {
     };
     
     initPage();
-  }, [router, fetchStrategies]);
+  }, []); // Changed dependency array to [] to ensure it runs only once on mount
 
   useEffect(() => {
     if (!strategies) return;
