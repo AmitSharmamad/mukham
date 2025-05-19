@@ -370,6 +370,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
     entryOptionLegs: initialData?.entryOptionLegs || [],
     exitOptionLegs: initialData?.exitOptionLegs || [],
+    expirationStrategy: initialData?.expirationStrategy || 'CLOSE',
     stopLoss: initialData?.stopLoss || '',
     stopLossType: initialData?.stopLossType || 'PERCENTAGE',
     targetProfit: initialData?.targetProfit || '',
@@ -770,26 +771,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       title: 'Positions',
       component: (
         <Grid container spacing={3}>
-
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <FormControl component="fieldset">
-                <FormLabel component="legend">Instrument Type</FormLabel>
-                <RadioGroup
-                  row
-                  name="instrument_type"
-                  id="instrument_type"
-                  value={formData.instrumentType}
-                  onChange={(e) => handleChange('instrumentType')(e.target.value)}
-                >
-                  <FormControlLabel value="equity" control={<Radio />} label="Equity" />
-                  <FormControlLabel value="futures" control={<Radio />} label="Futures" />
-                  <FormControlLabel value="options" control={<Radio />} label="Options" />
-                </RadioGroup>
-              </FormControl>
-            </Box>
-          </Grid>
-
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <FormControl component="fieldset">
