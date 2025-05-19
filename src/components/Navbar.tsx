@@ -164,18 +164,18 @@ export default function Navbar() {
           <Button 
             color="inherit" 
             component={Link} 
-            href="/reports"
+            href="/scanners"
             sx={{ fontSize: '1.1rem' }}
           >
-            Reports
+            Scanners
           </Button>
           <Button 
             color="inherit" 
             component={Link} 
-            href="/community"
+            href="/reports"
             sx={{ fontSize: '1.1rem' }}
           >
-            Community
+            Reports
           </Button>
           <Button 
             color="inherit" 
