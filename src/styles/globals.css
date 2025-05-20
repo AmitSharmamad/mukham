@@ -1,0 +1,45 @@
+/* Import Ubuntu fonts */
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 300;
+  src: url('https://assets.ubuntu.com/v1/e8c07df6-Ubuntu-L_W.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 400;
+  src: url('https://assets.ubuntu.com/v1/fff37993-Ubuntu-R_W.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 500;
+  src: url('https://assets.ubuntu.com/v1/84c7f808-Ubuntu-M_W.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 700;
+  src: url('https://assets.ubuntu.com/v1/0cef8205-Ubuntu-B_W.woff2') format('woff2');
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  font-family: Ubuntu, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  transition: background-color 0.2s ease-in-out;
+}
+
+/* Apply smooth transitions for theme changes */
+body * {
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}

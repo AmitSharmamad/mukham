@@ -1,0 +1,41 @@
+import { FormControl, InputLabel, Select as MuiSelect, SelectProps as MuiSelectProps, MenuItem } from '@mui/material';
+import { styled } from '@mui/material/styles';
+
+export interface SelectOption {
+  value: string | number;
+  label: string;
+}
+
+interface SelectProps extends Omit<MuiSelectProps, 'onChange'> {
+  label?: string;
+  options: SelectOption[];
+  onChange?: (value: string | number) => void;
+}
+
+const StyledSelect = styled(MuiSelect)(({ theme }) => ({
+  minWidth: 120,
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderRadius: theme.shape.borderRadius,
+  },
+}));
+
+export const Select = ({ label, options, onChange, ...props }: SelectProps) => {
+  return (
+    <FormControl fullWidth>
+      {label && <InputLabel>{label}</InputLabel>}
+      <StyledSelect
+        label={label}
+        onChange={(e) => onChange?.(e.target.value)}
+        {...props}
+      >
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </StyledSelect>
+    </FormControl>
+  );
+};
+
+export default Select;
