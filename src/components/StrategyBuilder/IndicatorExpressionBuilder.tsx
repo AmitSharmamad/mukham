@@ -213,7 +213,7 @@ const getIndicatorString = (indicator: Indicator): string => {
     case 'SUPERTREND':
       return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 10}, ${indicator.config?.multiplier || 3}, ${indicator.config?.offset || 0})`;
     case 'MACD':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || ''}, ${indicator.config?.slowPeriod || ''}, ${indicator.config?.signalPeriod || ''}, ${indicator.config?.offset || 0})`;
+      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || 12}, ${indicator.config?.slowPeriod || 26}, ${indicator.config?.signalPeriod || 9}, ${indicator.config?.offset || 0})`;
     case 'VORTEX':
       return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
     case 'BOLLINGER':
@@ -308,7 +308,7 @@ const getExpressionString = (indicator: Indicator): string => {
     case 'SUPERTREND':
       return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 10}, ${indicator.config?.multiplier || 3}, ${indicator.config?.offset || 0})`;
     case 'MACD':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || ''}, ${indicator.config?.slowPeriod || ''}, ${indicator.config?.signalPeriod || ''}, ${indicator.config?.offset || 0})`;
+      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || 12}, ${indicator.config?.slowPeriod || 26}, ${indicator.config?.signalPeriod || 9}, ${indicator.config?.offset || 0})`;
     case 'VORTEX':
       return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
     case 'BOLLINGER':
@@ -644,18 +644,40 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                       inputProps={{ min: 0 }}
                     />
                   </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
                 </>
               ) : indicator.name === 'VORTEX' || indicator.name === 'DMI' || indicator.name === 'FISHER' || indicator.name === 'MFI' ? (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Period"
-                    type="number"
-                    value={modalConfig.period ?? 14}
-                    onChange={handleConfigChange('period')}
-                    inputProps={{ min: 0 }}
-                  />
-                </Grid>
+                <>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Period"
+                      type="number"
+                      value={modalConfig.period ?? 14}
+                      onChange={handleConfigChange('period')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
+                </>
               ) : indicator.name === 'BOLLINGER' ? (
                 <>
                   <Grid item xs={12}>

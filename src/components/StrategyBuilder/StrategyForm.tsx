@@ -211,7 +211,7 @@ interface BacktestData {
           case 'RSI':
             return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
           case 'MACD':
-            return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || ''}, ${indicator.config?.slowPeriod || ''}, ${indicator.config?.signalPeriod || ''}, ${indicator.config?.offset || 0})`;
+            return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || 12}, ${indicator.config?.slowPeriod || 26}, ${indicator.config?.signalPeriod || 9}, ${indicator.config?.offset || 0})`;
           case 'BB_UPPER':
           case 'BB_LOWER':
           case 'BB_MIDDLE':
@@ -1239,7 +1239,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     if (validateForm()) {
       try {
         setIsBacktesting(true);
-        const response = await fetch(`/api/backtest/start?strategy_id=${initialData?.id}`, {
+        const response = await fetch(`/api/backtest/run?strategy_id=${initialData?.id}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
