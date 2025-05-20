@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Grid, Typography, Chip, Paper, Divider, useTheme } from '@mui/material';
+import { Box, Grid, Typography, Chip, Paper, Divider, useTheme, alpha } from '@mui/material';
 import { BacktestResult } from '../../types/strategy';
 import { 
   TrendingUp, 
@@ -7,7 +7,8 @@ import {
   ShowChart, 
   BarChart, 
   Timeline,
-  Assessment
+  Assessment,
+  Info
 } from '@mui/icons-material';
 
 interface MetricsSectionProps {
@@ -89,7 +90,7 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults }) => {
       ]
     },
     {
-      title: 'Risk-Adjusted Return Metrics',
+      title: 'Risk-Adjusted Return',
       icon: <Timeline />,
       description: 'Provides a view of performance considering both returns and risk',
       metrics: [
@@ -137,47 +138,55 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults }) => {
   return (
     <Box sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Assessment sx={{ mr: 1 }} />
+        <Assessment sx={{ mr: 1, color: theme.palette.primary.main }} />
         <Typography variant="h6">Performance Metrics</Typography>
+        <Box sx={{ ml: 2, display: 'flex', alignItems: 'center' }}>
+          <Info sx={{ fontSize: 16, color: theme.palette.text.secondary, mr: 0.5 }} />
+          <Typography variant="caption" color="text.secondary">
+            Based on aggregated backtest data
+          </Typography>
+        </Box>
       </Box>
       <Divider sx={{ mb: 3 }} />
       
       <Grid container spacing={3}>
         {categories.map((category) => (
-          <Grid item xs={12} md={6} lg={3} key={category.title}>
+          <Grid item xs={12} sm={6} lg={3} key={category.title}>
             <Paper
-              elevation={2}
+              elevation={1}
               sx={{
-                p: 2,
+                p: 2.5,
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 borderRadius: 2,
-                transition: 'box-shadow 0.3s',
+                transition: 'all 0.3s ease',
+                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                 '&:hover': {
-                  boxShadow: 4
+                  boxShadow: theme.shadows[4],
+                  borderColor: alpha(theme.palette.primary.main, 0.2),
                 }
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
                 {React.cloneElement(category.icon, { 
-                  sx: { mr: 1, color: theme.palette.primary.main } 
+                  sx: { mr: 1, color: theme.palette.primary.main, fontSize: 22 } 
                 })}
-                <Typography variant="subtitle1" fontWeight="medium">
+                <Typography variant="subtitle1" fontWeight={500}>
                   {category.title}
                 </Typography>
               </Box>
               <Typography 
                 variant="body2" 
                 color="text.secondary" 
-                sx={{ mb: 2, flexGrow: 0 }}
+                sx={{ mb: 2.5, flexGrow: 0, fontSize: '0.8rem' }}
               >
                 {category.description}
               </Typography>
               <Box sx={{ 
                 display: 'flex', 
                 flexWrap: 'wrap', 
-                gap: 1,
+                gap: 1.5,
                 flexGrow: 1,
                 alignContent: 'flex-start'
               }}>
@@ -186,13 +195,13 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults }) => {
                     key={metric.metricKey}
                     label={`${metric.name}: ${formatMetricValue(metric.metricKey, metric.value)}`}
                     color={getMetricColor(metric.metricKey, metric.value)}
-                    variant="outlined"
-                    size="medium"
+                    size="small"
                     sx={{
                       fontWeight: 400,
                       borderRadius: '16px',
+                      py: 1.5,
                       '& .MuiChip-label': {
-                        px: 1
+                        px: 1.5
                       }
                     }}
                   />
@@ -205,5 +214,7 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults }) => {
     </Box>
   );
 };
+
+export default MetricsSection;
 
 export default MetricsSection;
