@@ -1,9 +1,8 @@
-import { Box, Button, Container, Typography, CircularProgress, Paper, Divider } from '@mui/material';
+import { Box, Button, Container, Typography, CircularProgress, Paper } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
-import Link from 'next/link';
 
 export default function LoginPage() {
   const { isLoggedIn, checkUserAuth } = useAuth();
@@ -73,15 +72,6 @@ export default function LoginPage() {
     window.location.href = '/api/auth/google/login';
   };
 
-  // Redirect to username/password login
-  const handleCredentialLogin = () => {
-    const returnUrl = router.query.returnUrl as string;
-    const redirectPath = returnUrl ? 
-      `/user/login?returnUrl=${encodeURIComponent(returnUrl)}` : 
-      '/user/login';
-    router.push(redirectPath);
-  };
-
   if (loading) {
     return (
       <Box
@@ -96,69 +86,49 @@ export default function LoginPage() {
   }
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: '100vh',
+    <Container 
+      maxWidth="xs" 
+      sx={{
+        height: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        p: 0,
+        overflow: 'hidden'
+      }}
+    >
+      <Paper 
+        elevation={4} 
+        sx={{ 
+          width: '100%',
+          p: 3,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
           alignItems: 'center',
+          borderRadius: 2,
+          maxHeight: '90vh'
         }}
       >
-        <Paper 
-          elevation={4} 
-          sx={{ 
-            width: '100%',
-            p: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            borderRadius: 2
-          }}
-        >
-          <Typography variant="h4" component="h1" gutterBottom>
-            Welcome to सूत्रम्
-          </Typography>
-          
-          <Box sx={{ width: '100%', mt: 3 }}>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={handleGoogleLogin}
-              startIcon={<GoogleIcon />}
-              fullWidth
-              sx={{
-                py: 1.5,
-                textTransform: 'none',
-                fontSize: '1.1rem'
-              }}
-            >
-              Login with Google
-            </Button>
-            
-            <Divider sx={{ my: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                OR
-              </Typography>
-            </Divider>
-            
-            <Button
-              variant="outlined"
-              size="large"
-              onClick={handleCredentialLogin}
-              fullWidth
-              sx={{
-                py: 1.5,
-                textTransform: 'none',
-                fontSize: '1.1rem'
-              }}
-            >
-              Login with Username & Password
-            </Button>
-          </Box>
-        </Paper>
-      </Box>
+        <Typography variant="h5" component="h1" gutterBottom>
+          Welcome to सूत्रम्
+        </Typography>
+        
+        <Box sx={{ width: '100%', mt: 2, display: 'flex', justifyContent: 'center' }}>
+          <Button
+            variant="contained"
+            size="medium"
+            onClick={handleGoogleLogin}
+            sx={{
+              p: 1.5,
+              minWidth: '56px',
+              borderRadius: '50%',
+              aspectRatio: '1/1'
+            }}
+          >
+            <GoogleIcon />
+          </Button>
+        </Box>
+      </Paper>
     </Container>
   );
 }
