@@ -1,7 +1,7 @@
 import { createTheme, ThemeOptions } from '@mui/material';
 
 export type ThemeMode = 'light' | 'dark';
-export type ThemeColor = 'default' | 'ubuntu' | 'github' | 'dracula' | 'nord' | 'forest' | 'bull' | 'bear';
+export type ThemeColor = 'default' | 'ubuntu' | 'github' | 'dracula' | 'nord' | 'forest' | 'bull' | 'bear' | 'cyan' | 'purple';
 
 // Common theme properties
 const commonProperties: ThemeOptions = {
@@ -416,6 +416,74 @@ const themeColors = {
       background: {
         default: '#1F0A0A',
         paper: '#281212',
+      },
+    }
+  },
+  cyan: {
+    light: {
+      primary: {
+        main: '#38C3F3',
+        light: '#70D3F7',
+        dark: '#1AA0D3',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#0A5378',
+        light: '#1870A0',
+        dark: '#063A54',
+        contrastText: '#ffffff',
+      },
+    },
+    dark: {
+      primary: {
+        main: '#38C3F3',
+        light: '#70D3F7',
+        dark: '#1AA0D3',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#0A5378',
+        light: '#1870A0',
+        dark: '#063A54',
+        contrastText: '#ffffff',
+      },
+      background: {
+        default: '#0A1D29',
+        paper: '#0F2936',
+      },
+    }
+  },
+  purple: {
+    light: {
+      primary: {
+        main: '#9747FF',
+        light: '#B57BFF',
+        dark: '#7A33DE',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#613CA0',
+        light: '#7F53C8',
+        dark: '#492C79',
+        contrastText: '#ffffff',
+      },
+    },
+    dark: {
+      primary: {
+        main: '#9747FF',
+        light: '#B57BFF',
+        dark: '#7A33DE',
+        contrastText: '#ffffff',
+      },
+      secondary: {
+        main: '#613CA0',
+        light: '#7F53C8',
+        dark: '#492C79',
+        contrastText: '#ffffff',
+      },
+      background: {
+        default: '#1A0E2C',
+        paper: '#231640',
       },
     }
   }
