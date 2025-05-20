@@ -877,12 +877,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             </Grid>
           </Grid>
           <Grid item xs={12}>
-            <Typography variant="subtitle1" gutterBottom>Quantity</Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Max Allocation"
+                  label="Max Allocation (in rupees)"
                   type="number"
                   value={formData.maxAllocation}
                   onChange={(e) => handleChange('maxAllocation')(e.target.value)}
