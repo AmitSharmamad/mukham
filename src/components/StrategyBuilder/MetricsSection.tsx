@@ -10,6 +10,7 @@ import {
   Assessment,
   Info
 } from '@mui/icons-material';
+import TradeChart from './TradeChart';
 
 interface MetricsSectionProps {
   backtestResults: BacktestResult;
@@ -149,6 +150,9 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults }) => {
       </Box>
       <Divider sx={{ mb: 3 }} />
       
+      {/* Trade Chart */}
+      <TradeChart backtestResults={backtestResults} />
+      
       <Grid container spacing={3}>
         {categories.map((category) => (
           <Grid item xs={12} sm={6} lg={3} key={category.title}>
@@ -214,7 +218,5 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults }) => {
     </Box>
   );
 };
-
-export default MetricsSection;
 
 export default MetricsSection;
