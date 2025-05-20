@@ -1,4 +1,4 @@
-import { Box, Typography, Divider, useTheme } from '@mui/material';
+import { Box, Typography, useTheme } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
 import { DocContent } from '../../../components';
 import DocNavigation from '../../../components/DocNavigation';
@@ -11,9 +11,10 @@ export default function Introduction() {
       <DocContent 
         title="Introduction to सूत्रम्"
         subtitle="A comprehensive guide to our algorithmic trading platform. Learn how to create, backtest, and deploy trading strategies with ease."
+        tags={["Getting Started", "Introduction", "Platform", "Overview"]}
       >
         <Typography variant="body1" paragraph>
-          Welcome to सूत्रम् (Sutram), a powerful algorithmic trading platform designed for professional traders. 
+          Welcome to <strong>सूत्रम् (Sutram)</strong>, a powerful algorithmic trading platform designed for professional traders. 
           This documentation will guide you through the platform's features, functionality, and best practices.
         </Typography>
         
@@ -53,7 +54,8 @@ export default function Introduction() {
         </Typography>
         <Typography variant="body1" paragraph>
           To start using सूत्रम्, navigate through the documentation sections to understand the platform's 
-          capabilities. We recommend beginning with the Platform Overview and Quick Start Guide sections to get 
+          capabilities. We recommend beginning with the <a href="/docs/getting-started/platform-overview">Platform Overview</a> and 
+          <a href="/docs/getting-started/quick-start"> Quick Start Guide</a> sections to get 
           familiar with the interface and basic functionality.
         </Typography>
         
@@ -78,6 +80,12 @@ export default function Introduction() {
           </Typography>
           <Typography component="li" variant="body1" paragraph>
             <strong>Advanced:</strong> API references, best practices, and troubleshooting guides.
+          </Typography>
+        </Box>
+        
+        <Box component="blockquote">
+          <Typography variant="body1">
+            "Trading is not just about making money; it's about managing risk and implementing sound strategies consistently."
           </Typography>
         </Box>
         
