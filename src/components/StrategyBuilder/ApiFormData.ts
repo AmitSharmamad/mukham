@@ -23,7 +23,7 @@ export interface ApiFormData {
   stop_loss_type: 'ABSOLUTE' | 'PERCENTAGE';
   trailing_stop_loss: number;
   trailing_stop_loss_type: 'ABSOLUTE' | 'PERCENTAGE';
-  capital: number;
+  max_allocation: number;
   max_trades: number;
   entry_start_time: string | null;
   entry_end_time: string | null;
