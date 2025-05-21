@@ -1,6 +1,5 @@
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { TextField } from '@mui/material';
 import dayjs, { Dayjs } from 'dayjs';
 
 interface DateTimePickerProps {
@@ -55,13 +54,12 @@ export const DateTimePicker = ({
         label={label}
         value={dayjsValue}
         onChange={handleChange}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            required={required}
-            fullWidth={fullWidth}
-          />
-        )}
+        slotProps={{
+          textField: {
+            required,
+            fullWidth,
+          }
+        }}
       />
     );
   }
@@ -71,13 +69,12 @@ export const DateTimePicker = ({
       label={label}
       value={dayjsValue}
       onChange={handleChange}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          required={required}
-          fullWidth={fullWidth}
-        />
-      )}
+      slotProps={{
+        textField: {
+          required,
+          fullWidth,
+        }
+      }}
     />
   );
 };

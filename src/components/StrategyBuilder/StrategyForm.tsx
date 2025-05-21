@@ -34,6 +34,7 @@ import { TextField } from '../TextField';
 import InstrumentSelector from './InstrumentSelector';
 import { IndicatorExpressionBuilder } from './IndicatorExpressionBuilder';
 import { OptionsLegBuilder, OptionLeg } from './OptionsLegBuilder';
+import MetricsSection from './MetricsSection';
 import { PROFIT_LOSS_TYPES, TIMEFRAME_OPTIONS } from '../../constants';
 import {
   Table,
@@ -1571,6 +1572,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           </Table>
         </TableContainer>
         
+        {/* Add Metrics Section below the table */}
+        <MetricsSection backtestResults={backtestResults} />
         {/* Performance Charts Section */}
         <Box sx={{ mt: 4 }}>
           <Typography variant="h6" gutterBottom>Performance Metrics</Typography>
