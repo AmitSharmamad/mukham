@@ -424,7 +424,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm') : null,
     startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
     endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
-    brickSize: initialData?.brickSize || null,
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [expandedSections, setExpandedSections] = useState<string[]>(['name']);
@@ -716,13 +715,30 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       if (!validateTimeRange(start, end)) {
         setErrors(prev => ({
           ...prev,
-          entryStartTime: isStartTime ? 'Start time cannot be after end time' : undefined,
-          entryEndTime: !isStartTime ? 'End time cannot be before start time' : undefined,
+          [field]: `Invalid time range`,
         }));
       }
     }
 
     setHasUnsavedChanges(true);
+  };
+  
+  // Function to clear time fields
+  const handleClearTime = (field: 'entryStartTime' | 'entryEndTime') => () => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: null,
+    }));
+    
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: undefined,
+      }));
+    }
+    
+    setHasUnsavedChanges(true);
+    return null;
   };
 
   const handleInstrumentSelect = (instruments: Instrument[]) => {
@@ -1146,6 +1162,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                     fullWidth: true,
                     error: !!errors.entryStartTime,
                     helperText: errors.entryStartTime,
+                  },
+                  field: {
+                    clearable: true,
+                    onClear: handleClearTime('entryStartTime'),
                   }
                 }}
               />
@@ -1161,6 +1181,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                     fullWidth: true,
                     error: !!errors.entryEndTime,
                     helperText: errors.entryEndTime,
+                  },
+                  field: {
+                    clearable: true,
+                    onClear: handleClearTime('entryEndTime'),
                   }
                 }}
               />
