@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { useToastContext } from '../../context/ToastContext';
 import { 
   Accordion,
   AccordionDetails,
@@ -15,8 +16,6 @@ import {
   RadioGroup,
   Typography,
   Tooltip,
-  Snackbar,
-  Alert,
   Switch
 } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -31,6 +30,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { Button } from '../Button';
 import { Select } from '../Select';
 import { TextField } from '../TextField';
+import { Toast } from '../';
 import InstrumentSelector from './InstrumentSelector';
 import { IndicatorExpressionBuilder } from './IndicatorExpressionBuilder';
 import { OptionsLegBuilder, OptionLeg } from './OptionsLegBuilder';
@@ -438,19 +438,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const [expandedInstrument, setExpandedInstrument] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
-  }>({
-    open: false,
-    message: '',
-    severity: 'info'
-  });
+  const { showToast, showSuccess, showError } = useToastContext();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     if (initialData) {
+      // Make sure to set hasUnsavedChanges to false when initializing with existing data
       setHasUnsavedChanges(false);
       const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z";
       
@@ -493,17 +486,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     }
   }, [initialInstruments]);
 
-  const handleCloseToast = () => {
-    setToast(prev => ({ ...prev, open: false }));
-  };
-
-  const showToast = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
-    setToast({
-      open: true,
-      message,
-      severity
-    });
-  };
+  // Using toast context instead of local state
 
   const fetchInstrumentsByIds = async (instrumentIds: number[]): Promise<Instrument[]> => {
     try {
@@ -1461,9 +1444,15 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           ...prev,
           submit: `Failed to deploy strategy for instrument ${instrumentId}`
         }));
-        showToast(`Failed to deploy strategy for instrument ${instrumentId}`, 'error');
+        showError(
+          `Failed to deploy strategy for instrument ${instrumentId}`, 
+          'The server returned an error. Please check your configuration and try again.'
+        );
       } else {
-        showToast(`Strategy deployed successfully for instrument ${instrumentId}`, 'success');
+        showSuccess(
+          `Strategy deployed successfully for instrument ${instrumentId}`,
+          'Your strategy is now live and will execute trades based on your defined conditions.'
+        );
       }
     } catch (error) {
       setErrors(prev => ({
@@ -1736,6 +1725,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         };
         
         setFormData(formData);
+        // Reset unsaved changes when loading a strategy
+        setHasUnsavedChanges(false);
       } else {
         throw new Error(data.error || 'Failed to fetch strategy');
       }
@@ -1851,7 +1842,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       <InstrumentSelector
         open={isInstrumentSelectorOpen}
         onClose={() => setInstrumentSelectorOpen(false)}
-        onSelect={setSelectedInstruments}
+        onSelect={handleInstrumentSelect}
         selectedInstruments={selectedInstruments}
       />
       
@@ -1859,7 +1850,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         <Button 
           variant="contained" 
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || (initialData && !hasUnsavedChanges)}
           type="submit"
         >
           {loading ? <CircularProgress size={24} /> : 'Save'}
@@ -1874,17 +1865,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       </Box>
 
       {backtestResults && renderBacktestResults()}
-
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={6000}
-        onClose={handleCloseToast}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%' }}>
-          {toast.message}
-        </Alert>
-      </Snackbar>
     </form>
   );
 };
