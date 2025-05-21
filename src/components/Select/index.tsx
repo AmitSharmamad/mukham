@@ -19,13 +19,19 @@ const StyledSelect = styled(MuiSelect)(({ theme }) => ({
   },
 }));
 
-export const Select = ({ label, options, onChange, ...props }: SelectProps) => {
+const StyledFormControl = styled(FormControl)(({ theme }) => ({
+  '& .MuiInputLabel-asterisk': {
+    color: theme.palette.error.main,
+  },
+}));
+
+export const Select = ({ label, options, onChange, required, ...props }: SelectProps) => {
   return (
-    <FormControl fullWidth>
-      {label && <InputLabel>{label}</InputLabel>}
+    <StyledFormControl fullWidth required={required}>
+      {label && <InputLabel required={required}>{label}</InputLabel>}
       <StyledSelect
         label={label}
-        onChange={(e) => onChange?.(e.target.value)}
+        onChange={(e) => onChange?.(e.target.value as string | number)}
         {...props}
       >
         {options.map((option) => (
@@ -34,7 +40,7 @@ export const Select = ({ label, options, onChange, ...props }: SelectProps) => {
           </MenuItem>
         ))}
       </StyledSelect>
-    </FormControl>
+    </StyledFormControl>
   );
 };
 

@@ -519,24 +519,91 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     const isOptionsType = formData.instrumentType === 'options';
     const isRenkoType = formData.candlestickType === 'RENKO';
     
-    return !!(
-      formData.name.trim() &&
+    // Check each section's mandatory fields
+    const isNameSectionValid = !!formData.name.trim();
+    
+    const isPositionsSectionValid = !!(
       formData.instrumentType &&
       formData.buyOrSell &&
       selectedInstruments.length > 0 &&
       formData.candlestickType &&
       formData.timeframe &&
       formData.tradeType &&
-      (!isRenkoType || (isRenkoType && formData.brickSize)) &&
-      (isOptionsType ? formData.entryOptionLegs.length > 0 : formData.entryConditions.length > 0) &&
+      (!isRenkoType || (isRenkoType && formData.brickSize))
+    );
+    
+    const isEntrySectionValid = isOptionsType 
+      ? (formData.entryOptionLegs.length > 0)
+      : (formData.entryConditions.length > 0);
+    
+    const isExitSectionValid = !!(
       formData.stopLoss &&
-      formData.targetProfit &&
+      formData.targetProfit
+    );
+    
+    const isBacktestSectionValid = !!(
       formData.initialCapital &&
       formData.startDate &&
       formData.endDate &&
       (!formData.entryStartTime || !formData.entryEndTime || validateTimeRange(formData.entryStartTime, formData.entryEndTime)) &&
       validateDateRange(formData.startDate, formData.endDate)
     );
+    
+    return isNameSectionValid && 
+           isPositionsSectionValid && 
+           isEntrySectionValid && 
+           isExitSectionValid && 
+           isBacktestSectionValid;
+  };
+
+  const getMissingSectionFields = (sectionId: string): string[] => {
+    const isOptionsType = formData.instrumentType === 'options';
+    const isRenkoType = formData.candlestickType === 'RENKO';
+    const missing: string[] = [];
+    
+    switch (sectionId) {
+      case 'name':
+        if (!formData.name.trim()) missing.push('Strategy Name');
+        if (!formData.description.trim()) missing.push('Description');
+        break;
+      
+      case 'positions':
+        if (!formData.instrumentType) missing.push('Instrument Type');
+        if (!formData.buyOrSell) missing.push('Buy/Sell');
+        if (selectedInstruments.length === 0) missing.push('Instruments');
+        if (!formData.candlestickType) missing.push('Candlestick Type');
+        if (isRenkoType && !formData.brickSize) missing.push('Brick Size');
+        if (!formData.timeframe) missing.push('Timeframe');
+        if (!formData.tradeType) missing.push('Trade Type');
+        break;
+      
+      case 'entry':
+        if (isOptionsType) {
+          if (formData.entryOptionLegs.length === 0) missing.push('Option Legs');
+        } else {
+          if (formData.entryConditions.length === 0) missing.push('Entry Conditions');
+        }
+        break;
+      
+      case 'exit':
+        if (formData.stopLoss === '') missing.push('Stop Loss');
+        if (formData.targetProfit === '') missing.push('Target Profit');
+        break;
+      
+      case 'backtest':
+        if (formData.initialCapital === '') missing.push('Initial Capital');
+        if (!formData.startDate) missing.push('Start Date');
+        if (!formData.endDate) missing.push('End Date');
+        if (formData.startDate && formData.endDate && !validateDateRange(formData.startDate, formData.endDate)) {
+          missing.push('Valid Date Range');
+        }
+        if (formData.entryStartTime && formData.entryEndTime && !validateTimeRange(formData.entryStartTime, formData.entryEndTime)) {
+          missing.push('Valid Time Range');
+        }
+        break;
+    }
+    
+    return missing;
   };
 
   const handleChange = (field: keyof FormData) => (value: any) => {
@@ -563,11 +630,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const validateForm = () => {
     const newErrors: ValidationErrors = {};
     const isOptionsType = formData.instrumentType === 'options';
+    const isRenkoType = formData.candlestickType === 'RENKO';
     
+    // Name section validation
     if (!formData.name.trim()) {
       newErrors.name = 'Strategy name is required';
     }
     
+    // Positions section validation
     if (!formData.instrumentType) {
       newErrors.instrumentType = 'Instrument type is required';
     }
@@ -576,22 +646,27 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       newErrors.buyOrSell = 'Position type is required';
     }
     
+    if (selectedInstruments.length === 0) {
+      newErrors.instruments = 'At least one instrument must be selected';
+    }
+    
     if (!formData.candlestickType) {
       newErrors.candlestickType = 'Candlestick type is required';
+    }
+    
+    if (isRenkoType && (!formData.brickSize || formData.brickSize === '0')) {
+      newErrors.brickSize = 'Brick size is required for Renko charts';
     }
     
     if (!formData.timeframe) {
       newErrors.timeframe = 'Timeframe is required';
     }
     
-    if (formData.candlestickType === 'RENKO' && !formData.brickSize) {
-      newErrors.brickSize = 'Brick size is required for Renko charts';
-    }
-    
     if (!formData.tradeType) {
       newErrors.tradeType = 'Trade type is required';
     }
     
+    // Entry section validation
     if (isOptionsType) {
       if (formData.entryOptionLegs.length === 0) {
         newErrors.entryOptionLegs = 'At least one entry option leg is required';
@@ -602,6 +677,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       }
     }
     
+    // Exit section validation
     if (formData.stopLoss === '') {
       newErrors.stopLoss = 'Stop loss is required';
     }
@@ -610,6 +686,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       newErrors.targetProfit = 'Target profit is required';
     }
     
+    // Backtest parameters validation
     if (formData.initialCapital === '') {
       newErrors.initialCapital = 'Initial capital is required';
     }
@@ -622,15 +699,17 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       newErrors.endDate = 'End date is required';
     }
 
+    // Validate date range
     if (formData.startDate && formData.endDate) {
-      if (formData.startDate.isAfter(formData.endDate)) {
+      if (!validateDateRange(formData.startDate, formData.endDate)) {
         newErrors.startDate = 'Start date cannot be after end date';
         newErrors.endDate = 'End date cannot be before start date';
       }
     }
 
+    // Validate time range if both are provided
     if (formData.entryStartTime && formData.entryEndTime) {
-      if (formData.entryStartTime.isAfter(formData.entryEndTime)) {
+      if (!validateTimeRange(formData.entryStartTime, formData.entryEndTime)) {
         newErrors.entryStartTime = 'Start time cannot be after end time';
         newErrors.entryEndTime = 'End time cannot be before start time';
       }
@@ -1246,6 +1325,13 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     setIsAllExpanded(prev => !prev);
   };
 
+  const expandFirstIncompleteSection = () => {
+    const firstIncompleteSection = sections.find(section => !isSectionComplete(section.id));
+    if (firstIncompleteSection && !expandedSections.includes(firstIncompleteSection.id)) {
+      setExpandedSections(prev => [...prev, firstIncompleteSection.id]);
+    }
+  };
+
   const handleSave = async () => {
     setAttemptedSubmit(true);
     if (validateForm()) {
@@ -1325,6 +1411,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const handleBacktest = async () => {
     setAttemptedSubmit(true);
+    if (!isFormValid()) {
+      // If form is not valid, expand the first incomplete section to guide the user
+      expandFirstIncompleteSection();
+      return;
+    }
+    
     if (validateForm()) {
       try {
         setIsBacktesting(true);
@@ -1810,6 +1902,16 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Set attempted submit to true to show validation errors
+    setAttemptedSubmit(true);
+    
+    if (!isFormValid()) {
+      // If form is not valid, expand the first incomplete section to guide the user
+      expandFirstIncompleteSection();
+      return;
+    }
+    
     const savedStrategy = await handleSave();
     // If we saved successfully and got a strategy ID, update the form data
     if (savedStrategy?.id && !formData.id) {
@@ -1891,8 +1993,18 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               <Typography variant="h6" sx={{ flexGrow: 1 }}>
                 {section.title}
               </Typography>
+              {/* Show missing fields if any */}
+              {!isSectionComplete(section.id) && (
+                <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                  <Typography variant="caption" color="error" sx={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Missing: {getMissingSectionFields(section.id).join(', ')}
+                  </Typography>
+                </Box>
+              )}
               <Tooltip 
-                title={isSectionComplete(section.id) ? "Section is complete" : "Section is incomplete"}
+                title={isSectionComplete(section.id) 
+                  ? "Section is complete" 
+                  : `Section is incomplete. Missing: ${getMissingSectionFields(section.id).join(', ')}`}
                 arrow
               >
                 {isSectionComplete(section.id) ? (
@@ -1917,21 +2029,29 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       />
       
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
-        <Button 
-          variant="contained" 
-          onClick={handleSubmit}
-          disabled={loading || (initialData && !hasUnsavedChanges)}
-          type="submit"
-        >
-          {loading ? <CircularProgress size={24} /> : 'Save'}
-        </Button>
-        <Button 
-          variant="contained" 
-          onClick={handleBacktest}
-          disabled={isBacktesting || (initialData && hasUnsavedChanges)}
-        >
-          {isBacktesting ? <CircularProgress size={24} /> : 'Backtest'}
-        </Button>
+        <Tooltip title={!isFormValid() ? "Please fill in all required fields to save" : ""} arrow>
+          <span>
+            <Button 
+              variant="contained" 
+              onClick={handleSubmit}
+              disabled={loading || (initialData && !hasUnsavedChanges) || !isFormValid()}
+              type="submit"
+            >
+              {loading ? <CircularProgress size={24} /> : 'Save'}
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip title={!isFormValid() ? "Please fill in all required fields to run backtest" : ""} arrow>
+          <span>
+            <Button 
+              variant="contained" 
+              onClick={handleBacktest}
+              disabled={isBacktesting || (initialData && hasUnsavedChanges) || !isFormValid()}
+            >
+              {isBacktesting ? <CircularProgress size={24} /> : 'Backtest'}
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
 
       {showBacktestResults && renderBacktestResults()}
