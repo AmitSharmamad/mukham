@@ -9,6 +9,7 @@ export interface ApiFormData {
   chart_type: string;
   chart_timeframe: string;
   trade_type: string;
+  brick_size?: number; // Brick size for Renko chart
   qty: number;
   entry_expression: string;
   exit_expression: string;

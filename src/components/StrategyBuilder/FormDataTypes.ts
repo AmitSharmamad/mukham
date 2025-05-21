@@ -14,6 +14,7 @@ export interface FormData {
   tradeType: string;
   maxAllocation: string;
   maxQuantity: string;
+  brickSize?: string; // Brick size for Renko charts
   entryConditions: any[];
   exitConditions: any[];
   // New fields for options legs
@@ -45,6 +46,7 @@ export const initialFormData: FormData = {
   tradeType: 'MIS',
   maxAllocation: '',
   maxQuantity: '',
+  brickSize: '',
   entryConditions: [],
   exitConditions: [],
   entryOptionLegs: [],

@@ -101,6 +101,7 @@ interface FormData {
   entryEndTime: Dayjs | null;
   startDate: Dayjs | null;
   endDate: Dayjs | null;
+  brickSize: string;
 }
 
 const initialFormData: FormData = {
@@ -131,6 +132,7 @@ const initialFormData: FormData = {
   entryEndTime: null,
   startDate: null,
   endDate: null,
+  brickSize: '',
 };
 
 export interface ValidationErrors {
@@ -157,6 +159,7 @@ interface ApiFormData {
   chart_type: string;
   chart_timeframe: string;
   trade_type: string;
+  brick_size?: number;
   qty: number;
   entry_expression: string;
   exit_expression: string;
@@ -188,7 +191,7 @@ interface BacktestPosition {
   entry_time_order: string;
   entry_signal: string;
   exit_price_signal: number;
-  exit_time_signal: string;
+  exit_time_signal: number;
   exit_price_order: number;
   exit_time_order: string;
   exit_signal: string;
@@ -300,6 +303,7 @@ interface BacktestData {
       chart_type: formData.candlestickType,
       chart_timeframe: formData.timeframe,
       trade_type: formData.tradeType,
+      brick_size: formData.candlestickType === 'RENKO' && formData.brickSize ? parseFloat(formData.brickSize) : undefined,
       qty: parseInt(formData.maxQuantity) || 0,
       capital: parseInt(formData.maxAllocation) || 0,
       entry_expression: formData.instrumentType !== 'options' ? stringifyConditions(formData.entryConditions) : '',
@@ -403,6 +407,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     tradeType: initialData?.tradeType || 'MIS',
     maxAllocation: initialData?.maxAllocation || '',
     maxQuantity: initialData?.maxQuantity || '',
+    brickSize: initialData?.brickSize || '',
     entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [],
     exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
     entryOptionLegs: initialData?.entryOptionLegs || [],
@@ -419,6 +424,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm') : null,
     startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
     endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
+    brickSize: initialData?.brickSize || null,
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [expandedSections, setExpandedSections] = useState<string[]>(['name']);
@@ -460,6 +466,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         tradeType: initialData?.tradeType || 'MIS',
         maxAllocation: initialData?.maxAllocation || '',
         maxQuantity: initialData?.maxQuantity || '',
+        brickSize: initialData?.brickSize || '',
         entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [],
         exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
         entryOptionLegs: initialData?.entryOptionLegs || [],
@@ -525,6 +532,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const isFormValid = () => {
     const isOptionsType = formData.instrumentType === 'options';
+    const isRenkoType = formData.candlestickType === 'RENKO';
     
     return !!(
       formData.name.trim() &&
@@ -534,6 +542,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       formData.candlestickType &&
       formData.timeframe &&
       formData.tradeType &&
+      (!isRenkoType || (isRenkoType && formData.brickSize)) &&
       (isOptionsType ? formData.entryOptionLegs.length > 0 : formData.entryConditions.length > 0) &&
       formData.stopLoss &&
       formData.targetProfit &&
@@ -588,6 +597,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     
     if (!formData.timeframe) {
       newErrors.timeframe = 'Timeframe is required';
+    }
+    
+    if (formData.candlestickType === 'RENKO' && !formData.brickSize) {
+      newErrors.brickSize = 'Brick size is required for Renko charts';
     }
     
     if (!formData.tradeType) {
@@ -864,7 +877,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                   fullWidth
                   id="chart_type"
                   label="Candlestick Type"
-                  options={[{ label: 'Candlestick', value: 'CANDLESTICK' }]}
+                  options={[
+                    { label: 'Candlestick', value: 'CANDLESTICK' },
+                    { label: 'Renko', value: 'RENKO' }
+                  ]}
                   value={formData.candlestickType}
                   onChange={handleChange('candlestickType')}
                   error={attemptedSubmit && !!errors.candlestickType}
@@ -876,7 +892,23 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                   </Typography>
                 )}
               </Grid>
-              <Grid item xs={12} md={3}>
+              {formData.candlestickType === 'RENKO' && (
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    id="brick_size"
+                    label="Brick Size"
+                    type="number"
+                    value={formData.brickSize || ''}
+                    onChange={(e) => handleChange('brickSize')(e.target.value)}
+                    error={attemptedSubmit && !!errors.brickSize}
+                    helperText={attemptedSubmit && errors.brickSize}
+                    required
+                    inputProps={{ min: 0.1, step: 0.1 }}
+                  />
+                </Grid>
+              )}
+              <Grid item xs={12} md={formData.candlestickType === 'RENKO' ? 3 : 3}>
                 <Select
                   fullWidth
                   id="chart_timeframe"
@@ -1700,6 +1732,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           entryEndTime: strategyData.entry_end_time ? dayjs(strategyData.entry_end_time) : null,
           startDate: strategyData.start_date ? dayjs(strategyData.start_date) : null,
           endDate: strategyData.end_date ? dayjs(strategyData.end_date) : null,
+          brickSize: strategyData.brickSize || null,
         };
         
         setFormData(formData);
