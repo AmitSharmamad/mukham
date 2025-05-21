@@ -1,53 +1,183 @@
 # ARD - Algo Trading Platform
 
-#### Authentication Flow
-   - Token-based authentication with local storage
-   - Auto-redirect to login for unauthenticated users
-   - Preservation of intended destination through returnUrl parameter
+This project is an algo trading platform with robust features for full-fledged professional traders.
 
-## Scanners Functionality
-The platform includes a robust market scanning system:
+## Application Structure
 
-1. **Scanner Management**
-   - Create, edit, and delete market scanners
-   - Enable/disable scanners
-   - View scanner match results
-   
-2. **Scanner Configuration**
-   - Configure scanners with specific timeframes (1m, 5m, 15m, 1h, etc.)
-   - Select multiple instruments to scan
-   - Build complex scanning conditions using indicator expressions
-   
-3. **Scanner Interface**
-   - Active scanners automatically detect market conditions
-   - Visual indicators for active/inactive scanners
-   - Match counter to track scanner alerts
-   
-4. **Integration with Strategy Builder**
-   - Use scanner conditions to create strategies
-   - Leverage the same expression builder for scanners and strategies
+### Navigation
+The application features a navigation bar at the top with the following links:
+1. Home (/home)
+2. Strategy (/strategy)
+3. Reports (/reports)
+4. Docs (/docs)
 
-## Directory Structureiew
-This project is an algo trading platform for professional traders featuring:
-- Multiple pages: Home, Strategy, Reports, Scanners, Docs.
-- Strategy Builder accessible via "Create Strategy" and dynamic routes.
-- Scanner functionality for market scanning based on technical indicators.
-- A top navigation bar with a profile dropdown.
-- Authentication system with username/password and OAuth.
+A profile icon on the top right corner, when clicked, shows options for:
+1. Profile (/profile)
+2. Support (/support)
+
+### Page Descriptions
+
+#### 1. Home (/home)
+A simple landing page with links to other main sections of the application.
+
+#### 2. Strategy (/strategy)
+- Displays user's list of strategies
+- Clicking on a strategy opens the strategy builder page for that specific strategy
+- Features a "Create Strategy" button that opens the strategy builder
+
+#### 3. Reports (/reports)
+Contains widgets showing:
+- Overall Profit & Loss
+- Number of actively deployed strategies
+
+#### 4. Docs (/docs)
+Documentation links for:
+- How to build strategies
+- How to use the application
+- High-level overview of features
+
+### Strategy Builder
+The strategy builder (/strategy/new or /strategy/{strategy_id}) includes:
+
+1. **Name Section**
+   - Name (single line text input)
+   - Description (multi-line text input)
+
+2. **Positions Section**
+   - Buy/Sell radio buttons
+   - Instruments selector with "Add" button
+   - Chart configuration with options for:
+     - Candlestick Type (dropdown)
+     - Timeframe (dropdown)
+     - Trade Type (dropdown)
+   - Quantity inputs for Max Allocation and Max Quantity
+
+3. **Entry Condition Section**
+   - Indicator Expression Builder for defining entry conditions
+
+4. **Exit Condition Section**
+   - Indicator Expression Builder
+   - Stop Loss input
+   - Target Profit % input
+   - Trailing Stop Loss input (optional)
+
+5. **Backtest Parameters Section**
+   - Initial Capital input
+   - Entry Start Time and End Time pickers
+   - Start Date and End Date pickers
 
 ## Technical Architecture
-- Built with Next.js and Material UI (MUI) for a consistent theming experience (light/dark mode).
-- Reusable components (buttons, inputs, dropdowns, etc.) in `src/components`.
-- Modular and unit testing friendly.
-- Comprehensive authentication system with route protection.
 
-## Authentication System
-The platform implements a multi-method authentication system:
+### Technology Stack
+- **Frontend Framework**: Next.js
+- **UI Library**: Material UI (MUI)
+- **State Management**: React Context API
+- **Styling**: MUI theming system with dark mode support
+- **Form Handling**: Custom form components with validation
 
-1. **Username/Password Authentication**
-   - Accessible via `/user/login`
-   - Form validation with field-specific error messages
-   - Secure token storage
+### Key Features
+- **Dark Mode Support**: Complete dark mode theme with toggle functionality
+- **Responsive Design**: Mobile and desktop friendly interface
+- **Component-based Architecture**: Reusable component system
+- **API Integration**: RESTful API integration for data fetching and submission
+- **Authentication**: Token-based auth with route protection
+
+### Project Structure
+```
+src/
+│
+├── components/          # Reusable UI components
+│   ├── Button/          # Custom button component
+│   ├── Card/            # Card component
+│   ├── DateTimePicker/  # Date and time picker
+│   ├── Select/          # Custom dropdown component
+│   ├── TextField/       # Text input component
+│   ├── StrategyBuilder/ # Strategy form components
+│   │   ├── IndicatorExpressionBuilder.tsx  # Expression builder
+│   │   ├── InstrumentSelector.tsx          # Instrument selection
+│   │   ├── StrategyForm.tsx                # Main strategy form
+│   │   └── ...
+│   └── ...
+│
+├── context/             # React context providers
+│   ├── AuthContext.tsx  # Authentication context
+│   ├── ThemeContext.tsx # Theme context for dark/light mode
+│   └── ...
+│
+├── pages/               # Next.js pages
+│   ├── home.tsx         # Home page
+│   ├── reports.tsx      # Reports dashboard
+│   ├── docs.tsx         # Documentation page
+│   ├── profile.tsx      # User profile page
+│   ├── support.tsx      # Support page
+│   └── strategy/        # Strategy pages
+│       ├── index.tsx    # Strategy list page
+│       ├── new.tsx      # Create strategy page
+│       └── [strategy_id].tsx  # Edit strategy page
+│
+├── theme/               # MUI theme configuration
+│   └── index.ts         # Theme definitions and configurations
+│
+├── types/               # TypeScript type definitions
+│   └── strategy.ts      # Strategy types
+│
+└── utils/               # Utility functions
+    └── ...
+```
+
+### Authentication System
+- Token-based authentication with local storage
+- Auto-redirect to login for unauthenticated users
+- Preservation of intended destination via returnUrl parameter
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
+
+### Installation
+1. Clone the repository
+```bash
+git clone <repository-url>
+cd mukham
+```
+
+2. Install dependencies
+```bash
+npm install
+# or
+yarn
+```
+
+3. Run the development server
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+
+### Build for Production
+```bash
+npm run build
+# or
+yarn build
+```
+
+### Start Production Server
+```bash
+npm start
+# or
+yarn start
+```
+
+## Theme Configuration
+
+The application supports both light and dark mode. The theme is implemented using Material UI's theming system. The theme configuration is located in `src/theme/index.ts`.
+
+You can toggle between light and dark mode using the theme toggle button in the top navigation bar.
    
 2. **OAuth Authentication**
    - Google OAuth integration

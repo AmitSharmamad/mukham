@@ -13,11 +13,11 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions,
-  Snackbar
+  DialogActions
 } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
+import { useToastContext } from '../../context/ToastContext';
 import type { Strategy } from '../../types/strategy';
 import { checkPageAuth } from '../../utils/pageAuthUtils';
 
@@ -35,27 +35,7 @@ export default function StrategyList() {
     open: false,
     strategy: null
   });
-  const [toast, setToast] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
-  }>({
-    open: false,
-    message: '',
-    severity: 'info'
-  });
-
-  const handleCloseToast = () => {
-    setToast(prev => ({ ...prev, open: false }));
-  };
-
-  const showToast = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
-    setToast({
-      open: true,
-      message,
-      severity
-    });
-  };
+  const { showToast, showSuccess, showError } = useToastContext();
 
   const fetchStrategies = useCallback(async () => {
     try {
@@ -340,16 +320,7 @@ export default function StrategyList() {
             </DialogActions>
           </Dialog>
 
-          <Snackbar
-            open={toast.open}
-            autoHideDuration={6000}
-            onClose={handleCloseToast}
-            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          >
-            <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%' }}>
-              {toast.message}
-            </Alert>
-          </Snackbar>
+          {/* Toast is now provided by ToastContext */}
         </>
       )}
     </Box>
