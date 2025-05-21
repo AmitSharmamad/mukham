@@ -10,10 +10,16 @@ const StyledTextField = styled(MuiTextField)(({ theme }) => ({
       },
     },
   },
+  '& .MuiInputLabel-asterisk': {
+    color: theme.palette.error.main,
+  },
 }));
 
 export const TextField = (props: TextFieldProps) => {
-  return <StyledTextField {...props} />;
+  // If the field is required, ensure the label shows an asterisk
+  const { required, label, ...rest } = props;
+
+  return <StyledTextField required={required} label={label} {...rest} />;
 };
 
 export default TextField;
