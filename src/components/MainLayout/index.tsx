@@ -11,7 +11,9 @@ import { ThemeColor, themes } from '../../theme';
 const navItems = [
   { label: 'Home', path: '/home' },
   { label: 'Strategy', path: '/strategy' },
-  { label: 'Reports', path: '/reports' },
+  { label: 'Scanners', path: '/scanners' },
+  { label: 'Community', path: '/community' },
+  { label: 'Marketplace', path: '/marketplace' },
   { label: 'Docs', path: '/docs' }
 ];
 
@@ -81,11 +83,10 @@ export const MainLayout = ({
       >
         <Toolbar>
           {/* Brand text on the left */}
-          <Typography
-            variant="h6"
-            component={Link}
-            href="/"
-            sx={{
+          <Typography          variant="h6"
+          component={Link}
+          href="/home"
+          sx={{
               fontFamily: 'Arial, sans-serif',
               paddingLeft: '90px',
               paddingRight: '90px',
