@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { 
   Accordion,
@@ -27,7 +28,6 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import Cancel from '@mui/icons-material/Cancel';
 import dayjs, { Dayjs } from 'dayjs';
-import { useState, useEffect } from 'react';
 import { Button } from '../Button';
 import { Select } from '../Select';
 import { TextField } from '../TextField';
@@ -103,6 +103,7 @@ interface FormData {
 }
 
 const initialFormData: FormData = {
+  id: undefined,  // Initialize with undefined
   name: '',
   description: '',
   instrumentType: 'equity',
@@ -146,6 +147,7 @@ export interface StrategyFormProps {
 }
 
 interface ApiFormData {
+  id?: string; // Make ID optional since it won't exist for new strategies
   name: string;
   description: string;
   instrument_type: 'equity' | 'futures' | 'options';
@@ -174,31 +176,64 @@ interface ApiFormData {
   end_date: string | null;
 }
 
-interface BacktestRun {
+interface BacktestPosition {
   id: string;
-  run_group_id: string;
-  strategy_id: string;
-  exchange: string;
-  instrument_id: number;
-  type: string;
+  run_id: string;
   state: string;
-  qty: number;
-  metrics: {
-    id: string;
-    run_id: string;
-    total_trades: number;
-    win_rate: number;
-    profit_factor: number;
-    total_return_pct: number;
-    max_drawdown: number;
-    sharpe_ratio: number;
-  };
+  direction: string;
+  entry_price_signal: number;
+  entry_time_signal: string;
+  entry_price_order: number;
+  entry_time_order: string;
+  entry_signal: string;
+  exit_price_signal: number;
+  exit_time_signal: string;
+  exit_price_order: number;
+  exit_time_order: string;
+  exit_signal: string;
+  exit_reason: string;
+  profit_loss_absolute: number;
+  profit_loss_percentage: number;
+  transaction_cost: number;
+  entry_fees: number;
+  exit_fees: number;
+  net_profit_loss: number;
+  position_size: number;
+}
+
+interface BacktestMetric {
+  id: string;
+  run_id: string;
+  total_return_pct: number;
+  annualized_return: number;
+  sharpe_ratio: number;
+  sortino_ratio: number;
+  max_drawdown: number;
+  max_drawdown_duration: number;
+  std_deviation: number;
+  total_trades: number;
+  win_rate: number;
+  avg_win_size: number;
+  avg_loss_size: number;
+  avg_trade_duration: number;
+  profit_factor: number;
+  total_commission: number;
+  total_slippage: number;
+  transaction_costs_pct: number;
+  metric_json: string;
+}
+
+interface BacktestRun {
+  instrument_id: string | number;
+  positions: BacktestPosition[] | null;
+  metrics: BacktestMetric;
+  exchange?: string;
 }
 
 interface BacktestData {
-  id: string;
-  strategy_id: string;
-  runs: BacktestRun[];
+  message: string;
+  results: BacktestRun[];
+  strategy_id?: string;
 }  const convertFormToApiData = (formData: FormData): ApiFormData => {
     const stringifyExpression = (expression: IndicatorExpression): string => {
       const getIndicatorString = (indicator: Indicator): string => {
@@ -255,6 +290,7 @@ interface BacktestData {
       : [];
 
     return {
+      id: formData.id, // Include the ID in the API data if it exists
       name: formData.name,
       description: formData.description,
       instrument_type: formData.instrumentType,
@@ -392,6 +428,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(sampleBacktestResults);
   const [isBacktesting, setIsBacktesting] = useState(false);
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
+  const [expandedInstrument, setExpandedInstrument] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{
@@ -411,6 +448,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z";
       
       setFormData({
+        id: initialData?.id, // Ensure ID is properly set if it exists
         name: initialData?.name || '',
         description: initialData?.description || '',
         instrumentType: initialData?.instrumentType || 'equity',
@@ -1211,9 +1249,18 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           if (result.success) {
             showToast('Strategy saved successfully', 'success');
             setHasUnsavedChanges(false); // Reset unsaved changes after successful save
+            
+            // Update the formData with the returned strategy ID if it's a new strategy
+            if (result.data && result.data.id) {
+              setFormData(prev => ({ ...prev, id: result.data.id }));
+            }
+            
             if (!isEdit) {
               router.push('/strategy'); // Only redirect if it's a new strategy
             }
+            
+            // Return the strategy data for use in other functions
+            return result.data;
           } else {
             throw new Error(result.error || 'Failed to save strategy');
           }
@@ -1238,66 +1285,120 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     if (validateForm()) {
       try {
         setIsBacktesting(true);
-        const response = await fetch(`/api/backtest/run?strategy_id=${initialData?.id}`, {
+        
+        // First save the strategy if it's a new one or has unsaved changes
+        let currentStrategyId = initialData?.id || formData.id || '';
+        
+        if (!currentStrategyId || hasUnsavedChanges) {
+          // Save the strategy and get the updated ID
+          const saveResponse = await handleSave();
+          if (saveResponse?.id) {
+            currentStrategyId = saveResponse.id;
+          }
+        }
+        
+        // Ensure we have a valid strategy ID
+        if (!currentStrategyId) {
+          throw new Error('Cannot backtest: No valid strategy ID found');
+        }
+        
+        // Make the API call to run backtest using the current strategy ID
+        const response = await fetch(`/api/backtest/run?strategy_id=${currentStrategyId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-          }
+          },
+          body: JSON.stringify(convertFormToApiData(formData))
         });
 
-        const result = await response.json();
-        if (result.success) {
-          const backtestData: BacktestData = result.data;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        const backtestData: BacktestData = await response.json();
+        
+        if (backtestData && backtestData.results) {
+          // Filter out any runs with null metrics or instrument_id = 0 (aggregated metrics)
+          const validRuns = backtestData.results.filter(run => 
+            run.metrics && String(run.instrument_id) !== "0");
+          
           // Transform the API response to match our BacktestResult interface
           const transformedResults: BacktestResult = {
-            strategyId: backtestData.strategy_id,
-            results: backtestData.runs.map((run: BacktestRun) => ({
-              instrumentId: run.instrument_id,
-              instrumentName: run.exchange || `Instrument ${run.instrument_id}`,
-              totalTrades: run.metrics.total_trades,
-              winningTrades: Math.round(run.metrics.total_trades * run.metrics.win_rate),
-              losingTrades: Math.round(run.metrics.total_trades * (1 - run.metrics.win_rate)),
-              winRate: run.metrics.win_rate,
-              profitFactor: run.metrics.profit_factor,
-              totalPnL: run.metrics.total_return_pct,
-              maxDrawdown: run.metrics.max_drawdown,
-              sharpeRatio: run.metrics.sharpe_ratio
-            })),
+            strategyId: backtestData.strategy_id || initialData?.id || '',
+            results: validRuns.map((run: BacktestRun) => {
+              // Calculate winning trades by counting positions with positive P&L
+              const winningTrades = run.positions ? 
+                run.positions.filter(pos => pos.profit_loss_absolute > 0).length : 0;
+              
+              // Count total trades from positions or fallback to metrics
+              const totalTrades = run.positions ? run.positions.length : run.metrics.total_trades;
+              
+              // Calculate win rate based on winning trades and total trades
+              const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;
+              
+              return {
+                instrumentId: Number(run.instrument_id),
+                instrumentName: run.exchange || `Instrument ${run.instrument_id}`,
+                totalTrades,
+                winningTrades,
+                losingTrades: totalTrades - winningTrades,
+                winRate,
+                profitFactor: run.metrics.profit_factor || 0,
+                totalPnL: run.metrics.total_return_pct,
+                maxDrawdown: run.metrics.max_drawdown,
+                sharpeRatio: run.metrics.sharpe_ratio
+              };
+            }),
             aggregatedMetrics: {
               instrumentId: 0,
               instrumentName: 'Total',
-              totalTrades: backtestData.runs.reduce((sum: number, run: BacktestRun) => 
-                sum + run.metrics.total_trades, 0),
-              winningTrades: backtestData.runs.reduce((sum: number, run: BacktestRun) => 
-                sum + Math.round(run.metrics.total_trades * run.metrics.win_rate), 0),
-              losingTrades: backtestData.runs.reduce((sum: number, run: BacktestRun) => 
-                sum + Math.round(run.metrics.total_trades * (1 - run.metrics.win_rate)), 0),
-              winRate: backtestData.runs.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
-                sum + run.metrics.win_rate / arr.length, 0),
-              profitFactor: backtestData.runs.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
-                sum + run.metrics.profit_factor / arr.length, 0),
-              totalPnL: backtestData.runs.reduce((sum: number, run: BacktestRun) => 
+              totalTrades: validRuns.reduce((sum: number, run: BacktestRun) => 
+                sum + (run.positions ? run.positions.length : run.metrics.total_trades), 0),
+              winningTrades: validRuns.reduce((sum: number, run: BacktestRun) => {
+                if (run.positions) {
+                  return sum + run.positions.filter(pos => pos.profit_loss_absolute > 0).length;
+                }
+                return sum;
+              }, 0),
+              losingTrades: validRuns.reduce((sum: number, run: BacktestRun) => {
+                if (run.positions) {
+                  return sum + run.positions.filter(pos => pos.profit_loss_absolute <= 0).length;
+                }
+                return sum;
+              }, 0),
+              winRate: validRuns.length > 0 ? 
+                validRuns.reduce((sum: number, run: BacktestRun) => {
+                  if (run.positions) {
+                    const winningPositions = run.positions.filter(pos => pos.profit_loss_absolute > 0).length;
+                    const winRate = run.positions.length > 0 ? winningPositions / run.positions.length : 0;
+                    return sum + winRate;
+                  }
+                  return sum;
+                }, 0) / validRuns.length : 0,
+              profitFactor: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
+                sum + (run.metrics.profit_factor || 0) / arr.length, 0),
+              totalPnL: validRuns.reduce((sum: number, run: BacktestRun) => 
                 sum + run.metrics.total_return_pct, 0),
-              maxDrawdown: Math.max(...backtestData.runs.map((run: BacktestRun) => run.metrics.max_drawdown)),
-              sharpeRatio: backtestData.runs.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
-                sum + run.metrics.sharpe_ratio / arr.length, 0)
+              maxDrawdown: validRuns.length > 0 ? 
+                Math.max(...validRuns.map((run: BacktestRun) => run.metrics.max_drawdown || 0)) : 0,
+              sharpeRatio: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
+                sum + (run.metrics.sharpe_ratio || 0) / arr.length, 0)
             }
           };
+          
           setBacktestResults(transformedResults);
           showToast('Backtest completed successfully', 'success');
         } else {
-          setErrors(prev => ({
-            ...prev,
-            submit: 'Failed to run backtest'
-          }));
-          showToast('Failed to run backtest', 'error');
+          throw new Error('Invalid backtest response format');
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Error running backtest';
         setErrors(prev => ({
           ...prev,
-          submit: 'Error connecting to server'
+          submit: errorMessage
         }));
-        showToast('Error connecting to server', 'error');
+        showToast(errorMessage, 'error');
       } finally {
         setIsBacktesting(false);
       }
@@ -1356,6 +1457,21 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const renderBacktestResults = () => {
     if (!backtestResults) return null;
 
+    // States for showing detailed positions
+    const [expandedInstrument, setExpandedInstrument] = useState<number | null>(null);
+    const [showingPositions, setShowingPositions] = useState<boolean>(false);
+
+    // Function to toggle positions display
+    const togglePositions = (instrumentId: number) => {
+      if (expandedInstrument === instrumentId) {
+        setExpandedInstrument(null);
+        setShowingPositions(false);
+      } else {
+        setExpandedInstrument(instrumentId);
+        setShowingPositions(true);
+      }
+    };
+
     return (
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>Backtest Results</Typography>
@@ -1365,6 +1481,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               <TableRow>
                 <TableCell>Instrument</TableCell>
                 <TableCell align="right">Total Trades</TableCell>
+                <TableCell align="right">Win/Loss</TableCell>
                 <TableCell align="right">Win Rate</TableCell>
                 <TableCell align="right">Profit Factor</TableCell>
                 <TableCell align="right">Total P&L</TableCell>
@@ -1377,6 +1494,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               <TableRow sx={{ bgcolor: 'action.hover' }}>
                 <TableCell><strong>Total</strong></TableCell>
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.totalTrades}</strong></TableCell>
+                <TableCell align="right">
+                  <strong>
+                    {backtestResults.aggregatedMetrics.winningTrades} / {backtestResults.aggregatedMetrics.losingTrades}
+                  </strong>
+                </TableCell>
                 <TableCell align="right"><strong>{(backtestResults.aggregatedMetrics.winRate * 100).toFixed(2)}%</strong></TableCell>
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.profitFactor.toFixed(2)}</strong></TableCell>
                 <TableCell 
@@ -1386,7 +1508,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                     fontWeight: 'bold'
                   }}
                 >
-                  {backtestResults.aggregatedMetrics.totalPnL.toFixed(2)}
+                  {backtestResults.aggregatedMetrics.totalPnL.toFixed(2)}%
                 </TableCell>
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.maxDrawdown.toFixed(2)}%</strong></TableCell>
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.sharpeRatio.toFixed(2)}</strong></TableCell>
@@ -1404,38 +1526,120 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                 </TableCell>
               </TableRow>
               {backtestResults.results.map((result) => (
-                <TableRow key={result.instrumentId}>
-                  <TableCell>{result.instrumentName}</TableCell>
-                  <TableCell align="right">{result.totalTrades}</TableCell>
-                  <TableCell align="right">{(result.winRate * 100).toFixed(2)}%</TableCell>
-                  <TableCell align="right">{result.profitFactor.toFixed(2)}</TableCell>
-                  <TableCell 
-                    align="right"
-                    sx={{ 
-                      color: result.totalPnL >= 0 ? 'success.main' : 'error.main'
-                    }}
+                <React.Fragment key={result.instrumentId}>
+                  <TableRow 
+                    hover
+                    onClick={() => togglePositions(result.instrumentId)}
+                    sx={{ cursor: 'pointer' }}
                   >
-                    {result.totalPnL.toFixed(2)}
-                  </TableCell>
-                  <TableCell align="right">{result.maxDrawdown.toFixed(2)}%</TableCell>
-                  <TableCell align="right">{result.sharpeRatio.toFixed(2)}</TableCell>
-                  <TableCell align="center">
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => handleDeploy(result.instrumentId)}
-                      disabled={deployingInstruments.has(result.instrumentId)}
+                    <TableCell>{result.instrumentName}</TableCell>
+                    <TableCell align="right">{result.totalTrades}</TableCell>
+                    <TableCell align="right">
+                      {result.winningTrades} / {result.losingTrades}
+                    </TableCell>
+                    <TableCell align="right">{(result.winRate * 100).toFixed(2)}%</TableCell>
+                    <TableCell align="right">{result.profitFactor.toFixed(2)}</TableCell>
+                    <TableCell 
+                      align="right"
+                      sx={{ 
+                        color: result.totalPnL >= 0 ? 'success.main' : 'error.main'
+                      }}
                     >
-                      {deployingInstruments.has(result.instrumentId) ? (
-                        <CircularProgress size={20} />
-                      ) : 'Deploy'}
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                      {result.totalPnL.toFixed(2)}%
+                    </TableCell>
+                    <TableCell align="right">{result.maxDrawdown.toFixed(2)}%</TableCell>
+                    <TableCell align="right">{result.sharpeRatio.toFixed(2)}</TableCell>
+                    <TableCell align="center">
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent row click
+                          handleDeploy(result.instrumentId);
+                        }}
+                        disabled={deployingInstruments.has(result.instrumentId)}
+                      >
+                        {deployingInstruments.has(result.instrumentId) ? (
+                          <CircularProgress size={20} />
+                        ) : 'Deploy'}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
+        
+        {/* Performance Charts Section */}
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h6" gutterBottom>Performance Metrics</Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" gutterBottom>Win/Loss Ratio</Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  height: 40, 
+                  borderRadius: 1, 
+                  overflow: 'hidden', 
+                  mb: 1
+                }}>
+                  <Box 
+                    sx={{ 
+                      width: `${(backtestResults.aggregatedMetrics.winRate || 0) * 100}%`, 
+                      bgcolor: 'success.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white'
+                    }}
+                  >
+                    {backtestResults.aggregatedMetrics.winningTrades || 0}
+                  </Box>
+                  <Box 
+                    sx={{ 
+                      width: `${100 - ((backtestResults.aggregatedMetrics.winRate || 0) * 100)}%`, 
+                      bgcolor: 'error.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white'
+                    }}
+                  >
+                    {backtestResults.aggregatedMetrics.losingTrades || 0}
+                  </Box>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Win Rate: {((backtestResults.aggregatedMetrics.winRate || 0) * 100).toFixed(2)}%
+                </Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" gutterBottom>Key Statistics</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Total Trades:</Typography>
+                    <Typography variant="body2">{backtestResults.aggregatedMetrics.totalTrades || 0}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Profit Factor:</Typography>
+                    <Typography variant="body2">{(backtestResults.aggregatedMetrics.profitFactor || 0).toFixed(2)}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Max Drawdown:</Typography>
+                    <Typography variant="body2">{(backtestResults.aggregatedMetrics.maxDrawdown || 0).toFixed(2)}%</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Sharpe Ratio:</Typography>
+                    <Typography variant="body2">{(backtestResults.aggregatedMetrics.sharpeRatio || 0).toFixed(2)}</Typography>
+                  </Box>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Box>
       </Box>
     );
   };
@@ -1509,7 +1713,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await handleSave();
+    const savedStrategy = await handleSave();
+    // If we saved successfully and got a strategy ID, update the form data
+    if (savedStrategy?.id && !formData.id) {
+      setFormData(prev => ({
+        ...prev,
+        id: savedStrategy.id
+      }));
+    }
   };
 
   return (
