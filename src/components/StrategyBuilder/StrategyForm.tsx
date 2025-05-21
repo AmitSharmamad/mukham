@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
+import { useToastContext } from '../../context/ToastContext';
 import { 
   Accordion,
   AccordionDetails,
@@ -15,8 +16,6 @@ import {
   RadioGroup,
   Typography,
   Tooltip,
-  Snackbar,
-  Alert,
   Switch
 } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -31,6 +30,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { Button } from '../Button';
 import { Select } from '../Select';
 import { TextField } from '../TextField';
+import { Toast } from '../';
 import InstrumentSelector from './InstrumentSelector';
 import { IndicatorExpressionBuilder } from './IndicatorExpressionBuilder';
 import { OptionsLegBuilder, OptionLeg } from './OptionsLegBuilder';
@@ -435,22 +435,18 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(sampleBacktestResults);
   const [isBacktesting, setIsBacktesting] = useState(false);
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
+  const backtestResultsRef = useRef<HTMLDivElement>(null);
   const [expandedInstrument, setExpandedInstrument] = useState<number | null>(null);
+  const [showingPositions, setShowingPositions] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
-  }>({
-    open: false,
-    message: '',
-    severity: 'info'
-  });
+  const { showToast, showSuccess, showError } = useToastContext();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showBacktestResults, setShowBacktestResults] = useState(false);
 
   useEffect(() => {
     if (initialData) {
+      // Make sure to set hasUnsavedChanges to false when initializing with existing data
       setHasUnsavedChanges(false);
       const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z";
       
@@ -493,17 +489,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     }
   }, [initialInstruments]);
 
-  const handleCloseToast = () => {
-    setToast(prev => ({ ...prev, open: false }));
-  };
-
-  const showToast = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
-    setToast({
-      open: true,
-      message,
-      severity
-    });
-  };
+  // Using toast context instead of local state
 
   const fetchInstrumentsByIds = async (instrumentIds: number[]): Promise<Instrument[]> => {
     try {
@@ -1318,6 +1304,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     if (validateForm()) {
       try {
         setIsBacktesting(true);
+        setShowBacktestResults(true);
+        
+        // Scroll to the backtest results section
+        setTimeout(() => {
+          if (backtestResultsRef.current) {
+            backtestResultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
         
         // First save the strategy if it's a new one or has unsaved changes
         let currentStrategyId = initialData?.id || formData.id || '';
@@ -1421,6 +1415,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           };
           
           setBacktestResults(transformedResults);
+          setShowBacktestResults(true);
           showToast('Backtest completed successfully', 'success');
         } else {
           throw new Error('Invalid backtest response format');
@@ -1461,9 +1456,15 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           ...prev,
           submit: `Failed to deploy strategy for instrument ${instrumentId}`
         }));
-        showToast(`Failed to deploy strategy for instrument ${instrumentId}`, 'error');
+        showError(
+          `Failed to deploy strategy for instrument ${instrumentId}`, 
+          'The server returned an error. Please check your configuration and try again.'
+        );
       } else {
-        showToast(`Strategy deployed successfully for instrument ${instrumentId}`, 'success');
+        showSuccess(
+          `Strategy deployed successfully for instrument ${instrumentId}`,
+          'Your strategy is now live and will execute trades based on your defined conditions.'
+        );
       }
     } catch (error) {
       setErrors(prev => ({
@@ -1488,11 +1489,30 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   };
 
   const renderBacktestResults = () => {
-    if (!backtestResults) return null;
+    // Return loading animation if we're still backtesting
+    if (isBacktesting) {
+      return (
+        <Box 
+          ref={backtestResultsRef}
+          sx={{ 
+            mt: 4, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            py: 8
+          }}
+        >
+          <CircularProgress size={60} sx={{ mb: 3 }} />
+          <Typography variant="h6">Running Backtest...</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1 }}>
+            Please wait while we simulate your strategy on historical data.
+          </Typography>
+        </Box>
+      );
+    }
 
-    // States for showing detailed positions
-    const [expandedInstrument, setExpandedInstrument] = useState<number | null>(null);
-    const [showingPositions, setShowingPositions] = useState<boolean>(false);
+    if (!backtestResults) return null;
 
     // Function to toggle positions display
     const togglePositions = (instrumentId: number) => {
@@ -1506,9 +1526,24 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     };
 
     return (
-      <Box sx={{ mt: 4 }}>
+      <Box ref={backtestResultsRef} sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>Backtest Results</Typography>
-        <TableContainer component={Paper}>
+        <TableContainer 
+          component={Paper}
+          sx={{ 
+            animation: 'fadeIn 0.8s ease-in-out',
+            '@keyframes fadeIn': {
+              '0%': {
+                opacity: 0,
+                transform: 'translateY(20px)'
+              },
+              '100%': {
+                opacity: 1,
+                transform: 'translateY(0)'
+              }
+            }
+          }}
+        >
           <Table>
             <TableHead>
               <TableRow>
@@ -1736,6 +1771,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         };
         
         setFormData(formData);
+        // Reset unsaved changes when loading a strategy
+        setHasUnsavedChanges(false);
       } else {
         throw new Error(data.error || 'Failed to fetch strategy');
       }
@@ -1851,7 +1888,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       <InstrumentSelector
         open={isInstrumentSelectorOpen}
         onClose={() => setInstrumentSelectorOpen(false)}
-        onSelect={setSelectedInstruments}
+        onSelect={handleInstrumentSelect}
         selectedInstruments={selectedInstruments}
       />
       
@@ -1859,7 +1896,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         <Button 
           variant="contained" 
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || (initialData && !hasUnsavedChanges)}
           type="submit"
         >
           {loading ? <CircularProgress size={24} /> : 'Save'}
@@ -1873,18 +1910,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         </Button>
       </Box>
 
-      {backtestResults && renderBacktestResults()}
-
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={6000}
-        onClose={handleCloseToast}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%' }}>
-          {toast.message}
-        </Alert>
-      </Snackbar>
+      {showBacktestResults && renderBacktestResults()}
     </form>
   );
 };

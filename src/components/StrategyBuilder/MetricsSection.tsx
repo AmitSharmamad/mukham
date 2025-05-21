@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Grid, Typography, Chip, Paper, Divider, useTheme, alpha } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Grid, Typography, Chip, Paper, Divider, useTheme, alpha, Fade } from '@mui/material';
 import { BacktestResult } from '../../types/strategy';
 import { 
   TrendingUp, 
@@ -19,6 +19,16 @@ interface MetricsSectionProps {
 const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults }) => {
   const theme = useTheme();
   const metrics = backtestResults.aggregatedMetrics;
+  const [animate, setAnimate] = useState(false);
+  
+  useEffect(() => {
+    // Trigger animation after component mounts
+    const timer = setTimeout(() => {
+      setAnimate(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   // Helper function to determine chip color based on metric value
   const getMetricColor = (metricName: string, value: number): 'success' | 'error' | 'warning' | 'default' | 'primary' | 'secondary' | 'info' => {
@@ -137,85 +147,103 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults }) => {
   ];
 
   return (
-    <Box sx={{ mt: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Assessment sx={{ mr: 1, color: theme.palette.primary.main }} />
-        <Typography variant="h6">Performance Metrics</Typography>
-        <Box sx={{ ml: 2, display: 'flex', alignItems: 'center' }}>
-          <Info sx={{ fontSize: 16, color: theme.palette.text.secondary, mr: 0.5 }} />
-          <Typography variant="caption" color="text.secondary">
-            Based on aggregated backtest data
-          </Typography>
+    <Fade in={animate} timeout={800}>
+      <Box sx={{ mt: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Assessment sx={{ mr: 1, color: theme.palette.primary.main }} />
+          <Typography variant="h6">Performance Metrics</Typography>
+          <Box sx={{ ml: 2, display: 'flex', alignItems: 'center' }}>
+            <Info sx={{ fontSize: 16, color: theme.palette.text.secondary, mr: 0.5 }} />
+            <Typography variant="caption" color="text.secondary">
+              Based on aggregated backtest data
+            </Typography>
+          </Box>
         </Box>
-      </Box>
-      <Divider sx={{ mb: 3 }} />
-      
-      {/* Trade Chart */}
-      <TradeChart backtestResults={backtestResults} />
-      
-      <Grid container spacing={3}>
-        {categories.map((category) => (
-          <Grid item xs={12} sm={6} lg={3} key={category.title}>
-            <Paper
-              elevation={1}
+        <Divider sx={{ mb: 3 }} />
+        
+        {/* Trade Chart */}
+        <Box sx={{ 
+          opacity: animate ? 1 : 0, 
+          transition: 'opacity 0.8s ease-in', 
+          transitionDelay: '200ms' 
+        }}>
+          <TradeChart backtestResults={backtestResults} />
+        </Box>
+        
+        <Grid container spacing={3}>
+          {categories.map((category, index) => (
+            <Grid 
+              item 
+              xs={12} 
+              sm={6} 
+              lg={3} 
+              key={category.title}
               sx={{
-                p: 2.5,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                borderRadius: 2,
-                transition: 'all 0.3s ease',
-                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                '&:hover': {
-                  boxShadow: theme.shadows[4],
-                  borderColor: alpha(theme.palette.primary.main, 0.2),
-                }
+                opacity: animate ? 1 : 0,
+                transform: animate ? 'translateY(0)' : 'translateY(20px)',
+                transition: 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out',
+                transitionDelay: `${200 + index * 100}ms`
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                {React.cloneElement(category.icon, { 
-                  sx: { mr: 1, color: theme.palette.primary.main, fontSize: 22 } 
-                })}
-                <Typography variant="subtitle1" fontWeight={500}>
-                  {category.title}
-                </Typography>
-              </Box>
-              <Typography 
-                variant="body2" 
-                color="text.secondary" 
-                sx={{ mb: 2.5, flexGrow: 0, fontSize: '0.8rem' }}
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2.5,
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: 2,
+                  transition: 'all 0.3s ease',
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  '&:hover': {
+                    boxShadow: theme.shadows[4],
+                    borderColor: alpha(theme.palette.primary.main, 0.2),
+                  }
+                }}
               >
-                {category.description}
-              </Typography>
-              <Box sx={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: 1.5,
-                flexGrow: 1,
-                alignContent: 'flex-start'
-              }}>
-                {category.metrics.map((metric) => (
-                  <Chip
-                    key={metric.metricKey}
-                    label={`${metric.name}: ${formatMetricValue(metric.metricKey, metric.value)}`}
-                    color={getMetricColor(metric.metricKey, metric.value)}
-                    size="small"
-                    sx={{
-                      fontWeight: 400,
-                      borderRadius: '16px',
-                      py: 1.5,
-                      '& .MuiChip-label': {
-                        px: 1.5
-                      }
-                    }}
-                  />
-                ))}
-              </Box>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                  {React.cloneElement(category.icon, { 
+                    sx: { mr: 1, color: theme.palette.primary.main, fontSize: 22 } 
+                  })}
+                  <Typography variant="subtitle1" fontWeight={500}>
+                    {category.title}
+                  </Typography>
+                </Box>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ mb: 2.5, flexGrow: 0, fontSize: '0.8rem' }}
+                >
+                  {category.description}
+                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: 1.5,
+                  flexGrow: 1,
+                  alignContent: 'flex-start'
+                }}>
+                  {category.metrics.map((metric) => (
+                    <Chip
+                      key={metric.metricKey}
+                      label={`${metric.name}: ${formatMetricValue(metric.metricKey, metric.value)}`}
+                      color={getMetricColor(metric.metricKey, metric.value)}
+                      size="small"
+                      sx={{
+                        fontWeight: 500,
+                        '& .MuiChip-label': {
+                          px: 1.5
+                        }
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    </Fade>
   );
 };
 

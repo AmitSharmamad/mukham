@@ -7,6 +7,7 @@ import { getTheme } from '../theme';
 import MainLayout from '../components/MainLayout';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
+import { ToastProvider } from '../context/ToastContext';
 import AuthGuard from '../components/AuthGuard';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
@@ -51,7 +52,9 @@ function MyApp(props: AppProps) {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <AppContent {...props} />
+        <ToastProvider>
+          <AppContent {...props} />
+        </ToastProvider>
       </ThemeProvider>
     </AuthProvider>
   );
