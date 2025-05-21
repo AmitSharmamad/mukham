@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useToastContext } from '../../context/ToastContext';
 import { 
@@ -435,11 +435,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(sampleBacktestResults);
   const [isBacktesting, setIsBacktesting] = useState(false);
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
+  const backtestResultsRef = useRef<HTMLDivElement>(null);
   const [expandedInstrument, setExpandedInstrument] = useState<number | null>(null);
+  const [showingPositions, setShowingPositions] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { showToast, showSuccess, showError } = useToastContext();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showBacktestResults, setShowBacktestResults] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -1301,6 +1304,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     if (validateForm()) {
       try {
         setIsBacktesting(true);
+        setShowBacktestResults(true);
+        
+        // Scroll to the backtest results section
+        setTimeout(() => {
+          if (backtestResultsRef.current) {
+            backtestResultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
         
         // First save the strategy if it's a new one or has unsaved changes
         let currentStrategyId = initialData?.id || formData.id || '';
@@ -1404,6 +1415,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           };
           
           setBacktestResults(transformedResults);
+          setShowBacktestResults(true);
           showToast('Backtest completed successfully', 'success');
         } else {
           throw new Error('Invalid backtest response format');
@@ -1477,11 +1489,30 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   };
 
   const renderBacktestResults = () => {
-    if (!backtestResults) return null;
+    // Return loading animation if we're still backtesting
+    if (isBacktesting) {
+      return (
+        <Box 
+          ref={backtestResultsRef}
+          sx={{ 
+            mt: 4, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            py: 8
+          }}
+        >
+          <CircularProgress size={60} sx={{ mb: 3 }} />
+          <Typography variant="h6">Running Backtest...</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1 }}>
+            Please wait while we simulate your strategy on historical data.
+          </Typography>
+        </Box>
+      );
+    }
 
-    // States for showing detailed positions
-    const [expandedInstrument, setExpandedInstrument] = useState<number | null>(null);
-    const [showingPositions, setShowingPositions] = useState<boolean>(false);
+    if (!backtestResults) return null;
 
     // Function to toggle positions display
     const togglePositions = (instrumentId: number) => {
@@ -1495,9 +1526,24 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     };
 
     return (
-      <Box sx={{ mt: 4 }}>
+      <Box ref={backtestResultsRef} sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>Backtest Results</Typography>
-        <TableContainer component={Paper}>
+        <TableContainer 
+          component={Paper}
+          sx={{ 
+            animation: 'fadeIn 0.8s ease-in-out',
+            '@keyframes fadeIn': {
+              '0%': {
+                opacity: 0,
+                transform: 'translateY(20px)'
+              },
+              '100%': {
+                opacity: 1,
+                transform: 'translateY(0)'
+              }
+            }
+          }}
+        >
           <Table>
             <TableHead>
               <TableRow>
@@ -1864,7 +1910,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         </Button>
       </Box>
 
-      {backtestResults && renderBacktestResults()}
+      {showBacktestResults && renderBacktestResults()}
     </form>
   );
 };
