@@ -96,7 +96,6 @@ interface FormData {
   targetProfitType: 'ABSOLUTE' | 'PERCENTAGE';
   trailingStopLoss: string;
   trailingStopLossType: 'ABSOLUTE' | 'PERCENTAGE';
-  initialCapital: string;
   entryStartTime: Dayjs | null;
   entryEndTime: Dayjs | null;
   startDate: Dayjs | null;
@@ -127,7 +126,6 @@ const initialFormData: FormData = {
   targetProfitType: 'PERCENTAGE',
   trailingStopLoss: '',
   trailingStopLossType: 'PERCENTAGE',
-  initialCapital: '',
   entryStartTime: null,
   entryEndTime: null,
   startDate: null,
@@ -161,6 +159,7 @@ interface ApiFormData {
   trade_type: string;
   brick_size?: number;
   qty: number;
+  max_allocation: number; // Added this property to match the form data
   entry_expression: string;
   exit_expression: string;
   entry_option_legs?: OptionLeg[];
@@ -305,7 +304,7 @@ interface BacktestData {
       trade_type: formData.tradeType,
       brick_size: formData.candlestickType === 'RENKO' && formData.brickSize ? parseFloat(formData.brickSize) : undefined,
       qty: parseInt(formData.maxQuantity) || 0,
-      capital: parseInt(formData.maxAllocation) || 0,
+      max_allocation: parseInt(formData.maxAllocation) || 0,
       entry_expression: formData.instrumentType !== 'options' ? stringifyConditions(formData.entryConditions) : '',
       exit_expression: formData.instrumentType !== 'options' ? stringifyConditions(formData.exitConditions) : '',
       entry_option_legs: formData.instrumentType === 'options' ? validatedEntryOptionLegs : undefined,
@@ -419,12 +418,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     targetProfitType: initialData?.targetProfitType || 'PERCENTAGE',
     trailingStopLoss: initialData?.trailingStopLoss || '',
     trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
-    initialCapital: initialData?.initialCapital || '',
     entryStartTime: initialData?.entryStartTime ? dayjs(initialData.entryStartTime, 'HH:mm') : null,
     entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm') : null,
     startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
     endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
-    brickSize: initialData?.brickSize || null,
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [expandedSections, setExpandedSections] = useState<string[]>(['name']);
@@ -474,7 +471,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         targetProfitType: initialData?.targetProfitType || 'PERCENTAGE',
         trailingStopLoss: initialData?.trailingStopLoss || '',
         trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
-        initialCapital: initialData?.initialCapital || '',
         entryStartTime: isNullTime(initialData.entryStartTime) ? null : dayjs(initialData.entryStartTime),
         entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime),
         startDate: dayjs(initialData.startDate),
@@ -532,7 +528,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       (isOptionsType ? formData.entryOptionLegs.length > 0 : formData.entryConditions.length > 0) &&
       formData.stopLoss &&
       formData.targetProfit &&
-      formData.initialCapital &&
       formData.startDate &&
       formData.endDate &&
       (!formData.entryStartTime || !formData.entryEndTime || validateTimeRange(formData.entryStartTime, formData.entryEndTime)) &&
@@ -609,10 +604,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     
     if (formData.targetProfit === '') {
       newErrors.targetProfit = 'Target profit is required';
-    }
-    
-    if (formData.initialCapital === '') {
-      newErrors.initialCapital = 'Initial capital is required';
     }
     
     if (!formData.startDate) {
@@ -760,7 +751,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       
       case 'backtest':
         return (
-          formData.initialCapital !== '' &&
           !!formData.startDate &&
           !!formData.endDate &&
           (!formData.entryStartTime || !formData.entryEndTime || validateTimeRange(formData.entryStartTime, formData.entryEndTime)) &&
@@ -1121,21 +1111,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       component: (
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                id="capital"
-                label="Initial Capital"
-                type="number"
-                value={formData.initialCapital}
-                onChange={(e) => handleChange('initialCapital')(e.target.value)}
-                error={attemptedSubmit && !!errors.initialCapital}
-                helperText={attemptedSubmit && errors.initialCapital}
-                required
-                inputProps={{ min: 0 }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={6}>
               <TimePicker
                 label="Entry Start Time"
                 value={formData.entryStartTime}
@@ -1150,7 +1126,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={6}>
               <TimePicker
                 label="Entry End Time"
                 value={formData.entryEndTime}
@@ -1749,7 +1725,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           candlestickType: strategyData.chart_type || 'CANDLESTICK',
           timeframe: strategyData.chart_timeframe,
           tradeType: strategyData.trade_type || 'MIS',
-          maxAllocation: strategyData.capital?.toString() || '',
+          maxAllocation: strategyData.max_allocation?.toString() || '',
           maxQuantity: strategyData.qty?.toString() || '',
           entryConditions,
           exitConditions,
@@ -1762,12 +1738,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           targetProfitType: strategyData.target_profit_type || 'ABSOLUTE',
           trailingStopLoss: strategyData.trailing_stop_loss?.toString() || '',
           trailingStopLossType: strategyData.trailing_stop_loss_type || 'ABSOLUTE',
-          initialCapital: strategyData.capital?.toString() || '',
           entryStartTime: strategyData.entry_start_time ? dayjs(strategyData.entry_start_time) : null,
           entryEndTime: strategyData.entry_end_time ? dayjs(strategyData.entry_end_time) : null,
           startDate: strategyData.start_date ? dayjs(strategyData.start_date) : null,
           endDate: strategyData.end_date ? dayjs(strategyData.end_date) : null,
-          brickSize: strategyData.brickSize || null,
+          brickSize: strategyData.brick_size?.toString() || '',
         };
         
         setFormData(formData);
