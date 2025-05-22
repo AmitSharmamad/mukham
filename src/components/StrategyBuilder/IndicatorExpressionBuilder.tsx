@@ -1,9 +1,9 @@
-import { Box, Grid, IconButton, Typography, FormHelperText, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, CircularProgress, InputAdornment, Paper, List, ListItem, ListItemText } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, CheckCircle as CheckCircleIcon, Cancel as CancelIcon, Clear as ClearIcon, AutoAwesome as CopilotIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Box, Grid, IconButton, Typography, FormHelperText, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, CircularProgress, InputAdornment, Paper, List, ListItem, ListItemText, keyframes } from '@mui/material';
+import { Add as AddIcon, Delete as DeleteIcon, CheckCircle as CheckCircleIcon, Cancel as CancelIcon, Clear as ClearIcon, AutoAwesome as AutoAwesomeIcon, Search as SearchIcon } from '@mui/icons-material';
 import { Select } from '../Select';
 import { TextField } from '../TextField';
 import { Button } from '../Button';
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
@@ -1232,7 +1232,57 @@ const AiPromptModal = ({ open, onClose, onSubmit }: AiPromptModalProps) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <CopilotIcon color="primary" />
+        <Box sx={{ 
+          position: 'relative', 
+          width: 28, 
+          height: 28, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center' 
+        }}>
+          {/* Gemini-like orbiting particles */}
+          {[...Array(5)].map((_, index) => (
+            <Box
+              key={index}
+              sx={{
+                position: 'absolute',
+                width: 3,
+                height: 3,
+                borderRadius: '50%',
+                backgroundColor: (theme) => theme.palette.primary.main,
+                animation: `spin 3.5s linear infinite`,
+                animationDelay: `${index * 0.2}s`,
+                opacity: 0.7,
+                transform: `rotate(${index * 72}deg) translateX(12px)`,
+                '@keyframes spin': {
+                  '0%': {
+                    transform: `rotate(${index * 72}deg) translateX(12px) rotate(0deg)`,
+                  },
+                  '100%': {
+                    transform: `rotate(${index * 72 + 360}deg) translateX(12px) rotate(-360deg)`,
+                  },
+                },
+              }}
+            />
+          ))}
+          {/* Central icon with pulse effect */}
+          <Box
+            sx={{
+              animation: `pulse 2.5s ease-in-out infinite`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1,
+              '@keyframes pulse': {
+                '0%': { transform: 'scale(1)', opacity: 0.8 },
+                '50%': { transform: 'scale(1.3)', opacity: 1, filter: 'drop-shadow(0 0 2px currentColor)' },
+                '100%': { transform: 'scale(1)', opacity: 0.8 },
+              },
+            }}
+          >
+            <AutoAwesomeIcon fontSize="small" color="primary" />
+          </Box>
+        </Box>
         Generate Expression with AI
       </DialogTitle>
       <DialogContent>
@@ -1263,7 +1313,7 @@ const AiPromptModal = ({ open, onClose, onSubmit }: AiPromptModalProps) => {
         <Button 
           onClick={handleSubmit} 
           variant="contained" 
-          startIcon={loading ? <CircularProgress size={16} /> : <CopilotIcon />}
+          startIcon={loading ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
           disabled={!prompt.trim() || loading}
         >
           {loading ? 'Generating...' : 'Generate'}
@@ -1484,6 +1534,86 @@ export const IndicatorExpressionBuilder = ({
               )}
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Tooltip title="Generate Expression with AI">
+                <IconButton onClick={handleAiModalOpen} size="small" color="primary">
+                  <Box sx={{ 
+                    position: 'relative', 
+                    width: 28, 
+                    height: 28, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    {/* Gemini-like orbiting particles */}
+                    {[...Array(6)].map((_, index) => (
+                      <Box
+                        key={index}
+                        sx={{
+                          position: 'absolute',
+                          width: 3.5,
+                          height: 3.5,
+                          borderRadius: '50%',
+                          backgroundColor: (theme) => theme.palette.primary.main,
+                          animation: `spin 3s linear infinite`,
+                          animationDelay: `${index * 0.2}s`,
+                          opacity: ({ palette }) => palette.mode === 'dark' ? 0.8 : 0.7,
+                          transform: `rotate(${index * 60}deg) translateX(12px)`,
+                          '@keyframes spin': {
+                            '0%': {
+                              transform: `rotate(${index * 60}deg) translateX(12px) rotate(0deg)`,
+                            },
+                            '100%': {
+                              transform: `rotate(${index * 60 + 360}deg) translateX(12px) rotate(-360deg)`,
+                            },
+                          },
+                        }}
+                      />
+                    ))}
+                    {/* Secondary orbit */}
+                    {[...Array(4)].map((_, index) => (
+                      <Box
+                        key={`inner-${index}`}
+                        sx={{
+                          position: 'absolute',
+                          width: 2.5,
+                          height: 2.5,
+                          borderRadius: '50%',
+                          backgroundColor: (theme) => theme.palette.primary.light,
+                          animation: `spinReverse 4s linear infinite`,
+                          animationDelay: `${index * 0.3}s`,
+                          opacity: 0.6,
+                          transform: `rotate(${index * 90}deg) translateX(8px)`,
+                          '@keyframes spinReverse': {
+                            '0%': {
+                              transform: `rotate(${index * 90}deg) translateX(8px) rotate(0deg)`,
+                            },
+                            '100%': {
+                              transform: `rotate(${index * 90 - 360}deg) translateX(8px) rotate(360deg)`,
+                            },
+                          },
+                        }}
+                      />
+                    ))}
+                    {/* Central icon with enhanced pulse effect */}
+                    <Box
+                      sx={{
+                        animation: `enhancedPulse 2.5s ease-in-out infinite`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        '@keyframes enhancedPulse': {
+                          '0%': { transform: 'scale(1)', opacity: 0.8 },
+                          '50%': { transform: 'scale(1.3)', opacity: 1, filter: 'drop-shadow(0 0 2px currentColor)' },
+                          '100%': { transform: 'scale(1)', opacity: 0.8 },
+                        },
+                      }}
+                    >
+                      <AutoAwesomeIcon fontSize="small" color="primary" />
+                    </Box>
+                  </Box>
+                </IconButton>
+              </Tooltip>
               {isOptional && conditions.length > 0 && (
                 <Tooltip title="Clear all expressions">
                   <IconButton onClick={handleClearAll} size="small" color="error">
@@ -1555,16 +1685,6 @@ export const IndicatorExpressionBuilder = ({
 
         <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<CopilotIcon />}
-              onClick={handleAiModalOpen}
-              sx={{ mb: 1 }}
-            >
-              Generate Expression with AI
-            </Button>
-            
             <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
               <Tooltip title="Add condition">
                 <IconButton onClick={() => handleAddCondition(false)} color="primary">
