@@ -28,7 +28,6 @@ export interface FormData {
   targetProfitType: 'ABSOLUTE' | 'PERCENTAGE';
   trailingStopLoss: string;
   trailingStopLossType: 'ABSOLUTE' | 'PERCENTAGE';
-  initialCapital: string;
   entryStartTime: Dayjs | null;
   entryEndTime: Dayjs | null;
   startDate: Dayjs | null;
@@ -58,7 +57,6 @@ export const initialFormData: FormData = {
   targetProfitType: 'PERCENTAGE',
   trailingStopLoss: '',
   trailingStopLossType: 'PERCENTAGE',
-  initialCapital: '',
   entryStartTime: null,
   entryEndTime: null,
   startDate: null,

@@ -29,6 +29,7 @@ interface FormattedStrategy {
   tradeType: string;
   maxAllocation: string;
   maxQuantity: string;
+  brickSize?: string;
   entryConditions: any;
   exitConditions: any;
   stopLoss: string;
@@ -36,7 +37,6 @@ interface FormattedStrategy {
   targetProfit: string;
   targetProfitType: 'ABSOLUTE' | 'PERCENTAGE';
   trailingStopLoss: string;
-  initialCapital: string;
   entryStartTime: string | null;
   entryEndTime: string | null;
   startDate: string;
@@ -51,24 +51,24 @@ export default function EditStrategy() {
   const [error, setError] = useState<string | null>(null);
   const [instrumentDetails, setInstrumentDetails] = useState<Instrument[]>([]);
 
-  useEffect(() => {
-    // Only proceed when we have strategy_id and the page is mounted
-    if (!strategy_id) return;
-    
-    const initPage = async () => {
-      // Check authentication once when the page loads
-      const isAuthed = await checkPageAuth(router);
+  const fetchInstrumentDetails = useCallback(async (instrumentIds: number[]): Promise<void> => {
+    try {
+      const response = await fetch(`/api/instrument-master/by-ids?ids=${instrumentIds.join(',')}`);
       
-      // If authenticated, fetch the strategy data
-      if (isAuthed && strategy_id) {
-        fetchStrategy(strategy_id as string);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
-    
-    initPage();
-  }, [strategy_id, router]);
 
-  const fetchStrategy = async (id: string) => {
+      const data = await response.json();
+      if (data.success && data.data) {
+        setInstrumentDetails(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching instrument details:', err);
+    }
+  }, []);
+  
+  const fetchStrategy = useCallback(async (id: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -95,7 +95,7 @@ export default function EditStrategy() {
           candlestickType: strategyData.chart_type || 'CANDLESTICK',
           timeframe: mapTimeframeToDisplay(strategyData.chart_timeframe),
           tradeType: strategyData.trade_type || 'MIS',
-          maxAllocation: strategyData.capital?.toString() || '',
+          maxAllocation: strategyData.max_allocation?.toString() || '',
           maxQuantity: strategyData.qty?.toString() || '',
           entryConditions: strategyData.entry_expression,
           exitConditions: strategyData.exit_expression,
@@ -104,11 +104,11 @@ export default function EditStrategy() {
           targetProfit: strategyData.target_profit?.toString() || '',
           targetProfitType: strategyData.target_profit_type || 'ABSOLUTE',
           trailingStopLoss: strategyData.trailing_stop_loss?.toString() || '',
-          initialCapital: strategyData.capital?.toString() || '',
           entryStartTime: isNullTime(strategyData.entry_start_time) ? null : dayjs(strategyData.entry_start_time).format('HH:mm'),
           entryEndTime: isNullTime(strategyData.entry_end_time) ? null : dayjs(strategyData.entry_end_time).format('HH:mm'),
           startDate: dayjs(strategyData.start_date).format('YYYY-MM-DD'),
           endDate: dayjs(strategyData.end_date).format('YYYY-MM-DD'),
+          brickSize: strategyData.brick_size?.toString() || '',
         };
         
         setStrategy(formData);
@@ -126,24 +126,24 @@ export default function EditStrategy() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchInstrumentDetails]);
 
-  const fetchInstrumentDetails = async (instrumentIds: number[]): Promise<void> => {
-    try {
-      const response = await fetch(`/api/instrument-master/by-ids?ids=${instrumentIds.join(',')}`);
+  useEffect(() => {
+    // Only proceed when we have strategy_id and the page is mounted
+    if (!strategy_id) return;
+    
+    const initPage = async () => {
+      // Check authentication once when the page loads
+      const isAuthed = await checkPageAuth(router);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // If authenticated, fetch the strategy data
+      if (isAuthed && strategy_id) {
+        fetchStrategy(strategy_id as string);
       }
-
-      const data = await response.json();
-      if (data.success && data.data) {
-        setInstrumentDetails(data.data);
-      }
-    } catch (err) {
-      console.error('Error fetching instrument details:', err);
-    }
-  };
+    };
+    
+    initPage();
+  }, [strategy_id, router, fetchStrategy]);
 
   const handleGoBack = () => {
     router.push('/strategy');
