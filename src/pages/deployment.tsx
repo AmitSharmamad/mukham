@@ -23,16 +23,19 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import { useTheme } from '@mui/material/styles';
-import { Deployment, getDeployments, deleteDeployment, activateDeployment, deactivateDeployment, stopAllDeployments } from '../services/deploymentService';
+import { Deployment, getDeployments, deleteDeployment, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments } from '../services/deploymentService';
+import { useToastContext } from '../context/ToastContext';
 
 const DeploymentPage = () => {
   const theme = useTheme();
+  const toast = useToastContext();
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [deploymentToDelete, setDeploymentToDelete] = useState<Deployment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stoppingAll, setStoppingAll] = useState<boolean>(false);
+  const [startingAll, setStartingAll] = useState<boolean>(false);
 
   useEffect(() => {
     fetchDeployments();
@@ -45,9 +48,11 @@ const DeploymentPage = () => {
       // Ensure that deployments is always an array
       setDeployments(Array.isArray(data) ? data : []);
       setError(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching deployments:', err);
       setError('Failed to load deployments. Please try again later.');
+      // Display error toast
+      toast.showError(err.response?.data?.message || 'Failed to load deployments');
       // Reset to empty array in case of error
       setDeployments([]);
     } finally {
@@ -69,21 +74,30 @@ const DeploymentPage = () => {
     if (!deploymentToDelete) return;
     
     try {
-      await deleteDeployment(deploymentToDelete.id);
+      const result = await deleteDeployment(deploymentToDelete.id);
       setDeployments(deployments.filter(d => d.id !== deploymentToDelete.id));
       handleCloseDeleteDialog();
-    } catch (err) {
+      // Show success toast
+      toast.showSuccess('Deployment deleted successfully');
+    } catch (err: any) {
       console.error('Error deleting deployment:', err);
       setError('Failed to delete deployment. Please try again.');
+      // Show error toast
+      toast.showError(err.response?.data?.message || 'Failed to delete deployment');
     }
   };
 
   const handleToggleStatus = async (deployment: Deployment) => {
     try {
+      let result;
       if (deployment.isActive) {
-        await deactivateDeployment(deployment.id);
+        result = await deactivateDeployment(deployment.id);
+        // Show success toast for deactivation
+        toast.showSuccess('Deployment paused successfully');
       } else {
-        await activateDeployment(deployment.id);
+        result = await activateDeployment(deployment.id);
+        // Show success toast for activation
+        toast.showSuccess('Deployment activated successfully');
       }
       
       // Update local state
@@ -92,26 +106,55 @@ const DeploymentPage = () => {
           d.id === deployment.id ? { ...d, isActive: !d.isActive } : d
         )
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error toggling deployment status:', err);
       setError(`Failed to ${deployment.isActive ? 'pause' : 'resume'} deployment.`);
+      // Show error toast
+      toast.showError(err.response?.data?.message || `Failed to ${deployment.isActive ? 'pause' : 'activate'} deployment`);
     }
   };
 
   const handleStopAllDeployments = async () => {
     try {
       setStoppingAll(true);
-      await stopAllDeployments();
+      const result = await stopAllDeployments();
       
       // Update all deployments to inactive
       setDeployments(
         deployments.map(d => ({ ...d, isActive: false }))
       );
-    } catch (err) {
+      
+      // Show success toast
+      toast.showSuccess('All deployments stopped successfully');
+    } catch (err: any) {
       console.error('Error stopping all deployments:', err);
       setError('Failed to stop all deployments. Please try again.');
+      // Show error toast
+      toast.showError(err.response?.data?.message || 'Failed to stop all deployments');
     } finally {
       setStoppingAll(false);
+    }
+  };
+
+  const handleStartAllDeployments = async () => {
+    try {
+      setStartingAll(true);
+      const result = await startAllDeployments();
+      
+      // Update all deployments to active
+      setDeployments(
+        deployments.map(d => ({ ...d, isActive: true }))
+      );
+      
+      // Show success toast
+      toast.showSuccess('All deployments started successfully');
+    } catch (err: any) {
+      console.error('Error starting all deployments:', err);
+      setError('Failed to start all deployments. Please try again.');
+      // Show error toast
+      toast.showError(err.response?.data?.message || 'Failed to start all deployments');
+    } finally {
+      setStartingAll(false);
     }
   };
 
@@ -127,15 +170,26 @@ const DeploymentPage = () => {
         <Typography variant="h4" component="h1">
           Deployments
         </Typography>
-        <Button
-          variant="contained"
-          color="error"
-          startIcon={<StopIcon />}
-          onClick={handleStopAllDeployments}
-          disabled={stoppingAll || !Array.isArray(deployments) || deployments.every(d => !d.isActive)}
-        >
-          {stoppingAll ? 'Stopping All...' : 'Stop All'}
-        </Button>
+        <Box display="flex" gap={2}>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<PlayArrowIcon />}
+            onClick={handleStartAllDeployments}
+            disabled={startingAll || !Array.isArray(deployments) || deployments.every(d => d.isActive) || deployments.length === 0}
+          >
+            {startingAll ? 'Starting All...' : 'Start All'}
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<StopIcon />}
+            onClick={handleStopAllDeployments}
+            disabled={stoppingAll || !Array.isArray(deployments) || deployments.every(d => !d.isActive)}
+          >
+            {stoppingAll ? 'Stopping All...' : 'Stop All'}
+          </Button>
+        </Box>
       </Box>
 
       {error && (
