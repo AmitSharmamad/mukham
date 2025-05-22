@@ -32,6 +32,7 @@ export interface FormData {
   entryEndTime: Dayjs | null;
   startDate: Dayjs | null;
   endDate: Dayjs | null;
+  initialCapital?: string; // Optional, for backward compatibility
 }
 
 export const initialFormData: FormData = {
