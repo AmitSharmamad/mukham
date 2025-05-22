@@ -47,6 +47,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { BacktestResult } from '../../types/strategy';
+import { createDeployment } from '../../services/deploymentService';
 
 export interface Instrument {
   id: number;
@@ -132,6 +133,7 @@ const initialFormData: FormData = {
   startDate: null,
   endDate: null,
   brickSize: '',
+  initialCapital: '100000',
 };
 
 export interface ValidationErrors {
@@ -321,7 +323,7 @@ interface BacktestData {
       entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
       start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
       end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-      capital: 10000, // Default to 10000 as initial capital
+      capital: parseInt(formData.initialCapital) || 100000,
       max_trades: 5
     };
 };
@@ -424,6 +426,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm') : null,
     startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
     endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
+    initialCapital: initialData?.initialCapital || '100000',
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [expandedSections, setExpandedSections] = useState<string[]>(['name']);
@@ -477,6 +480,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime),
         startDate: dayjs(initialData.startDate),
         endDate: dayjs(initialData.endDate),
+        initialCapital: initialData.initialCapital || '100000',
       });
     }
   }, [initialData]);
@@ -567,7 +571,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       
       case 'positions':
         if (!formData.instrumentType) missing.push('Instrument Type');
-        if (!formData.buyOrSell) missing.push('Buy/Sell');
+        if (!formData.buyOrSell) missing.push('Position type');
         if (selectedInstruments.length === 0) missing.push('Instruments');
         if (!formData.candlestickType) missing.push('Candlestick Type');
         if (isRenkoType && !formData.brickSize) missing.push('Brick Size');
@@ -1357,13 +1361,17 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             showToast('Strategy saved successfully', 'success');
             setHasUnsavedChanges(false); // Reset unsaved changes after successful save
             
-            // Update the formData with the returned strategy ID if it's a new strategy
+            // Get the strategy ID - either from the response or from the existing form data
+            const strategyId = result.data?.id || formData.id;
+            
+            // Update the formData with the returned strategy ID if needed
             if (result.data && result.data.id) {
               setFormData(prev => ({ ...prev, id: result.data.id }));
             }
             
-            if (!isEdit) {
-              router.push('/strategy'); // Only redirect if it's a new strategy
+            // Redirect to the strategy edit page with the correct ID
+            if (strategyId) {
+              router.push(`/strategy/${strategyId}`);
             }
             
             // Return the strategy data for use in other functions
@@ -1533,33 +1541,23 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       newSet.add(instrumentId);
       setDeployingInstruments(newSet);
       
-      const response = await fetch('/api/strategy/deploy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          strategyId: initialData?.id,
-          instrumentId,
-        }),
+      // Get the instrument name
+      const instrumentName = backtestResults?.results.find(r => r.instrumentId === instrumentId)?.instrumentName || `Instrument ${instrumentId}`;
+      
+      // Create deployment using our deployment service
+      await createDeployment({
+        strategy_id: initialData?.id || '',
+        instrument_id: instrumentId,
+        name: `${formData.name} - ${instrumentName}`,
+        description: formData.description,
+        isActive: true
       });
 
-      const result = await response.json();
-      if (!result.success) {
-        setErrors(prev => ({
-          ...prev,
-          submit: `Failed to deploy strategy for instrument ${instrumentId}`
-        }));
-        showError(
-          `Failed to deploy strategy for instrument ${instrumentId}`, 
-          'The server returned an error. Please check your configuration and try again.'
-        );
-      } else {
-        showSuccess(
-          `Strategy deployed successfully for instrument ${instrumentId}`,
-          'Your strategy is now live and will execute trades based on your defined conditions.'
-        );
-      }
+      showSuccess(
+        `Strategy deployed successfully for ${instrumentName}`,
+        'Your strategy is now live and will execute trades based on your defined conditions.'
+      );
+      
     } catch (error) {
       setErrors(prev => ({
         ...prev,
@@ -1576,9 +1574,40 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const handleDeployAll = async () => {
     if (!backtestResults) return;
     
-    const instrumentIds = backtestResults.results.map(r => r.instrumentId);
-    for (const instrumentId of instrumentIds) {
-      await handleDeploy(instrumentId);
+    try {
+      // Set all instruments as deploying
+      const allInstrumentIds = backtestResults.results.map(r => r.instrumentId);
+      setDeployingInstruments(new Set(allInstrumentIds));
+      
+      // Deploy each instrument
+      for (const result of backtestResults.results) {
+        await createDeployment({
+          strategy_id: initialData?.id || '',
+          instrument_id: result.instrumentId,
+          name: `${formData.name} - ${result.instrumentName}`,
+          description: formData.description,
+          isActive: true
+        });
+      }
+      
+      showSuccess(
+        'All strategies deployed successfully',
+        'Your strategies are now live and will execute trades based on your defined conditions.'
+      );
+      
+      // Redirect to deployments page after a short delay
+      setTimeout(() => {
+        router.push('/deployment');
+      }, 1500);
+      
+    } catch (error) {
+      setErrors(prev => ({
+        ...prev,
+        submit: 'Error deploying strategies'
+      }));
+      showToast('Error deploying strategies', 'error');
+    } finally {
+      setDeployingInstruments(new Set());
     }
   };
 
@@ -1861,6 +1890,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           startDate: strategyData.start_date ? dayjs(strategyData.start_date) : null,
           endDate: strategyData.end_date ? dayjs(strategyData.end_date) : null,
           brickSize: strategyData.brick_size?.toString() || '',
+          initialCapital: strategyData.capital?.toString() || '100000',
         };
         
         setFormData(formData);
@@ -1991,7 +2021,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                 )}
               </Tooltip>
             </Box>
-          </AccordionSummary>
+                   </AccordionSummary>
           <AccordionDetails sx={{ p: 3 }}>
             {section.component}
           </AccordionDetails>
