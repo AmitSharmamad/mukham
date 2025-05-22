@@ -47,7 +47,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { BacktestResult } from '../../types/strategy';
-import { createDeployment } from '../../services/deploymentService';
+import { createDeployment, ApiResponse } from '../../services/deploymentService';
 
 export interface Instrument {
   id: number;
@@ -1579,15 +1579,31 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       const allInstrumentIds = backtestResults.results.map(r => r.instrumentId);
       setDeployingInstruments(new Set(allInstrumentIds));
       
-      // Deploy each instrument
-      for (const result of backtestResults.results) {
-        await createDeployment({
-          strategy_id: initialData?.id || '',
-          instrument_id: result.instrumentId,
-          name: `${formData.name} - ${result.instrumentName}`,
-          description: formData.description,
-          isActive: true
-        });
+      const strategyId = initialData?.id || '';
+      
+      // Call the deploy all API endpoint
+      const response = await fetch(`/api/deployment/all?strategy_id=${strategyId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Deploy each instrument individually as a fallback
+      if (response.status !== 200) {
+        for (const result of backtestResults.results) {
+          await createDeployment({
+            strategy_id: strategyId,
+            instrument_id: result.instrumentId,
+            name: `${formData.name} - ${result.instrumentName}`,
+            description: formData.description,
+            isActive: true
+          });
+        }
       }
       
       showSuccess(
