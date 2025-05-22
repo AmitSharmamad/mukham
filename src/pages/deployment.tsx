@@ -42,11 +42,14 @@ const DeploymentPage = () => {
     try {
       setLoading(true);
       const data = await getDeployments();
-      setDeployments(data);
+      // Ensure that deployments is always an array
+      setDeployments(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err) {
       console.error('Error fetching deployments:', err);
       setError('Failed to load deployments. Please try again later.');
+      // Reset to empty array in case of error
+      setDeployments([]);
     } finally {
       setLoading(false);
     }
@@ -129,7 +132,7 @@ const DeploymentPage = () => {
           color="error"
           startIcon={<StopIcon />}
           onClick={handleStopAllDeployments}
-          disabled={stoppingAll || deployments.every(d => !d.isActive)}
+          disabled={stoppingAll || !Array.isArray(deployments) || deployments.every(d => !d.isActive)}
         >
           {stoppingAll ? 'Stopping All...' : 'Stop All'}
         </Button>

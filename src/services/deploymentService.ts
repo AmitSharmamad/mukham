@@ -16,7 +16,8 @@ export interface Deployment {
 export const getDeployments = async (): Promise<Deployment[]> => {
   try {
     const response = await apiClient.get('/deployment');
-    return response.data;
+    // Ensure we always return an array
+    return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     console.error('Error fetching deployments:', error);
     throw error;
