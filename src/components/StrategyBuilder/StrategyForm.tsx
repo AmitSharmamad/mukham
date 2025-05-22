@@ -101,6 +101,7 @@ interface FormData {
   startDate: Dayjs | null;
   endDate: Dayjs | null;
   brickSize: string;
+  initialCapital: string;
 }
 
 const initialFormData: FormData = {
@@ -320,6 +321,7 @@ interface BacktestData {
       entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
       start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
       end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
+      capital: 10000, // Default to 10000 as initial capital
       max_trades: 5
     };
 };
@@ -539,8 +541,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     );
     
     const isBacktestSectionValid = !!(
-      formData.initialCapital &&
-      formData.targetProfit &&
       formData.startDate &&
       formData.endDate &&
       (!formData.entryStartTime || !formData.entryEndTime || validateTimeRange(formData.entryStartTime, formData.entryEndTime)) &&
@@ -589,7 +589,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         break;
       
       case 'backtest':
-        if (formData.initialCapital === '') missing.push('Initial Capital');
         if (!formData.startDate) missing.push('Start Date');
         if (!formData.endDate) missing.push('End Date');
         if (formData.startDate && formData.endDate && !validateDateRange(formData.startDate, formData.endDate)) {
@@ -685,10 +684,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     }
     
     // Backtest parameters validation
-    if (formData.initialCapital === '') {
-      newErrors.initialCapital = 'Initial capital is required';
-    }
-    
     if (!formData.startDate) {
       newErrors.startDate = 'Start date is required';
     }
@@ -2000,7 +1995,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           <AccordionDetails sx={{ p: 3 }}>
             {section.component}
           </AccordionDetails>
-        </Accordion>
+               </Accordion>
       ))}
       
       <InstrumentSelector
