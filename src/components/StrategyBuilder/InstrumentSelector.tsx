@@ -48,7 +48,7 @@ interface InstrumentSelectorProps {
 }
 
 const exchanges = ['NSE', 'BSE', 'MCX'];
-const segments = ['EQ', 'F&O', 'FUT'];
+const segments = ['C', 'D', 'I'];
 
 const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   open,
