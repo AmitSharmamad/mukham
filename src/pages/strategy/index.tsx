@@ -20,12 +20,14 @@ import {
   Tooltip,
   Tabs,
   Tab,
-  Divider
+  Divider,
+  Container
 } from '@mui/material';
 import { 
   Delete as DeleteIcon, 
   ContentCopy as ContentCopyIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { useToastContext } from '../../context/ToastContext';
@@ -235,7 +237,7 @@ export default function StrategyList() {
           flexDirection="column" 
           alignItems="center" 
           justifyContent="center" 
-          minHeight="200px"
+          minHeight="300px"
           textAlign="center"
           p={4}
         >
@@ -270,8 +272,6 @@ export default function StrategyList() {
                 display: 'flex', 
                 flexDirection: 'column',
                 transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-                borderLeft: strategy.is_active ? '4px solid' : 'none',
-                borderColor: 'success.main',
                 '&:hover': {
                   transform: 'translateY(-4px)',
                   boxShadow: 6
@@ -284,52 +284,44 @@ export default function StrategyList() {
                   <Typography variant="h6" component="h2" gutterBottom>
                     {strategy.name}
                   </Typography>
-                  <Box display="flex" alignItems="center">
-                    {isDefault && (
-                      <Chip 
-                        label="Default" 
-                        color="secondary"
-                        size="small"
-                        sx={{ mr: 1 }}
-                      />
-                    )}
-                    {strategy.is_active !== undefined && (
-                      <Chip 
-                        label={strategy.is_active ? 'Active' : 'Inactive'} 
-                        color={strategy.is_active ? 'success' : 'default'}
-                        size="small"
-                      />
-                    )}
-                  </Box>
+                  <Chip 
+                    label={strategy.is_active ? 'Active' : 'Inactive'} 
+                    color={strategy.is_active ? 'success' : 'default'}
+                    size="small"
+                  />
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {strategy.description || 'No description provided.'}
                 </Typography>
-                <Box sx={{ mb: 1 }}>
-                  <Typography variant="body2">
-                    Position: {strategy.position_type || 'Not specified'}
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography variant="caption" color="text.secondary">
+                    Last updated: {new Date(strategy.updated_at).toLocaleString()}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Created: {new Date(strategy.created_at).toLocaleString()}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Updated: {new Date(strategy.updated_at).toLocaleString()}
-                  </Typography>
+                  {isDefault && (
+                    <Chip 
+                      label="Default" 
+                      color="secondary"
+                      size="small"
+                    />
+                  )}
                 </Box>
               </CardContent>
               <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
                 <Box>
                   {!isDefault && (
-                    <Tooltip title="Edit Strategy">
+                    <Tooltip title="Edit">
                       <IconButton 
                         size="small" 
-                        onClick={() => handleStrategyClick(strategy.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStrategyClick(strategy.id);
+                        }}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   )}
-                  <Tooltip title="Clone Strategy">
+                  <Tooltip title="Clone">
                     <IconButton 
                       size="small" 
                       onClick={(e) => {
@@ -346,7 +338,7 @@ export default function StrategyList() {
                     </IconButton>
                   </Tooltip>
                   {!isDefault && (
-                    <Tooltip title="Delete Strategy">
+                    <Tooltip title="Delete">
                       <IconButton 
                         size="small" 
                         onClick={(e) => {
@@ -354,7 +346,6 @@ export default function StrategyList() {
                           handleDeleteClick(e, strategy);
                         }}
                         disabled={deleting === strategy.id}
-                        color="error"
                       >
                         {deleting === strategy.id ? (
                           <CircularProgress size={16} />
@@ -365,6 +356,18 @@ export default function StrategyList() {
                     </Tooltip>
                   )}
                 </Box>
+                {!isDefault && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStrategyClick(strategy.id);
+                    }}
+                  >
+                    Edit Strategy
+                  </Button>
+                )}
               </CardActions>
             </Card>
           </Grid>
@@ -382,17 +385,37 @@ export default function StrategyList() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box display="flex" alignItems="center" gap={3} mb={4}>
-        <Typography variant="h4">Strategies</Typography>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Page Header */}
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        mb={4}
+      >
+        <Typography variant="h4" component="h1">
+          Trading Strategies
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={handleCreateStrategy}
+        >
+          Create Strategy
+        </Button>
+      </Box>
+      
+      <Box sx={{ mb: 3 }}>
         <TextField
+          fullWidth
           size="small"
           variant="outlined"
           placeholder="Search strategies..."
           value={searchQuery}
           onChange={handleSearchChange}
           sx={{
-            width: '300px',
+            maxWidth: '300px',
             backgroundColor: 'background.paper',
             '& .MuiOutlinedInput-root': {
               '& fieldset': {
@@ -404,11 +427,13 @@ export default function StrategyList() {
             },
           }}
         />
-        <Box flexGrow={1} />
-        <Button variant="contained" color="primary" onClick={handleCreateStrategy}>
-          Create Strategy
-        </Button>
       </Box>
+
+      {error && (
+        <Box sx={{ mb: 2 }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+      )}
 
       {/* User Strategies Section */}
       <Box mb={6}>
@@ -417,7 +442,11 @@ export default function StrategyList() {
         </Typography>
         <Divider sx={{ mb: 3 }} />
         
-        {error ? (
+        {loading ? (
+          <Box display="flex" justifyContent="center" my={4}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
           <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center', py: 2 }}>
             <Alert 
               severity="error" 
@@ -511,6 +540,6 @@ export default function StrategyList() {
       </Dialog>
 
       {/* Toast is now provided by ToastContext */}
-    </Box>
+    </Container>
   );
 }
