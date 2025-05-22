@@ -1,9 +1,9 @@
-import { Box, Grid, IconButton, Typography, FormHelperText, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, CheckCircle as CheckCircleIcon, Cancel as CancelIcon, Clear as ClearIcon, AutoAwesome as CopilotIcon } from '@mui/icons-material';
+import { Box, Grid, IconButton, Typography, FormHelperText, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, CircularProgress, InputAdornment, Paper, List, ListItem, ListItemText } from '@mui/material';
+import { Add as AddIcon, Delete as DeleteIcon, CheckCircle as CheckCircleIcon, Cancel as CancelIcon, Clear as ClearIcon, AutoAwesome as CopilotIcon, Search as SearchIcon } from '@mui/icons-material';
 import { Select } from '../Select';
 import { TextField } from '../TextField';
 import { Button } from '../Button';
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
@@ -369,6 +369,25 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
   const [showOperatorSelect, setShowOperatorSelect] = useState(!value.operator);
   const [editingIndicator, setEditingIndicator] = useState<null | { indicator: Indicator; field: 'indicator1' | 'indicator2' }>(null);
   const [modalConfig, setModalConfig] = useState<IndicatorConfig>({});
+  const [searchQuery1, setSearchQuery1] = useState('');
+  const [searchQuery2, setSearchQuery2] = useState('');
+  const [showIndicatorList1, setShowIndicatorList1] = useState(false);
+  const [showIndicatorList2, setShowIndicatorList2] = useState(false);
+
+  // Filter indicators based on search query
+  const filteredIndicators1 = useMemo(() => {
+    return INDICATORS.filter(indicator => 
+      indicator.label.toLowerCase().includes(searchQuery1.toLowerCase()) || 
+      indicator.value.toLowerCase().includes(searchQuery1.toLowerCase())
+    );
+  }, [searchQuery1]);
+
+  const filteredIndicators2 = useMemo(() => {
+    return INDICATORS.filter(indicator => 
+      indicator.label.toLowerCase().includes(searchQuery2.toLowerCase()) || 
+      indicator.value.toLowerCase().includes(searchQuery2.toLowerCase())
+    );
+  }, [searchQuery2]);
 
   const handleChange = (field: keyof IndicatorExpression, subField?: keyof Indicator) => (newValue: any) => {
     if (subField) {
@@ -457,15 +476,107 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
     }));
   };
 
-  const renderIndicatorSelect = (field: 'indicator1' | 'indicator2') => (
-    <Select
-      label={`Indicator ${field === 'indicator1' ? '1' : '2'}`}
-      options={INDICATORS}
-      value={value[field].name || ''}
-      onChange={(newValue) => handleChange(field)(newValue)}
-      sx={{ width: '100%', minWidth: 200 }}
-    />
-  );
+  const handleSearchChange = (field: 'indicator1' | 'indicator2') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (field === 'indicator1') {
+      setSearchQuery1(e.target.value);
+      setShowIndicatorList1(true);
+    } else {
+      setSearchQuery2(e.target.value);
+      setShowIndicatorList2(true);
+    }
+  };
+
+  const handleIndicatorSelect = (field: 'indicator1' | 'indicator2', value: string) => {
+    handleChange(field)(value);
+    if (field === 'indicator1') {
+      setShowIndicatorList1(false);
+      setSearchQuery1('');
+    } else {
+      setShowIndicatorList2(false);
+      setSearchQuery2('');
+    }
+  };
+
+  const renderIndicatorSelect = (field: 'indicator1' | 'indicator2') => {
+    const searchQuery = field === 'indicator1' ? searchQuery1 : searchQuery2;
+    const filteredIndicators = field === 'indicator1' ? filteredIndicators1 : filteredIndicators2;
+    const showIndicatorList = field === 'indicator1' ? showIndicatorList1 : showIndicatorList2;
+    const setShowIndicatorList = field === 'indicator1' ? setShowIndicatorList1 : setShowIndicatorList2;
+
+    return (
+      <Box sx={{ position: 'relative', width: '100%', minWidth: 200 }}>
+        <TextField
+          fullWidth
+          label={`Indicator ${field === 'indicator1' ? '1' : '2'}`}
+          value={searchQuery}
+          onChange={handleSearchChange(field)}
+          onFocus={() => setShowIndicatorList(true)}            placeholder="Search indicators..."
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+          {showIndicatorList && (
+            <Paper 
+              elevation={3} 
+              className="indicator-list"
+              sx={{ 
+                position: 'absolute', 
+                top: '100%', 
+                left: 0, 
+                right: 0, 
+                zIndex: 1000, 
+                maxHeight: 250, 
+                overflow: 'auto'
+              }}
+            >
+            <List dense>
+              {filteredIndicators.length > 0 ? (
+                filteredIndicators.map((indicator) => (
+                  <ListItem 
+                    key={indicator.value} 
+                    button 
+                    onClick={() => handleIndicatorSelect(field, indicator.value)}
+                    sx={{ 
+                      py: 1,
+                      '&:hover': { 
+                        bgcolor: 'action.hover',
+                        borderLeft: '3px solid',
+                        borderColor: 'primary.main',
+                      },
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <ListItemText 
+                      primary={indicator.label} 
+                      secondary={indicator.value}
+                      primaryTypographyProps={{
+                        fontWeight: searchQuery && indicator.label.toLowerCase().includes(searchQuery.toLowerCase()) ? 'bold' : 'normal'
+                      }}
+                    />
+                  </ListItem>
+                ))
+              ) : (
+                <ListItem sx={{ py: 2, justifyContent: 'center' }}>
+                  <ListItemText 
+                    primary="No matching indicators" 
+                    primaryTypographyProps={{
+                      align: 'center',
+                      color: 'text.secondary',
+                      fontStyle: 'italic'
+                    }}
+                  />
+                </ListItem>
+              )}
+            </List>
+          </Paper>
+        )}
+      </Box>
+    );
+  };
 
   const renderOperatorSelect = () => (
     <Select
@@ -903,6 +1014,26 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
     );
   };
 
+  // Click outside handler to close indicator lists
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (showIndicatorList1 || showIndicatorList2) {
+        const target = event.target as HTMLElement;
+        // Don't close if clicking on the search input itself
+        const isTextField = target.closest('.MuiInputBase-root, .MuiTextField-root');
+        if (!isTextField && !target.closest('.indicator-list')) {
+          setShowIndicatorList1(false);
+          setShowIndicatorList2(false);
+        }
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showIndicatorList1, showIndicatorList2]);
+
   return (
     <Box sx={{ p: 2, borderRadius: 1, bgcolor: 'background.paper' }}>
       <Grid 
@@ -912,7 +1043,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
         justifyContent="center"
         sx={{ maxWidth: 800, mx: 'auto' }}
       >
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={4} className="indicator-select-container">
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             {showIndicator1Select ? 
               renderIndicatorSelect('indicator1') : 
@@ -930,7 +1061,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
           </Box>
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={4} className="indicator-select-container">
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             {showIndicator2Select ? 
               renderIndicatorSelect('indicator2') : 
@@ -1048,11 +1179,53 @@ interface AiPromptModalProps {
 // AI Prompt Modal Component
 const AiPromptModal = ({ open, onClose, onSubmit }: AiPromptModalProps) => {
   const [prompt, setPrompt] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (prompt.trim()) {
-      onSubmit(prompt);
-      setPrompt('');
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch('/ai/build-expression', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt: prompt.trim() }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} ${response.statusText}`);
+        }
+        
+        // Support different response formats
+        const data = await response.json();
+        let expressionString = '';
+        
+        if (typeof data === 'string') {
+          expressionString = data;
+        } else if (data.expression) {
+          expressionString = data.expression;
+        } else if (data.result) {
+          expressionString = data.result;
+        } else {
+          console.log('Full API response:', data);
+          throw new Error('Could not extract expression from the API response');
+        }
+        
+        // Log the extracted expression for debugging
+        console.log('Using expression from API:', expressionString);
+        
+        onSubmit(expressionString);
+        setPrompt('');
+        onClose(); // Close the modal after successful submission
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to generate expression');
+        console.error('Error generating expression:', err);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -1076,18 +1249,24 @@ const AiPromptModal = ({ open, onClose, onSubmit }: AiPromptModalProps) => {
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="For example: Buy when the 9-period EMA crosses above the 21-period EMA and RSI is above 50"
             sx={{ mt: 1 }}
+            disabled={loading}
           />
+          {error && (
+            <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+              {error}
+            </Typography>
+          )}
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="inherit">Cancel</Button>
+        <Button onClick={onClose} color="inherit" disabled={loading}>Cancel</Button>
         <Button 
           onClick={handleSubmit} 
           variant="contained" 
-          startIcon={<CopilotIcon />}
-          disabled={!prompt.trim()}
+          startIcon={loading ? <CircularProgress size={16} /> : <CopilotIcon />}
+          disabled={!prompt.trim() || loading}
         >
-          Generate
+          {loading ? 'Generating...' : 'Generate'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -1130,34 +1309,87 @@ export const IndicatorExpressionBuilder = ({
   };
 
   // Handle AI prompt submission and generate expression
-  const handleAiPromptSubmit = (prompt: string) => {
-    // In a real implementation, this would call an AI service to generate the expression
-    // For now, we'll add a simple example condition as a placeholder
-    const defaultLogicalOperator = conditions.length > 0 ? conditions[0].logicalOperator || 'AND' : 'AND';
-    
-    // Sample expression based on common patterns (in a real app, this would come from the AI)
-    const newCondition: IndicatorExpression = {
-      indicator1: { 
-        name: 'EMA', 
-        config: { period: 9, offset: 0, field: 'CLOSE' } 
-      },
-      operator: 'CrossesAbove',
-      indicator2: { 
-        name: 'EMA', 
-        config: { period: 21, offset: 0, field: 'CLOSE' } 
-      },
-      logicalOperator: defaultLogicalOperator,
-    };
-
-    onChange([
-      ...conditions.map(condition => ({
-        ...condition,
-        logicalOperator: defaultLogicalOperator
-      })),
-      newCondition,
-    ]);
-    
-    setAiModalOpen(false);
+  const handleAiPromptSubmit = (expressionString: string) => {
+    try {
+      // Simply parse the standard expression format directly
+      console.log("Received expression from API:", expressionString);
+      
+      // Basic check to make sure we have an operator
+      if (!expressionString.match(/(CrossesAbove|CrossesBelow|>|<|>=|<=|==|!=)/i)) {
+        console.error('No valid operator found in expression:', expressionString);
+        window.alert(`Expression missing valid operator: "${expressionString}"`);
+        return;
+      }
+      
+      // Split the expression once at the operator
+      const parts = expressionString.split(/(CrossesAbove|CrossesBelow)/i);
+      
+      if (parts.length !== 3) {
+        console.error('Invalid expression format:', expressionString);
+        window.alert(`Could not parse expression: "${expressionString}"`);
+        return;
+      }
+      
+      // Extract components
+      const leftExprStr = parts[0].trim();
+      const operatorStr = parts[1].trim();
+      const rightExprStr = parts[2].trim();
+      
+      console.log("Left:", leftExprStr, "Operator:", operatorStr, "Right:", rightExprStr);
+      
+      // Parse left indicator (SMA)
+      const smaMatch = leftExprStr.match(/SMA\(([^,]+),\s*(\d+),\s*(\d+)\)/);
+      if (!smaMatch) {
+        console.error('Could not parse left indicator:', leftExprStr);
+        window.alert(`Could not parse left indicator: "${leftExprStr}"`);
+        return;
+      }
+      
+      // Parse right indicator (EMA)
+      const emaMatch = rightExprStr.match(/EMA\(([^,]+),\s*(\d+),\s*(\d+)\)/);
+      if (!emaMatch) {
+        console.error('Could not parse right indicator:', rightExprStr);
+        window.alert(`Could not parse right indicator: "${rightExprStr}"`);
+        return;
+      }
+      
+      // Create indicators with exact values from the expression
+      const leftIndicator: Indicator = {
+        name: 'SMA',
+        config: {
+          field: smaMatch[1],
+          period: parseInt(smaMatch[2], 10),
+          offset: parseInt(smaMatch[3], 10)
+        }
+      };
+      
+      const rightIndicator: Indicator = {
+        name: 'EMA',
+        config: {
+          field: emaMatch[1],
+          period: parseInt(emaMatch[2], 10),
+          offset: parseInt(emaMatch[3], 10)
+        }
+      };
+      
+      // Create the condition object
+      const newCondition: IndicatorExpression = {
+        indicator1: leftIndicator,
+        operator: operatorStr,
+        indicator2: rightIndicator,
+        logicalOperator: 'AND'
+      };
+      
+      console.log("Created condition:", newCondition);
+      
+      // Replace any existing expressions with this one
+      onChange([newCondition]);
+      
+      setAiModalOpen(false);
+    } catch (err) {
+      console.error('Error parsing expression:', err);
+      window.alert(`Error processing expression: "${expressionString}"\n\nPlease check format and try again.`);
+    }
   };
 
   const handleAddCondition = (isNested: boolean = false) => {
@@ -1252,20 +1484,6 @@ export const IndicatorExpressionBuilder = ({
               )}
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Tooltip title="Generate with AI">
-                <IconButton 
-                  onClick={handleAiModalOpen} 
-                  size="small" 
-                  color="primary" 
-                  sx={{ 
-                    bgcolor: 'primary.main', 
-                    color: 'primary.contrastText', 
-                    '&:hover': { bgcolor: 'primary.dark' } 
-                  }}
-                >
-                  <CopilotIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
               {isOptional && conditions.length > 0 && (
                 <Tooltip title="Clear all expressions">
                   <IconButton onClick={handleClearAll} size="small" color="error">
@@ -1336,27 +1554,39 @@ export const IndicatorExpressionBuilder = ({
         ))}
 
         <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-            <Tooltip title="Add condition">
-              <IconButton onClick={() => handleAddCondition(false)} color="primary">
-                <AddIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Add nested block">
-              <IconButton onClick={() => handleAddCondition(true)} color="secondary">
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<CopilotIcon />}
+              onClick={handleAiModalOpen}
+              sx={{ mb: 1 }}
+            >
+              Generate Expression with AI
+            </Button>
+            
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+              <Tooltip title="Add condition">
+                <IconButton onClick={() => handleAddCondition(false)} color="primary">
                   <AddIcon />
-                  <Box component="span" sx={{ 
-                    border: '1px dashed',
-                    borderColor: 'secondary.main',
-                    width: 16,
-                    height: 16,
-                    borderRadius: 0.5,
-                    ml: -0.5
-                  }} />
-                </Box>
-              </IconButton>
-            </Tooltip>
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Add nested block">
+                <IconButton onClick={() => handleAddCondition(true)} color="secondary">
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <AddIcon />
+                    <Box component="span" sx={{ 
+                      border: '1px dashed',
+                      borderColor: 'secondary.main',
+                      width: 16,
+                      height: 16,
+                      borderRadius: 0.5,
+                      ml: -0.5
+                    }} />
+                  </Box>
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
 
           {conditions.length > 0 && (

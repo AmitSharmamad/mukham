@@ -1,17 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Drawer,
+  Typography,
   Autocomplete,
   TextField,
   Button,
   Box,
   Grid,
   CircularProgress,
-  Pagination,
+  IconButton,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Checkbox,
+  Paper,
+  InputAdornment,
+  Chip,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
 
 interface Instrument {
   id: number;
@@ -35,6 +44,7 @@ interface InstrumentSelectorProps {
   onClose: () => void;
   onSelect: (instruments: Instrument[]) => void;
   selectedInstruments: Instrument[];
+  anchor?: 'left' | 'right'; // Optional prop to determine which side the drawer opens from
 }
 
 const exchanges = ['NSE', 'BSE', 'MCX'];
@@ -45,6 +55,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   onClose,
   onSelect,
   selectedInstruments,
+  anchor = 'right', // Default to right side
 }) => {
   const [tempSelected, setTempSelected] = useState<Instrument[]>(Array.isArray(selectedInstruments) ? selectedInstruments : []);
   const [selectedExchange, setSelectedExchange] = useState<string | null>(null);
@@ -52,9 +63,24 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   const [instruments, setInstruments] = useState<Instrument[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const pageSize = 20;
+  
+  // Reference to the observer for infinite scrolling
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastInstrumentElementRef = useCallback((node: HTMLElement | null) => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
 
   // Load selected instruments when selectedInstruments prop changes
   useEffect(() => {
@@ -63,13 +89,26 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
 
   // Search functionality - only triggered when modal is open
   useEffect(() => {
-    if (!open) {
+    // Reset state when search parameters change
+    if (searchQuery || selectedExchange || selectedSegment) {
       setInstruments([]);
+      setPage(1);
+      setHasMore(true);
+    }
+  }, [searchQuery, selectedExchange, selectedSegment]);
+
+  useEffect(() => {
+    if (!open) {
       return;
     }
 
     let active = true;
     const fetchInstruments = async () => {
+      // Don't fetch if we're on page > 1 but already know there's no more data
+      if (page > 1 && !hasMore) {
+        return;
+      }
+      
       setLoading(true);
       try {
         const queryParams = new URLSearchParams({
@@ -108,37 +147,43 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
               lotSize: item.lotSize,
               tickSize: item.tickSize
             }));
-            setInstruments(mappedInstruments);
-            setTotalPages(responseData.data.totalPages || 1);
+
+            // Append new data to existing data for infinite scroll
+            if (page === 1) {
+              setInstruments(mappedInstruments);
+            } else {
+              setInstruments(prev => [...prev, ...mappedInstruments]);
+            }
+            
+            // Check if there's more data to load
+            const totalPages = responseData.data.totalPages || 1;
+            setHasMore(page < totalPages && mappedInstruments.length > 0);
           } else {
-            setInstruments([]);
-            setTotalPages(1);
+            if (page === 1) {
+              setInstruments([]);
+            }
+            setHasMore(false);
           }
           setLoading(false);
         }
       } catch (error) {
         console.error('Error searching instruments:', error);
         if (active) {
-          setInstruments([]);
-          setTotalPages(1);
+          if (page === 1) {
+            setInstruments([]);
+          }
+          setHasMore(false);
           setLoading(false);
         }
       }
     };
 
-    if (searchQuery || selectedExchange || selectedSegment) {
-      const debounceTimeout = setTimeout(fetchInstruments, 300);
-      return () => {
-        active = false;
-        clearTimeout(debounceTimeout);
-      };
-    } else {
-      fetchInstruments();
-      return () => {
-        active = false;
-      };
-    }
-  }, [selectedExchange, selectedSegment, page, searchQuery, open, pageSize]);
+    const debounceTimeout = setTimeout(fetchInstruments, 300);
+    return () => {
+      active = false;
+      clearTimeout(debounceTimeout);
+    };
+  }, [selectedExchange, selectedSegment, page, searchQuery, open, pageSize, hasMore]);
 
   const handleClose = () => {
     setPage(1);
@@ -146,6 +191,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
     setInstruments([]);
     setSelectedExchange(null);
     setSelectedSegment(null);
+    setHasMore(true);
     setTempSelected(Array.isArray(selectedInstruments) ? selectedInstruments : []); // Reset to original selection
     onClose();
   };
@@ -155,17 +201,52 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
     handleClose();
   };
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
-    setPage(value);
-  };
+  // Infinite scrolling is now handled by the observer
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>Select Instruments</DialogTitle>
-      <DialogContent>
-        <Box sx={{ mt: 2 }}>
+    <Drawer 
+      anchor={anchor}
+      open={open} 
+      onClose={handleClose} 
+      sx={{
+        '& .MuiDrawer-paper': {
+          width: { xs: '100%', sm: '600px', md: '750px' },
+          maxWidth: '100%',
+          padding: 3
+        }
+      }}
+    >
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Typography variant="h6">Select Instruments</Typography>
+        <IconButton onClick={handleClose} edge="end">
+          <CloseIcon />
+        </IconButton>
+      </Box>
+      
+      {/* Selected instruments as chips */}
+      {tempSelected.length > 0 && (
+        <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {tempSelected.map((instrument) => (
+            <Chip
+              key={instrument.id}
+              label={`${instrument.symbol} - ${instrument.exchange}`}
+              onDelete={() => {
+                setTempSelected(tempSelected.filter(item => item.id !== instrument.id));
+              }}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+          ))}
+        </Box>
+      )}
+      
+      <Divider sx={{ mb: 2 }} />
+      
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flexGrow: 1, overflow: 'auto', mb: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={6}>
+            <Grid item xs={12} md={6}>
               <Autocomplete
                 disablePortal
                 options={exchanges}
@@ -185,7 +266,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 )}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} md={6}>
               <Autocomplete
                 disablePortal
                 options={segments}
@@ -206,81 +287,118 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
               />
             </Grid>
             <Grid item xs={12}>
-              <Autocomplete
-                multiple
-                options={Array.isArray(instruments) ? instruments : []}
-                loading={loading}
-                getOptionLabel={(option) => `${option.symbol} - ${option.exchange}`}
-                value={Array.isArray(tempSelected) ? tempSelected : []}
-                onChange={(_, newValue) => {
-                  setTempSelected(newValue);
-                }}
-                onInputChange={(_, value) => {
-                  setSearchQuery(value);
+              <TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Search instruments..."
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                renderOption={(props, option) => (
-                  <li {...props}>
-                    <Box>
-                      <strong>{option.symbol}</strong> - {option.exchange}
-                      {option.lotSize && ` (Lot: ${option.lotSize})`}
-                      {option.expiry && ` (Expiry: ${new Date(option.expiry).toLocaleDateString()})`}
-                    </Box>
-                  </li>
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Box
-                      component="span"
-                      {...getTagProps({ index })}
-                      key={option.id}
-                    >
-                      {option.symbol} - {option.exchange}
-                    </Box>
-                  ))
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    variant="outlined"
-                    label="Search Instruments"
-                    placeholder="Type to search"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {loading ? <CircularProgress color="inherit" size={20} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
+                value={searchQuery}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                  endAdornment: loading ? (
+                    <InputAdornment position="end">
+                      <CircularProgress color="inherit" size={20} />
+                    </InputAdornment>
+                  ) : null
+                }}
               />
-              {instruments.length > 0 && (
-                <Box display="flex" justifyContent="center" mt={2}>
-                  <Pagination
-                    count={totalPages}
-                    page={page}
-                    onChange={handlePageChange}
-                    color="primary"
-                  />
-                </Box>
-              )}
+              
+              <Paper variant="outlined" sx={{ mt: 2, height: '500px', overflow: 'auto' }}>
+                {instruments.length > 0 ? (
+                  <List dense>
+                    {instruments.map((instrument, index) => {
+                      const labelId = `checkbox-list-label-${instrument.id}`;
+                      const isSelected = tempSelected.some(item => item.id === instrument.id);
+                      
+                      // Add ref to the last element for infinite scrolling
+                      const isLastElement = index === instruments.length - 1;
+                      
+                      return (
+                        <ListItem 
+                          ref={isLastElement ? lastInstrumentElementRef : null}
+                          key={instrument.id}
+                          dense
+                          onClick={() => {
+                            const newSelected = isSelected
+                              ? tempSelected.filter(item => item.id !== instrument.id)
+                              : [...tempSelected, instrument];
+                            setTempSelected(newSelected);
+                          }}
+                          sx={{ 
+                            '&:hover': { bgcolor: 'action.hover' },
+                            bgcolor: isSelected ? 'action.selected' : 'transparent',
+                          }}
+                          button
+                        >
+                          <ListItemIcon>
+                            <Checkbox
+                              edge="start"
+                              checked={isSelected}
+                              tabIndex={-1}
+                              disableRipple
+                              inputProps={{ 'aria-labelledby': labelId }}
+                            />
+                          </ListItemIcon>
+                          <ListItemText 
+                            id={labelId}
+                            primary={
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="body1" component="span">
+                                  <strong>{instrument.symbol}</strong>
+                                </Typography>
+                                <Typography variant="body2" component="span" color="text.secondary">
+                                  {instrument.exchange}
+                                </Typography>
+                              </Box>
+                            }
+                            secondary={
+                              <>
+                                {instrument.segment && <span>Segment: {instrument.segment} </span>}
+                                {instrument.lotSize && <span>Lot: {instrument.lotSize} </span>}
+                                {instrument.expiry && 
+                                  <span>Expiry: {new Date(instrument.expiry).toLocaleDateString()} </span>
+                                }
+                              </>
+                            }
+                          />
+                        </ListItem>
+                      );
+                    })}
+                    {loading && (
+                      <Box py={2} display="flex" justifyContent="center" width="100%">
+                        <CircularProgress size={24} />
+                      </Box>
+                    )}
+                  </List>
+                ) : (
+                  <Box p={3} display="flex" justifyContent="center" alignItems="center" height="100%">
+                    <Typography variant="body1" color="text.secondary">
+                      {loading && page === 1 ? 'Loading instruments...' : 'No instruments found. Try adjusting your filters.'}
+                    </Typography>
+                  </Box>
+                )}
+              </Paper>
             </Grid>
           </Grid>
         </Box>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} color="inherit">
-          Close
-        </Button>
-        <Button onClick={handleSelect} variant="contained" color="primary">
-          Select
-        </Button>
-      </DialogActions>
-    </Dialog>
+        
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 2, borderTop: 1, borderColor: 'divider' }}>
+          <Button onClick={handleClose} color="inherit" sx={{ mr: 1 }}>
+            Cancel
+          </Button>
+          <Button onClick={handleSelect} variant="contained" color="primary">
+            Select {tempSelected.length > 0 ? `(${tempSelected.length})` : ''}
+          </Button>
+        </Box>
+      </Box>
+    </Drawer>
   );
 };
 
