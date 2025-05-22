@@ -7,17 +7,36 @@ export interface Deployment {
   instrument_id: number;
   name: string;
   description: string;
-  isActive: boolean;
-  createdAt: string;
-  lastUpdatedAt?: string;
+  isActive: boolean; // Note: This is mapped from is_active in the API
+  createdAt: string; // Note: This is mapped from created_at in the API
+  lastUpdatedAt?: string; // Note: This is mapped from updated_at in the API
+}
+
+export interface ApiResponse {
+  message: string;
+  success: boolean;
+  data?: any;
 }
 
 // Service functions
 export const getDeployments = async (): Promise<Deployment[]> => {
   try {
     const response = await apiClient.get('/deployment');
-    // Ensure we always return an array
-    return Array.isArray(response.data) ? response.data : [];
+    // Handle the nested data structure in the response
+    if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      // Map API response to our Deployment interface
+      return response.data.data.map((item: any) => ({
+        id: item.id,
+        strategy_id: item.strategy_id,
+        instrument_id: item.instrument_id,
+        name: item.name,
+        description: item.description,
+        isActive: item.is_active,
+        createdAt: item.created_at,
+        lastUpdatedAt: item.updated_at
+      }));
+    }
+    return [];
   } catch (error) {
     console.error('Error fetching deployments:', error);
     throw error;
@@ -34,7 +53,7 @@ export const getDeployment = async (id: string): Promise<Deployment | undefined>
   }
 };
 
-export const createDeployment = async (deploymentData: Omit<Deployment, 'id' | 'createdAt'>): Promise<Deployment> => {
+export const createDeployment = async (deploymentData: Omit<Deployment, 'id' | 'createdAt'>): Promise<ApiResponse> => {
   try {
     const response = await apiClient.post('/deployment', deploymentData);
     return response.data;
@@ -44,7 +63,7 @@ export const createDeployment = async (deploymentData: Omit<Deployment, 'id' | '
   }
 };
 
-export const updateDeployment = async (id: string, deploymentData: Partial<Deployment>): Promise<Deployment | undefined> => {
+export const updateDeployment = async (id: string, deploymentData: Partial<Deployment>): Promise<ApiResponse> => {
   try {
     const response = await apiClient.put(`/deployment/${id}`, deploymentData);
     return response.data;
@@ -54,17 +73,17 @@ export const updateDeployment = async (id: string, deploymentData: Partial<Deplo
   }
 };
 
-export const deleteDeployment = async (id: string): Promise<boolean> => {
+export const deleteDeployment = async (id: string): Promise<ApiResponse> => {
   try {
-    await apiClient.delete(`/deployment/${id}`);
-    return true;
+    const response = await apiClient.delete(`/deployment/${id}`);
+    return response.data;
   } catch (error) {
     console.error('Error deleting deployment:', error);
     throw error;
   }
 };
 
-export const activateDeployment = async (id: string): Promise<Deployment | undefined> => {
+export const activateDeployment = async (id: string): Promise<ApiResponse> => {
   try {
     const response = await apiClient.put(`/deployment/${id}/activate`);
     return response.data;
@@ -74,7 +93,7 @@ export const activateDeployment = async (id: string): Promise<Deployment | undef
   }
 };
 
-export const deactivateDeployment = async (id: string): Promise<Deployment | undefined> => {
+export const deactivateDeployment = async (id: string): Promise<ApiResponse> => {
   try {
     const response = await apiClient.put(`/deployment/${id}/deactivate`);
     return response.data;
@@ -84,12 +103,22 @@ export const deactivateDeployment = async (id: string): Promise<Deployment | und
   }
 };
 
-export const stopAllDeployments = async (): Promise<boolean> => {
+export const stopAllDeployments = async (): Promise<ApiResponse> => {
   try {
-    await apiClient.post('/deployment/stop-all');
-    return true;
+    const response = await apiClient.post('/deployment/stop-all');
+    return response.data;
   } catch (error) {
     console.error('Error stopping all deployments:', error);
+    throw error;
+  }
+};
+
+export const startAllDeployments = async (): Promise<ApiResponse> => {
+  try {
+    const response = await apiClient.post('/deployment/start-all');
+    return response.data;
+  } catch (error) {
+    console.error('Error starting all deployments:', error);
     throw error;
   }
 };
@@ -102,5 +131,6 @@ export default {
   deleteDeployment,
   activateDeployment,
   deactivateDeployment,
-  stopAllDeployments
+  stopAllDeployments,
+  startAllDeployments
 };

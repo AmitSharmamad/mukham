@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, CircularProgress } from '@mui/material';
 import { useRouter } from 'next/router';
-import { createDeployment } from '../../services/deploymentService';
+import { createDeployment, ApiResponse } from '../../services/deploymentService';
 import { useToast } from '../../hooks';
 
 interface DeployButtonProps {
@@ -29,7 +29,7 @@ const DeployButton: React.FC<DeployButtonProps> = ({
       
       // Create a deployment
       const deploymentName = `${strategyName} - ${instrumentName}`;
-      const deployment = await createDeployment({
+      const response = await createDeployment({
         strategy_id: strategyId,
         instrument_id: instrumentId,
         name: deploymentName,
@@ -37,15 +37,20 @@ const DeployButton: React.FC<DeployButtonProps> = ({
         isActive: true
       });
       
-      showToast(`Strategy deployed successfully: ${deploymentName}`, 'success');
+      // Show success message from API response
+      showToast(response.message || `Strategy deployed successfully: ${deploymentName}`, 'success');
       
       // Navigate to the deployments page after a short delay
       setTimeout(() => {
         router.push('/deployment');
       }, 1500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deploying strategy:', error);
-      showToast('Failed to deploy strategy. Please try again.', 'error');
+      // Show error message from API response if available
+      showToast(
+        error.response?.data?.message || 'Failed to deploy strategy. Please try again.',
+        'error'
+      );
     } finally {
       setDeploying(false);
     }

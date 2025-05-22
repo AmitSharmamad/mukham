@@ -186,12 +186,13 @@ export default function StrategyList() {
 
       const data = await response.json();
       if (data.success) {
-        showToast('Strategy deleted successfully', 'success');
+        // Display the API response message
+        showToast(data.message || 'Strategy deleted successfully', 'success');
         setUserStrategies(prev => prev.filter(s => s.id !== deleteDialog.strategy!.id));
         setFilteredUserStrategies(prev => prev.filter(s => s.id !== deleteDialog.strategy!.id));
         handleCloseDeleteDialog();
       } else {
-        showToast(data.error || 'Failed to delete strategy', 'error');
+        showToast(data.message || data.error || 'Failed to delete strategy', 'error');
       }
     } catch (err) {
       showToast('Error deleting strategy', 'error');
@@ -216,10 +217,11 @@ export default function StrategyList() {
 
       const data = await response.json();
       if (data.success) {
-        showToast('Strategy cloned successfully', 'success');
+        // Display the API response message
+        showToast(data.message || 'Strategy cloned successfully', 'success');
         await fetchUserStrategies(); // Refresh user strategies after cloning
       } else {
-        showToast(data.error || 'Failed to clone strategy', 'error');
+        showToast(data.message || data.error || 'Failed to clone strategy', 'error');
       }
     } catch (err) {
       showToast('Error cloning strategy', 'error');
