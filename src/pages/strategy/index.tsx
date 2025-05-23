@@ -276,7 +276,8 @@ export default function StrategyList() {
                 transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: 6
+                  boxShadow: 6,
+                  cursor: 'pointer'
                 }
               }}
               onClick={!isDefault ? () => handleStrategyClick(strategy.id) : undefined}
@@ -358,18 +359,6 @@ export default function StrategyList() {
                     </Tooltip>
                   )}
                 </Box>
-                {!isDefault && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStrategyClick(strategy.id);
-                    }}
-                  >
-                    Edit Strategy
-                  </Button>
-                )}
               </CardActions>
             </Card>
           </Grid>
