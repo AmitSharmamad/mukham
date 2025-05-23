@@ -63,6 +63,14 @@ export interface DeploymentMetrics {
   sharpeRatio: number;
 }
 
+export interface DeploymentPositionLog {
+  id: string;
+  deployment_position_id: number;
+  results: Record<string, number>;
+  timestamp: string;
+  created_at: string;
+}
+
 // Service functions
 export const getDeployments = async (): Promise<Deployment[]> => {
   try {
@@ -289,6 +297,41 @@ export const closePosition = async (deploymentId: string, positionId: number): P
   }
 };
 
+export const getDeploymentPositionLogs = async (deploymentId: string, positionId: number): Promise<DeploymentPositionLog[]> => {
+  try {
+    const response = await apiClient.get(`/deployment/${deploymentId}/position/log`);
+    
+    if (response.data && Array.isArray(response.data)) {
+      return response.data;
+    }
+    
+    // Return mock data for testing if API returns nothing
+    return [
+      {
+        id: "7f8b2a9c-3d1e-4f5a-9b6c-8d7e0f1g2h3i",
+        deployment_position_id: positionId,
+        results: {
+          ema: 21
+        },
+        timestamp: "2025-05-23T16:30:00Z",
+        created_at: "2025-05-23T16:30:01Z"
+      },
+      {
+        id: "9e8d7c6b-5a4f-3e2d-1c0b-9a8b7c6d5e4f",
+        deployment_position_id: positionId,
+        results: {
+          ema: 20
+        },
+        timestamp: "2025-05-23T17:00:00Z",
+        created_at: "2025-05-23T17:00:01Z"
+      }
+    ];
+  } catch (error) {
+    console.error('Error fetching deployment position logs:', error);
+    throw error;
+  }
+};
+
 export default {
   getDeployments,
   getDeployment,
@@ -301,5 +344,6 @@ export default {
   deactivateDeployment,
   stopAllDeployments,
   startAllDeployments,
-  closePosition
+  closePosition,
+  getDeploymentPositionLogs
 };

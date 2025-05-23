@@ -31,6 +31,11 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  scrollbar-width: none; /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
 
 html,
@@ -41,9 +46,45 @@ body {
   padding: 0;
   height: 100%;
   overflow: hidden;
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 /* Apply smooth transitions for theme changes */
 body * {
   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+#__next {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+#__next::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+main {
+  flex: 1;
+  overflow: hidden;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+main::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Make content scrollable but hide scrollbars */
+.MuiContainer-root {
+  overflow: auto;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.MuiContainer-root::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
