@@ -91,6 +91,7 @@ const Toast: React.FC<ToastProps> = ({
           boxShadow: 4,
           padding: '12px 16px',
           fontSize: '1rem',
+          borderRadius: '10px', // Adding slightly rounded corners
           ...sx
         }}
         action={action}
