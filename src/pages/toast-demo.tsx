@@ -105,6 +105,7 @@ export default function ToastDemo() {
       </Typography>
       <Typography variant="body1" paragraph>
         This page demonstrates the enhanced toast notification system with larger and more user-friendly messages.
+        Toasts now feature smooth entry/exit animations and a progress bar indicating the time remaining before automatic dismissal.
       </Typography>
 
       <Grid container spacing={4}>
@@ -216,6 +217,7 @@ export default function ToastDemo() {
             <CardContent>
               <Typography variant="body2" paragraph>
                 This demonstrates how to use the Toast component directly in a component without the context.
+                Note the smooth entrance animation and progress bar at the bottom indicating time remaining.
               </Typography>
               
               <Button 
@@ -231,8 +233,9 @@ export default function ToastDemo() {
                 severity={demoToast.severity}
                 description={demoToast.description}
                 onClose={handleCloseDemoToast}
-                autoHideDuration={6000}
+                autoHideDuration={5000}
                 position={{ vertical: 'bottom', horizontal: 'left' }}
+                showProgress={true}
               />
             </CardContent>
           </Card>
@@ -284,6 +287,8 @@ function MyComponent() {
         severity="success"
         description="Optional description"
         onClose={handleClose}
+        autoHideDuration={5000}
+        showProgress={true}
       />
     </>
   );

@@ -25,23 +25,32 @@ export const checkAuth = async (): Promise<UserData | null> => {
     return authCache.userData;
   }
 
-  // No valid token, quick fail
-  if (!localStorage.getItem('token')) {
-    authCache = { userData: null, timestamp: now };
-    return null;
-  }
-  
   try {
     // Signal that we're checking auth to prevent redirect loops
     setAuthChecking(true);
-    const response = await apiClient.get('/user/me');
-    // Update cache
-    authCache = { userData: response.data, timestamp: Date.now() };
-    return response.data;
-  } catch (error) {
-    // Update cache for failed auth
-    authCache = { userData: null, timestamp: Date.now() };
-    return null;
+    
+    // Make direct request to /api/user/me as per requirement
+    // Show profile icon if 200, login button if 401/403
+    try {
+      const response = await apiClient.get('/user/me', {
+        validateStatus: (status) => status === 200 // Only consider 200 as success
+      });
+      
+      // Update cache with successful response
+      authCache = { userData: response.data, timestamp: Date.now() };
+      return response.data;
+    } catch (error: any) {
+      // If we got a 401/403 Unauthorized/Forbidden, clear the token
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+        }
+      }
+      
+      // Update cache for failed auth
+      authCache = { userData: null, timestamp: now };
+      return null;
+    }
   } finally {
     // Always ensure we clear the auth checking flag
     setAuthChecking(false);
