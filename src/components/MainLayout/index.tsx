@@ -11,7 +11,9 @@ import { ThemeColor, themes } from '../../theme';
 const navItems = [
   { label: 'Home', path: '/home' },
   { label: 'Strategy', path: '/strategy' },
+  { label: 'Deployment', path: '/deployment' },
   { label: 'Scanners', path: '/scanners' },
+  { label: 'Reports', path: '/reports' },
   { label: 'Community', path: '/community' },
   { label: 'Marketplace', path: '/marketplace' },
   { label: 'Docs', path: '/docs' }
@@ -105,16 +107,74 @@ export const MainLayout = ({
             flexGrow: 1,
             justifyContent: 'center'
           }}>
-            {!isMobile && navItems.map((item) => (
-              <Button 
-                key={item.path}
-                color="inherit" 
-                href={item.path}
-                sx={{ fontSize: '1.1rem' }}
-              >
-                {item.label}
-              </Button>
-            ))}
+            {!isMobile && (
+              <>
+                <Button 
+                  color="inherit" 
+                  component={Link}
+                  href="/home"
+                  sx={{ fontSize: '1.1rem' }}
+                >
+                  Home
+                </Button>
+                <Button 
+                  color="inherit" 
+                  component={Link}
+                  href="/strategy"
+                  sx={{ fontSize: '1.1rem' }}
+                >
+                  Strategy
+                </Button>
+                <Button 
+                  color="inherit" 
+                  component={Link}
+                  href="/scanners"
+                  sx={{ fontSize: '1.1rem' }}
+                >
+                  Scanners
+                </Button>
+                <Button 
+                  color="inherit" 
+                  component={Link}
+                  href="/reports"
+                  sx={{ fontSize: '1.1rem' }}
+                >
+                  Reports
+                </Button>
+                <Button 
+                  color="inherit" 
+                  component={Link}
+                  href="/deployment"
+                  sx={{ fontSize: '1.1rem' }}
+                >
+                  Deployment
+                </Button>
+                <Button 
+                  color="inherit" 
+                  component={Link}
+                  href="/community"
+                  sx={{ fontSize: '1.1rem' }}
+                >
+                  Community
+                </Button>
+                <Button 
+                  color="inherit" 
+                  component={Link}
+                  href="/marketplace"
+                  sx={{ fontSize: '1.1rem' }}
+                >
+                  Marketplace
+                </Button>
+                <Button 
+                  color="inherit" 
+                  component={Link}
+                  href="/docs"
+                  sx={{ fontSize: '1.1rem' }}
+                >
+                  Docs
+                </Button>
+              </>
+            )}
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
