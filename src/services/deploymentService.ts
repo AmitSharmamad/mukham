@@ -156,7 +156,7 @@ export const getDeploymentPositions = async (deploymentId: string): Promise<Posi
   try {
     // For development purposes, generate mock data
     // In production, this would make an actual API call
-    const response = await apiClient.get(`/deployments/${deploymentId}/positions`);
+    const response = await apiClient.get(`/deployment/${deploymentId}/positions`);
     
     if (response.data && response.data.data && Array.isArray(response.data.data)) {
       return response.data.data;
@@ -202,7 +202,7 @@ export const getDeploymentPositions = async (deploymentId: string): Promise<Posi
 export const getDeploymentMetrics = async (deploymentId: string): Promise<DeploymentMetrics | null> => {
   try {
     // Make an API call to fetch the metrics
-    const response = await apiClient.get(`/deployments/${deploymentId}/metrics`);
+    const response = await apiClient.get(`/deployment/${deploymentId}/metrics`);
     
     if (response.data && response.data.success && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
       const apiMetric: ApiMetric = response.data.data[0];
@@ -279,6 +279,16 @@ export const startAllDeployments = async (): Promise<ApiResponse> => {
   }
 };
 
+export const closePosition = async (deploymentId: string, positionId: number): Promise<ApiResponse> => {
+  try {
+    const response = await apiClient.put(`/deployment/${deploymentId}/positions/${positionId}/close`);
+    return response.data;
+  } catch (error) {
+    console.error('Error closing position:', error);
+    throw error;
+  }
+};
+
 export default {
   getDeployments,
   getDeployment,
@@ -290,5 +300,6 @@ export default {
   activateDeployment,
   deactivateDeployment,
   stopAllDeployments,
-  startAllDeployments
+  startAllDeployments,
+  closePosition
 };

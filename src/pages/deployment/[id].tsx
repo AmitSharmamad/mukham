@@ -29,7 +29,8 @@ import {
   getDeploymentPositions, 
   getDeploymentMetrics,
   activateDeployment,
-  deactivateDeployment
+  deactivateDeployment,
+  closePosition
 } from '../../services/deploymentService';
 import { useToastContext } from '../../context/ToastContext';
 import DeploymentPositions from '../../components/Deployment/DeploymentPositions';
@@ -138,6 +139,19 @@ const DeploymentDetail = () => {
 
   const handleRefresh = () => {
     fetchDeploymentData();
+  };
+
+  const handleClosePosition = async (position: Position) => {
+    try {
+      await closePosition(position.deployment_id, position.id);
+      // Update the positions list by refetching all positions
+      await fetchPositions(position.deployment_id);
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error closing position:', error);
+      toast.showError('Failed to close position');
+      return Promise.reject(error);
+    }
   };
 
   // Helper function to format metric values
@@ -273,16 +287,12 @@ const DeploymentDetail = () => {
           )}
         </Box>
       </Paper>
-
-      {/* Open Positions */}
-      <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-        Open Positions
-      </Typography>
       
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
         <DeploymentPositions 
           positions={positions.filter(p => p.status === 'OPEN')} 
           loading={positionsLoading} 
+          onClosePosition={handleClosePosition}
         />
       </Paper>
 

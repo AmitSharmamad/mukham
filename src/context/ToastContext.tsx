@@ -72,8 +72,9 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
         severity={severity}
         description={description}
         onClose={closeToast}
-        autoHideDuration={6000}
+        autoHideDuration={5000}
         position={{ vertical: 'top', horizontal: 'right' }}
+        showProgress={true}
       />
     </ToastContext.Provider>
   );
