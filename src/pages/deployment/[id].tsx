@@ -35,6 +35,7 @@ import {
 import { useToastContext } from '../../context/ToastContext';
 import DeploymentPositions from '../../components/Deployment/DeploymentPositions';
 import TradeChart from '../../components/Deployment/TradeChart';
+import CandlestickChart from '../../components/Deployment/CandlestickChart';
 
 const DeploymentDetail = () => {
   const router = useRouter();
@@ -379,6 +380,18 @@ const DeploymentDetail = () => {
                 type: 'LONG', // Simplified for demo
                 pnl: p.pnl || 0
               }))} />
+            </Box>
+          </Paper>
+
+          {/* Indicator Chart */}
+          <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+            <Box sx={{ height: 450, mt: 2 }}>
+              {positions.length > 0 && (
+                <CandlestickChart 
+                  deploymentId={id as string}
+                  deploymentPositionId={positions[0].id} 
+                />
+              )}
             </Box>
           </Paper>
         </>
