@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Button } from '../Button';
 import { Footer } from '../Footer';
+import { AIChat } from '../AIChat';
 import { ThemeColor, themes } from '../../theme';
 
 const navItems = [
@@ -256,6 +257,7 @@ export const MainLayout = ({
         {children}
       </Container>
       <Footer />
+      <AIChat />
     </Box>
   );
 };
