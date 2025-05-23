@@ -54,7 +54,7 @@ export default function Docs() {
   
   // Redirect to Introduction page if user lands on /docs
   useEffect(() => {
-    router.push('/docs/getting-started/introduction');
+    // router.push('/docs/getting-started/introduction');
   }, [router]);
 
   return (

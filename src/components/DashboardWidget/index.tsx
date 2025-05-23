@@ -6,9 +6,45 @@ interface DashboardWidgetProps {
   value: string | number;
   subtitle?: string;
   href?: string;
+  valuePrefix?: string;
+  valueSuffix?: string;
+  isPercentage?: boolean;
+  isCurrency?: boolean;
 }
 
-export const DashboardWidget = ({ title, value, subtitle, href }: DashboardWidgetProps) => {
+export const DashboardWidget = ({ 
+  title, 
+  value, 
+  subtitle, 
+  href,
+  valuePrefix,
+  valueSuffix,
+  isPercentage = false,
+  isCurrency = false
+}: DashboardWidgetProps) => {
+  
+  // Format the value based on type
+  const formattedValue = (): string => {
+    if (typeof value === 'string') return value;
+    
+    if (isPercentage) {
+      return `${valuePrefix || ''}${value.toFixed(2)}${valueSuffix || '%'}`;
+    }
+    
+    if (isCurrency) {
+      return `${valuePrefix || '$'}${value.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}${valueSuffix || ''}`;
+    }
+    
+    if (typeof value === 'number') {
+      return `${valuePrefix || ''}${value.toLocaleString()}${valueSuffix || ''}`;
+    }
+    
+    return 'N/A';
+  };
+
   return (
     <Card
       href={href}
@@ -34,7 +70,7 @@ export const DashboardWidget = ({ title, value, subtitle, href }: DashboardWidge
           {title}
         </Typography>
         <Typography variant="h4" sx={{ mb: subtitle ? 1 : 0 }}>
-          {value}
+          {formattedValue()}
         </Typography>
         {subtitle && (
           <Typography variant="body2" color="textSecondary">
