@@ -24,7 +24,9 @@ import {
   DonutSmall, 
   Timeline 
 } from '@mui/icons-material';
+import { useRouter } from 'next/router';
 import { DashboardWidget } from '../components/DashboardWidget';
+import { checkPageAuth } from '../utils/pageAuthUtils';
 
 // This would come from an API in a real application
 const mockData = {
@@ -54,17 +56,32 @@ const mockData = {
 export default function Home() {
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
   
   useEffect(() => {
-    // Simulate data loading
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    // Check authentication
+    const checkAuth = async () => {
+      try {
+        const isAuthed = await checkPageAuth(router);
+        // If checkPageAuth returns false, it will automatically redirect to login
+        if (!isAuthed) return;
+        setAuthChecked(true);
+        
+        // Simulate data loading only after auth check
+        const timer = setTimeout(() => {
+          setLoading(false);
+        }, 1000);
+        return () => clearTimeout(timer);
+      } catch (error) {
+        console.error('Auth check error:', error);
+      }
+    };
     
-    return () => clearTimeout(timer);
-  }, []);
+    checkAuth();
+  }, [router]);
   
-  if (loading) {
+  if (!authChecked || loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
         <CircularProgress />

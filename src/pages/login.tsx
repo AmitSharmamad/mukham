@@ -86,14 +86,16 @@ export default function LoginPage() {
   }
 
   return (
-    <Container 
-      maxWidth="xs" 
+    <Box 
       sx={{
         height: '100vh',
+        width: '100vw',
+        position: 'fixed',
+        top: 0,
+        left: 0,
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        p: 0,
         overflow: 'hidden'
       }}
     >
@@ -101,34 +103,44 @@ export default function LoginPage() {
         elevation={4} 
         sx={{ 
           width: '100%',
-          p: 3,
+          maxWidth: '360px',
+          p: 4,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           borderRadius: 2,
-          maxHeight: '90vh'
+          mx: 2
         }}
       >
-        <Typography variant="h5" component="h1" gutterBottom>
+        <Typography variant="h5" component="h1" gutterBottom align="center">
           Welcome to सूत्रम्
         </Typography>
         
-        <Box sx={{ width: '100%', mt: 2, display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ 
+          width: '100%', 
+          mt: 4, 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center' 
+        }}>
           <Button
             variant="contained"
-            size="medium"
+            size="large"
             onClick={handleGoogleLogin}
+            startIcon={<GoogleIcon />}
             sx={{
-              p: 1.5,
-              minWidth: '56px',
-              borderRadius: '50%',
-              aspectRatio: '1/1'
+              py: 1.5,
+              px: 4,
+              borderRadius: '28px',
+              fontWeight: 500,
+              textTransform: 'none',
+              fontSize: '1rem'
             }}
           >
-            <GoogleIcon />
+            Sign in with Google
           </Button>
         </Box>
       </Paper>
-    </Container>
+    </Box>
   );
 }
