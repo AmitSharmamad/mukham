@@ -15,7 +15,7 @@ import {
 import StopIcon from '@mui/icons-material/Stop';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { useTheme } from '@mui/material/styles';
-import { Deployment, Position, getDeployments, deleteDeployment, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments, getDeploymentPositions } from '../services/deploymentService';
+import { Deployment, getDeployments, deleteDeployment, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments } from '../services/deploymentService';
 import { useToastContext } from '../context/ToastContext';
 import { DeploymentCard } from '../components';
 
@@ -29,9 +29,6 @@ const DeploymentPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [stoppingAll, setStoppingAll] = useState<boolean>(false);
   const [startingAll, setStartingAll] = useState<boolean>(false);
-  const [selectedDeployment, setSelectedDeployment] = useState<string | null>(null);
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [loadingPositions, setLoadingPositions] = useState<boolean>(false);
 
   useEffect(() => {
     fetchDeployments();
@@ -154,32 +151,6 @@ const DeploymentPage = () => {
     }
   };
 
-  const fetchPositions = async (deploymentId: string) => {
-    try {
-      setLoadingPositions(true);
-      const positionsData = await getDeploymentPositions(deploymentId);
-      setPositions(positionsData);
-    } catch (err: any) {
-      console.error('Error fetching positions:', err);
-      toast.showError(err.response?.data?.message || 'Failed to load positions');
-      setPositions([]);
-    } finally {
-      setLoadingPositions(false);
-    }
-  };
-
-  const handleSelectDeployment = (deploymentId: string) => {
-    if (selectedDeployment === deploymentId) {
-      // If the same deployment is clicked again, close it
-      setSelectedDeployment(null);
-      setPositions([]);
-    } else {
-      // If a different deployment is clicked, open it and fetch positions
-      setSelectedDeployment(deploymentId);
-      fetchPositions(deploymentId);
-    }
-  };
-
   return (
     <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
       {/* Page Header */}
@@ -228,13 +199,9 @@ const DeploymentPage = () => {
       ) : deployments.length > 0 ? (
         <Grid container spacing={3}>
           {deployments.map((deployment) => (
-            <Grid item xs={12} key={deployment.id}>
+            <Grid item xs={12} sm={6} md={4} key={deployment.id}>
               <DeploymentCard
                 deployment={deployment}
-                isSelected={selectedDeployment === deployment.id}
-                positions={positions}
-                loadingPositions={loadingPositions}
-                onSelect={handleSelectDeployment}
                 onDelete={handleOpenDeleteDialog}
                 onToggleStatus={handleToggleStatus}
               />
