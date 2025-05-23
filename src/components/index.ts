@@ -16,5 +16,11 @@ export { DocsLayout } from './DocsLayout';
 export { default as Scanner } from './Scanner';
 export { default as ScannerBuilder } from './Scanner/ScannerBuilder';
 export { default as AIChat } from './AIChat';
-export { DeploymentCard, DeploymentPositions } from './Deployment';
+export { 
+  DeploymentCard, 
+  DeploymentPositions, 
+  TradeChart, 
+  CandlestickChart, 
+  InstrumentCandlestickChart 
+} from './Deployment';
 export { default as MetricsDetail } from './Reports/MetricsDetail';
