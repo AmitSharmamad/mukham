@@ -39,7 +39,6 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
       elevation={3}
       sx={{
         mb: 2,
-        borderLeft: deployment.isActive ? `4px solid ${theme.palette.success.main}` : 'none',
         transition: 'all 0.3s ease',
         '&:hover': {
           transform: 'translateY(-2px)',

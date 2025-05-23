@@ -1,5 +1,5 @@
-import React from 'react';
-import { Snackbar, Alert, AlertProps, Box, Typography, SxProps, Theme } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Snackbar, Alert, AlertProps, Box, Typography, SxProps, Theme, Grow, LinearProgress } from '@mui/material';
 import { CheckCircle, Warning, Error, Info } from '@mui/icons-material';
 
 export interface ToastProps {
@@ -42,6 +42,10 @@ export interface ToastProps {
     vertical: 'top' | 'bottom';
     horizontal: 'left' | 'center' | 'right';
   };
+  /**
+   * Whether to show the progress bar indicator
+   */
+  showProgress?: boolean;
 }
 
 /**
@@ -52,12 +56,40 @@ const Toast: React.FC<ToastProps> = ({
   message,
   severity = 'info',
   onClose,
-  autoHideDuration = 6000,
+  autoHideDuration = 5000, // Changed from 6000 to 5000 as per requirement
   sx,
   action,
   description,
-  position = { vertical: 'top', horizontal: 'right' }
+  position = { vertical: 'top', horizontal: 'right' },
+  showProgress = true
 }) => {
+  const [progress, setProgress] = useState(100);
+  const [timeLeft, setTimeLeft] = useState(autoHideDuration);
+
+  // Reset progress when toast opens or when duration changes
+  useEffect(() => {
+    if (open) {
+      setTimeLeft(autoHideDuration);
+      setProgress(100);
+    }
+  }, [open, autoHideDuration]);
+
+  // Progress bar animation effect
+  useEffect(() => {
+    if (!open || !showProgress) return;
+    
+    const timer = setInterval(() => {
+      setTimeLeft((prevTimeLeft) => {
+        const newTimeLeft = prevTimeLeft - 100;
+        const newProgress = (newTimeLeft / autoHideDuration) * 100;
+        setProgress(newProgress);
+        return newTimeLeft;
+      });
+    }, 100);
+
+    return () => clearInterval(timer);
+  }, [open, showProgress, autoHideDuration]);
+
   // Get the appropriate icon based on severity
   const getIcon = () => {
     switch (severity) {
@@ -80,6 +112,11 @@ const Toast: React.FC<ToastProps> = ({
       onClose={onClose}
       anchorOrigin={position}
       sx={{ maxWidth: '420px', width: '100%' }}
+      TransitionComponent={Grow}
+      TransitionProps={{ 
+        timeout: { enter: 400, exit: 300 },
+        style: { transformOrigin: position.vertical === 'top' ? 'top' : 'bottom' }
+      }}
     >
       <Alert
         onClose={onClose}
@@ -92,6 +129,8 @@ const Toast: React.FC<ToastProps> = ({
           padding: '12px 16px',
           fontSize: '1rem',
           borderRadius: '10px', // Adding slightly rounded corners
+          position: 'relative',
+          overflow: 'hidden',
           ...sx
         }}
         action={action}
@@ -106,6 +145,24 @@ const Toast: React.FC<ToastProps> = ({
             </Typography>
           )}
         </Box>
+        {showProgress && (
+          <LinearProgress
+            variant="determinate"
+            value={progress}
+            sx={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '3px',
+              borderBottomLeftRadius: '10px',
+              borderBottomRightRadius: '10px',
+              '& .MuiLinearProgress-bar': {
+                transition: 'transform 0.1s linear'
+              }
+            }}
+          />
+        )}
       </Alert>
     </Snackbar>
   );
