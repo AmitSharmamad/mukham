@@ -65,7 +65,8 @@ apiClient.interceptors.response.use(
     if (typeof window !== 'undefined') {
       try {
         // Handle authentication errors, but with careful checks to prevent loops
-        if (error.response && error.response.status === 401) {
+        // Check for both 401 (Unauthorized) and 403 (Forbidden) status codes
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           // Don't redirect during auth checks
           if (isCheckingAuth) {
             return Promise.reject(error);
@@ -79,6 +80,9 @@ apiClient.interceptors.response.use(
           
           // Make sure we have localStorage available
           if (typeof localStorage !== 'undefined') {
+            // Clear token on authentication failure
+            localStorage.removeItem('token');
+            
             // Okay to redirect - but just once
             // Save the current URL to redirect back after login
             Router.push(`/login?returnUrl=${encodeURIComponent(currentPath)}`);
