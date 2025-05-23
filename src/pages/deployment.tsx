@@ -5,12 +5,6 @@ import {
   Box, 
   Button, 
   Grid, 
-  Card, 
-  CardContent, 
-  CardActions,
-  IconButton,
-  Chip,
-  Tooltip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -19,12 +13,11 @@ import {
   DialogTitle
 } from '@mui/material';
 import StopIcon from '@mui/icons-material/Stop';
-import DeleteIcon from '@mui/icons-material/Delete';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import PauseIcon from '@mui/icons-material/Pause';
 import { useTheme } from '@mui/material/styles';
-import { Deployment, getDeployments, deleteDeployment, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments } from '../services/deploymentService';
+import { Deployment, Position, getDeployments, deleteDeployment, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments, getDeploymentPositions } from '../services/deploymentService';
 import { useToastContext } from '../context/ToastContext';
+import { DeploymentCard } from '../components';
 
 const DeploymentPage = () => {
   const theme = useTheme();
@@ -36,6 +29,9 @@ const DeploymentPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [stoppingAll, setStoppingAll] = useState<boolean>(false);
   const [startingAll, setStartingAll] = useState<boolean>(false);
+  const [selectedDeployment, setSelectedDeployment] = useState<string | null>(null);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [loadingPositions, setLoadingPositions] = useState<boolean>(false);
 
   useEffect(() => {
     fetchDeployments();
@@ -158,6 +154,32 @@ const DeploymentPage = () => {
     }
   };
 
+  const fetchPositions = async (deploymentId: string) => {
+    try {
+      setLoadingPositions(true);
+      const positionsData = await getDeploymentPositions(deploymentId);
+      setPositions(positionsData);
+    } catch (err: any) {
+      console.error('Error fetching positions:', err);
+      toast.showError(err.response?.data?.message || 'Failed to load positions');
+      setPositions([]);
+    } finally {
+      setLoadingPositions(false);
+    }
+  };
+
+  const handleSelectDeployment = (deploymentId: string) => {
+    if (selectedDeployment === deploymentId) {
+      // If the same deployment is clicked again, close it
+      setSelectedDeployment(null);
+      setPositions([]);
+    } else {
+      // If a different deployment is clicked, open it and fetch positions
+      setSelectedDeployment(deploymentId);
+      fetchPositions(deploymentId);
+    }
+  };
+
   return (
     <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
       {/* Page Header */}
@@ -206,64 +228,16 @@ const DeploymentPage = () => {
       ) : deployments.length > 0 ? (
         <Grid container spacing={3}>
           {deployments.map((deployment) => (
-            <Grid item xs={12} sm={6} md={4} key={deployment.id}>
-              <Card 
-                sx={{ 
-                  height: '100%',
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 6
-                  },
-                  bgcolor: theme.palette.mode === 'dark' ? 'background.paper' : 'background.default'
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                    <Typography variant="h6" component="h2" gutterBottom>
-                      {deployment.name}
-                    </Typography>
-                    <Chip 
-                      label={deployment.isActive ? 'Active' : 'Paused'} 
-                      color={deployment.isActive ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem', height: '40px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                    {deployment.description || 'No description provided.'}
-                  </Typography>
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                      Last updated: {deployment.lastUpdatedAt ? new Date(deployment.lastUpdatedAt).toLocaleString() : 'Never'}
-                    </Typography>
-                  </Box>
-                </CardContent>
-                <CardActions sx={{ justifyContent: 'space-between', px: 2, pt: 0, pb: 1 }}>
-                  <Box>
-                    <Tooltip title="Delete">
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleOpenDeleteDialog(deployment)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                  <Box>
-                    <Tooltip title={deployment.isActive ? 'Pause' : 'Resume'}>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleToggleStatus(deployment)}
-                        color={deployment.isActive ? 'success' : 'default'}
-                      >
-                        {deployment.isActive ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </CardActions>
-              </Card>
+            <Grid item xs={12} key={deployment.id}>
+              <DeploymentCard
+                deployment={deployment}
+                isSelected={selectedDeployment === deployment.id}
+                positions={positions}
+                loadingPositions={loadingPositions}
+                onSelect={handleSelectDeployment}
+                onDelete={handleOpenDeleteDialog}
+                onToggleStatus={handleToggleStatus}
+              />
             </Grid>
           ))}
         </Grid>
