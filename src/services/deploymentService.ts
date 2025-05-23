@@ -12,6 +12,22 @@ export interface Deployment {
   lastUpdatedAt?: string; // Note: This is mapped from updated_at in the API
 }
 
+export interface Position {
+  id: number;
+  deployment_id: string;
+  instrument_id: number;
+  quantity: number;
+  entry_price: number;
+  entry_time: string;
+  exit_price?: number;
+  exit_time?: string;
+  pnl?: number;
+  status: 'OPEN' | 'CLOSED' | 'CANCELLED';
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ApiResponse {
   message: string;
   success: boolean;
@@ -123,6 +139,20 @@ export const startAllDeployments = async (): Promise<ApiResponse> => {
   }
 };
 
+export const getDeploymentPositions = async (deploymentId: string): Promise<Position[]> => {
+  try {
+    const response = await apiClient.get(`/deployments/${deploymentId}/positions`);
+    
+    if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      return response.data.data;
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching deployment positions:', error);
+    throw error;
+  }
+};
+
 export default {
   getDeployments,
   getDeployment,
@@ -132,5 +162,6 @@ export default {
   activateDeployment,
   deactivateDeployment,
   stopAllDeployments,
-  startAllDeployments
+  startAllDeployments,
+  getDeploymentPositions
 };
