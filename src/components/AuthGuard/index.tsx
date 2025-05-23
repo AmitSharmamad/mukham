@@ -8,7 +8,7 @@ interface AuthGuardProps {
   children: ReactNode;
 }
 
-const publicRoutes = ['/home', '/login', '/', '/user/login', '/auth/callback', '/community', '/marketplace', '/docs']; // Routes that don't require authentication
+const publicRoutes = ['/login', '/', '/user/login', '/auth/callback', '/community', '/marketplace', '/docs']; // Routes that don't require authentication
 
 const AuthGuard = ({ children }: AuthGuardProps) => {
   const { isLoggedIn, loading, checkUserAuth } = useAuth();

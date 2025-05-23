@@ -51,9 +51,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
 
   // State for dropdown menus
   const [openStrategy, setOpenStrategy] = useState(false);
-  const [openScanners, setOpenScanners] = useState(false);
   const strategyAnchorRef = useRef<HTMLButtonElement>(null);
-  const scannersAnchorRef = useRef<HTMLButtonElement>(null);
   
   // Check authentication status on component mount and when route changes
   useEffect(() => {
@@ -179,13 +177,6 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
   // Handle dropdown toggle for Strategy menu
   const handleStrategyToggle = () => {
     setOpenStrategy((prevOpen) => !prevOpen);
-    if (openScanners) setOpenScanners(false);
-  };
-
-  // Handle dropdown toggle for Scanners menu
-  const handleScannersToggle = () => {
-    setOpenScanners((prevOpen) => !prevOpen);
-    if (openStrategy) setOpenStrategy(false);
   };
 
   // Handle closing all dropdowns when clicking away
@@ -196,13 +187,6 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
     ) {
       setOpenStrategy(false);
     }
-    
-    if (
-      scannersAnchorRef.current &&
-      !scannersAnchorRef.current.contains(event.target as Node)
-    ) {
-      setOpenScanners(false);
-    }
   };
 
   // Close menu when using keyboard navigation
@@ -210,7 +194,6 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
     if (event.key === 'Tab' || event.key === 'Escape') {
       event.preventDefault();
       setOpenStrategy(false);
-      setOpenScanners(false);
     }
   };
 
@@ -218,7 +201,6 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
   useEffect(() => {
     const handleRouteChange = () => {
       setOpenStrategy(false);
-      setOpenScanners(false);
     };
     
     Router.events.on('routeChangeStart', handleRouteChange);
@@ -401,125 +383,15 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             )}
           </Popper>
 
-          {/* Scanners with submenu */}
-          <Button
-            ref={scannersAnchorRef}
-            color="inherit"
-            aria-controls={openScanners ? 'scanners-menu' : undefined}
-            aria-expanded={openScanners ? 'true' : undefined}
-            aria-haspopup="true"
-            onClick={handleScannersToggle}
-            sx={{ 
-              fontSize: '1.1rem',
-              position: 'relative',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              },
-              '&::after': openScanners ? {
-                content: '""',
-                position: 'absolute',
-                bottom: 0,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '60%',
-                height: '2px',
-                backgroundColor: 'currentColor',
-                transition: 'width 0.3s ease-in-out'
-              } : {}
-            }}
-            endIcon={<KeyboardArrowDownIcon 
-              sx={{ 
-                transform: openScanners ? 'rotate(180deg)' : 'rotate(0)',
-                transition: 'transform 0.3s ease-in-out'
-              }} 
-            />}
+          {/* Scanners as a direct link */}
+          <Button 
+            color="inherit" 
+            component={Link} 
+            href="/scanners"
+            sx={{ fontSize: '1.1rem' }}
           >
             Scanners
           </Button>
-          <Popper
-            open={openScanners}
-            anchorEl={scannersAnchorRef.current}
-            role={undefined}
-            placement="bottom-start"
-            transition
-            disablePortal
-            sx={{ zIndex: 10 }}
-          >
-            {({ TransitionProps, placement }) => (
-              <Grow
-                {...TransitionProps}
-                style={{
-                  transformOrigin: placement === 'bottom-start' ? 'left top' : 'left bottom',
-                }}
-                timeout={{ enter: 350, exit: 250 }}
-              >
-                <Paper 
-                  elevation={6}
-                  sx={{
-                    mt: 1,
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    minWidth: '220px',
-                    backgroundColor: muiTheme.palette.mode === 'dark' 
-                      ? muiTheme.palette.background.paper
-                      : muiTheme.palette.primary.dark,
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
-                    '& .MuiMenuItem-root': {
-                      transition: 'background-color 0.2s ease-in-out',
-                      position: 'relative',
-                      '&:hover': {
-                        backgroundColor: muiTheme.palette.mode === 'dark'
-                          ? 'rgba(255, 255, 255, 0.08)'
-                          : 'rgba(0, 0, 0, 0.08)',
-                        '&::before': {
-                          content: '""',
-                          position: 'absolute',
-                          left: 0,
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          width: '4px',
-                          height: '60%',
-                          backgroundColor: muiTheme.palette.primary.main,
-                          borderRadius: '0 4px 4px 0'
-                        }
-                      }
-                    }
-                  }}
-                >
-                  <ClickAwayListener onClickAway={handleClickAway}>
-                    <MenuList
-                      autoFocusItem={openScanners}
-                      id="scanners-menu"
-                      aria-labelledby="scanners-button"
-                      onKeyDown={handleListKeyDown}
-                    >
-                      <MenuItem 
-                        component={Link} 
-                        href="/scanners"
-                        sx={{ 
-                          fontSize: '1rem',
-                          py: 1.2
-                        }}
-                      >
-                        Scanners
-                      </MenuItem>
-                      <MenuItem 
-                        component={Link} 
-                        href="/reports"
-                        sx={{ 
-                          fontSize: '1rem',
-                          py: 1.2
-                        }}
-                      >
-                        Reports
-                      </MenuItem>
-                    </MenuList>
-                  </ClickAwayListener>
-                </Paper>
-              </Grow>
-            )}
-          </Popper>
 
           {/* Community */}
           <Button 
