@@ -172,7 +172,7 @@ export const logout = async (): Promise<void> => {
     }
     
     // Redirect to login page
-    window.location.href = '/login';
+    window.location.href = '/';
   } catch (error) {
     console.error('Logout failed:', error);
   }

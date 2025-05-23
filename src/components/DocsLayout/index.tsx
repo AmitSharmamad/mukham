@@ -333,7 +333,8 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
           }),
           pt: { xs: 3, md: 4 },
           pb: { xs: 6, md: 8 },
-          px: { xs: 2, md: 4 }
+          px: { xs: 2, md: 4 },
+          overflow: 'auto'
         }}
       >
         <Box 
