@@ -15,3 +15,4 @@ export { default as AuthGuard } from './AuthGuard';
 export { DocsLayout } from './DocsLayout';
 export { default as Scanner } from './Scanner';
 export { default as ScannerBuilder } from './Scanner/ScannerBuilder';
+export { default as AIChat } from './AIChat';
