@@ -159,13 +159,13 @@ const DeploymentPage = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
       {/* Page Header */}
       <Box 
         display="flex" 
         justifyContent="space-between" 
         alignItems="center" 
-        mb={4}
+        mb={3}
       >
         <Typography variant="h4" component="h1">
           Deployments
@@ -200,7 +200,7 @@ const DeploymentPage = () => {
 
       {/* Deployments List */}
       {loading ? (
-        <Box display="flex" justifyContent="center" my={4}>
+        <Box display="flex" justifyContent="center" my={3}>
           <CircularProgress />
         </Box>
       ) : deployments.length > 0 ? (
@@ -220,7 +220,7 @@ const DeploymentPage = () => {
                   bgcolor: theme.palette.mode === 'dark' ? 'background.paper' : 'background.default'
                 }}
               >
-                <CardContent sx={{ flexGrow: 1 }}>
+                <CardContent sx={{ flexGrow: 1, pb: 1 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                     <Typography variant="h6" component="h2" gutterBottom>
                       {deployment.name}
@@ -231,16 +231,16 @@ const DeploymentPage = () => {
                       size="small"
                     />
                   </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem', height: '40px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {deployment.description || 'No description provided.'}
                   </Typography>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                       Last updated: {deployment.lastUpdatedAt ? new Date(deployment.lastUpdatedAt).toLocaleString() : 'Never'}
                     </Typography>
                   </Box>
                 </CardContent>
-                <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+                <CardActions sx={{ justifyContent: 'space-between', px: 2, pt: 0, pb: 1 }}>
                   <Box>
                     <Tooltip title="Delete">
                       <IconButton 
@@ -261,19 +261,6 @@ const DeploymentPage = () => {
                         {deployment.isActive ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
                       </IconButton>
                     </Tooltip>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="error"
-                      onClick={() => {
-                        if (deployment.isActive) {
-                          handleToggleStatus(deployment);
-                        }
-                      }}
-                      disabled={!deployment.isActive}
-                    >
-                      Stop
-                    </Button>
                   </Box>
                 </CardActions>
               </Card>
@@ -286,9 +273,9 @@ const DeploymentPage = () => {
           flexDirection="column" 
           alignItems="center" 
           justifyContent="center" 
-          minHeight="300px"
+          minHeight="250px"
           textAlign="center"
-          p={4}
+          p={3}
         >
           <Typography variant="h6" gutterBottom>
             No deployments found
@@ -303,6 +290,7 @@ const DeploymentPage = () => {
       <Dialog
         open={deleteDialogOpen}
         onClose={handleCloseDeleteDialog}
+        maxWidth="xs"
       >
         <DialogTitle>Delete Deployment</DialogTitle>
         <DialogContent>

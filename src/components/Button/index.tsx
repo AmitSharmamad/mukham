@@ -1,8 +1,10 @@
 import { Button as MuiButton, ButtonProps as MuiButtonProps } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { ElementType } from 'react';
 
 interface ButtonProps extends MuiButtonProps {
   elevation?: number;
+  component?: ElementType;
 }
 
 const StyledButton = styled(MuiButton)<ButtonProps>(({ theme, elevation = 0 }) => ({
