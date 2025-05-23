@@ -61,12 +61,13 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-              <Typography variant="h6" component="h2" fontWeight="bold">{deployment.name}</Typography>
+              <Typography variant="h6" component="h2">{deployment.name}</Typography>
               <Box>
                 <Chip
                   label={deployment.isActive ? 'Active' : 'Inactive'}
                   color={deployment.isActive ? 'success' : 'default'}
                   size="small"
+                  sx={{ mr: 1 }}
                 />
               </Box>
             </Box>

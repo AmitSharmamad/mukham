@@ -1,24 +1,59 @@
+// filepath: /Users/amit/workspace/mukham/src/components/Navbar.tsx
 import Link from 'next/link';
 import Router from 'next/router';
-import { AppBar, Toolbar, IconButton, Menu, MenuItem, Typography, Box, Button, useTheme as useMuiTheme, Tooltip, Divider } from '@mui/material';
-import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { 
+  AppBar, 
+  Toolbar, 
+  IconButton, 
+  Menu, 
+  MenuItem, 
+  Typography, 
+  Box, 
+  Button, 
+  useTheme as useMuiTheme, 
+  Tooltip, 
+  Divider,
+  Popper,
+  Grow,
+  Paper,
+  MenuList,
+  ClickAwayListener
+} from '@mui/material';
+import { useState, useEffect, useRef } from 'react';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { isAuthenticated, logout as logoutService, checkAPIServer } from '../services/authService';
+import { logout as logoutService, checkAPIServer } from '../services/authService';
 
-export default function Navbar() {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+interface NavbarProps {
+  onToggleTheme?: () => void;
+  isDarkMode?: boolean;
+}
+
+export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) {
+  const [profileAnchorEl, setProfileAnchorEl] = useState<null | HTMLElement>(null);
   const muiTheme = useMuiTheme();
   const { mode, toggleMode } = useTheme();
   const { user, logout, checkUserAuth } = useAuth();
   const [authStatus, setAuthStatus] = useState(false);
   const [loading, setLoading] = useState(true);
   const [apiAvailable, setApiAvailable] = useState(true);
+
+  // Use either provided toggleMode or context toggleMode
+  const handleToggleTheme = onToggleTheme || toggleMode;
+  const currentMode = isDarkMode !== undefined ? isDarkMode : mode === 'dark';
+
+  // State for dropdown menus
+  const [openStrategy, setOpenStrategy] = useState(false);
+  const [openScanners, setOpenScanners] = useState(false);
+  const strategyAnchorRef = useRef<HTMLButtonElement>(null);
+  const scannersAnchorRef = useRef<HTMLButtonElement>(null);
   
   // Check authentication status on component mount and when route changes
   useEffect(() => {
@@ -37,9 +72,38 @@ export default function Navbar() {
           
           // Only attempt authentication if API is up
           if (isAPIUp) {
-            const isAuth = await isAuthenticated();
-            if (isMounted) {
-              setAuthStatus(isAuth);
+            // Check directly against /api/user/me endpoint as per requirements
+            try {
+              const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
+              const response = await axios.get('/api/user/me', {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                validateStatus: (status) => status >= 200 && status < 600, // Accept any status to handle all cases
+              });
+              
+              if (response.status === 200) {
+                // Show profile icon if 200 is returned
+                setAuthStatus(true);
+              } else if (response.status === 401 || response.status === 403) {
+                // Show login button for 401/403 status codes
+                if (typeof window !== 'undefined') {
+                  localStorage.removeItem('token');
+                }
+                setAuthStatus(false);
+              } else {
+                // Handle other status codes
+                setAuthStatus(false);
+              }
+            } catch (error: any) {
+              // Show login button if 401/403 or any other error
+              if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                if (typeof window !== 'undefined') {
+                  localStorage.removeItem('token');
+                }
+              }
+              setAuthStatus(false);
             }
           } else {
             // If API is down, assume not authenticated
@@ -86,16 +150,17 @@ export default function Navbar() {
     };
   }, []);
   
-  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  // Handle profile menu
+  const handleProfileMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setProfileAnchorEl(event.currentTarget);
   };
   
-  const handleClose = () => {
-    setAnchorEl(null);
+  const handleProfileMenuClose = () => {
+    setProfileAnchorEl(null);
   };
 
   const handleLogout = async () => {
-    handleClose();
+    handleProfileMenuClose();
     await logoutService();
     setAuthStatus(false);
   };
@@ -110,6 +175,57 @@ export default function Navbar() {
     }
     Router.push('/login');
   };
+
+  // Handle dropdown toggle for Strategy menu
+  const handleStrategyToggle = () => {
+    setOpenStrategy((prevOpen) => !prevOpen);
+    if (openScanners) setOpenScanners(false);
+  };
+
+  // Handle dropdown toggle for Scanners menu
+  const handleScannersToggle = () => {
+    setOpenScanners((prevOpen) => !prevOpen);
+    if (openStrategy) setOpenStrategy(false);
+  };
+
+  // Handle closing all dropdowns when clicking away
+  const handleClickAway = (event: MouseEvent | TouchEvent) => {
+    if (
+      strategyAnchorRef.current &&
+      !strategyAnchorRef.current.contains(event.target as Node)
+    ) {
+      setOpenStrategy(false);
+    }
+    
+    if (
+      scannersAnchorRef.current &&
+      !scannersAnchorRef.current.contains(event.target as Node)
+    ) {
+      setOpenScanners(false);
+    }
+  };
+
+  // Close menu when using keyboard navigation
+  const handleListKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Tab' || event.key === 'Escape') {
+      event.preventDefault();
+      setOpenStrategy(false);
+      setOpenScanners(false);
+    }
+  };
+
+  // Effect to close dropdowns on route change
+  useEffect(() => {
+    const handleRouteChange = () => {
+      setOpenStrategy(false);
+      setOpenScanners(false);
+    };
+    
+    Router.events.on('routeChangeStart', handleRouteChange);
+    return () => {
+      Router.events.off('routeChangeStart', handleRouteChange);
+    };
+  }, []);
   
   return (
     <AppBar 
@@ -145,6 +261,7 @@ export default function Navbar() {
           flexGrow: 1,
           justifyContent: 'center'
         }}>
+          {/* Home */}
           <Button 
             color="inherit" 
             component={Link} 
@@ -153,38 +270,258 @@ export default function Navbar() {
           >
             Home
           </Button>
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/strategy"
-            sx={{ fontSize: '1.1rem' }}
+
+          {/* Strategy with submenu */}
+          <Button
+            ref={strategyAnchorRef}
+            color="inherit"
+            aria-controls={openStrategy ? 'strategy-menu' : undefined}
+            aria-expanded={openStrategy ? 'true' : undefined}
+            aria-haspopup="true"
+            onClick={handleStrategyToggle}
+            sx={{ 
+              fontSize: '1.1rem',
+              position: 'relative',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              },
+              '&::after': openStrategy ? {
+                content: '""',
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '60%',
+                height: '2px',
+                backgroundColor: 'currentColor',
+                transition: 'width 0.3s ease-in-out'
+              } : {}
+            }}
+            endIcon={<KeyboardArrowDownIcon 
+              sx={{ 
+                transform: openStrategy ? 'rotate(180deg)' : 'rotate(0)',
+                transition: 'transform 0.3s ease-in-out'
+              }} 
+            />}
           >
             Strategy
           </Button>
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/deployment"
-            sx={{ fontSize: '1.1rem' }}
+          <Popper
+            open={openStrategy}
+            anchorEl={strategyAnchorRef.current}
+            role={undefined}
+            placement="bottom-start"
+            transition
+            disablePortal
+            sx={{ zIndex: 10 }}
           >
-            Deployment
-          </Button>
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/scanners"
-            sx={{ fontSize: '1.1rem' }}
+            {({ TransitionProps, placement }) => (
+              <Grow
+                {...TransitionProps}
+                style={{
+                  transformOrigin: placement === 'bottom-start' ? 'left top' : 'left bottom',
+                }}
+                timeout={{ enter: 350, exit: 250 }}
+              >
+                <Paper 
+                  elevation={6}
+                  sx={{
+                    mt: 1,
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    minWidth: '220px',
+                    backgroundColor: muiTheme.palette.mode === 'dark' 
+                      ? muiTheme.palette.background.paper
+                      : muiTheme.palette.primary.dark,
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
+                    '& .MuiMenuItem-root': {
+                      transition: 'background-color 0.2s ease-in-out',
+                      position: 'relative',
+                      '&:hover': {
+                        backgroundColor: muiTheme.palette.mode === 'dark'
+                          ? 'rgba(255, 255, 255, 0.08)'
+                          : 'rgba(0, 0, 0, 0.08)',
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          left: 0,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '4px',
+                          height: '60%',
+                          backgroundColor: muiTheme.palette.primary.main,
+                          borderRadius: '0 4px 4px 0'
+                        }
+                      }
+                    }
+                  }}
+                >
+                  <ClickAwayListener onClickAway={handleClickAway}>
+                    <MenuList
+                      autoFocusItem={openStrategy}
+                      id="strategy-menu"
+                      aria-labelledby="strategy-button"
+                      onKeyDown={handleListKeyDown}
+                    >
+                      <MenuItem 
+                        component={Link} 
+                        href="/strategy"
+                        sx={{ 
+                          fontSize: '1rem',
+                          py: 1.2
+                        }}
+                      >
+                        My Strategies
+                      </MenuItem>
+                      <MenuItem 
+                        component={Link} 
+                        href="/deployment"
+                        sx={{ 
+                          fontSize: '1rem',
+                          py: 1.2
+                        }}
+                      >
+                        Deployment
+                      </MenuItem>
+                      <MenuItem 
+                        component={Link} 
+                        href="/reports"
+                        sx={{ 
+                          fontSize: '1rem',
+                          py: 1.2
+                        }}
+                      >
+                        Reports
+                      </MenuItem>
+                    </MenuList>
+                  </ClickAwayListener>
+                </Paper>
+              </Grow>
+            )}
+          </Popper>
+
+          {/* Scanners with submenu */}
+          <Button
+            ref={scannersAnchorRef}
+            color="inherit"
+            aria-controls={openScanners ? 'scanners-menu' : undefined}
+            aria-expanded={openScanners ? 'true' : undefined}
+            aria-haspopup="true"
+            onClick={handleScannersToggle}
+            sx={{ 
+              fontSize: '1.1rem',
+              position: 'relative',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              },
+              '&::after': openScanners ? {
+                content: '""',
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '60%',
+                height: '2px',
+                backgroundColor: 'currentColor',
+                transition: 'width 0.3s ease-in-out'
+              } : {}
+            }}
+            endIcon={<KeyboardArrowDownIcon 
+              sx={{ 
+                transform: openScanners ? 'rotate(180deg)' : 'rotate(0)',
+                transition: 'transform 0.3s ease-in-out'
+              }} 
+            />}
           >
             Scanners
           </Button>
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/reports"
-            sx={{ fontSize: '1.1rem' }}
+          <Popper
+            open={openScanners}
+            anchorEl={scannersAnchorRef.current}
+            role={undefined}
+            placement="bottom-start"
+            transition
+            disablePortal
+            sx={{ zIndex: 10 }}
           >
-            Reports
-          </Button>
+            {({ TransitionProps, placement }) => (
+              <Grow
+                {...TransitionProps}
+                style={{
+                  transformOrigin: placement === 'bottom-start' ? 'left top' : 'left bottom',
+                }}
+                timeout={{ enter: 350, exit: 250 }}
+              >
+                <Paper 
+                  elevation={6}
+                  sx={{
+                    mt: 1,
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    minWidth: '220px',
+                    backgroundColor: muiTheme.palette.mode === 'dark' 
+                      ? muiTheme.palette.background.paper
+                      : muiTheme.palette.primary.dark,
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
+                    '& .MuiMenuItem-root': {
+                      transition: 'background-color 0.2s ease-in-out',
+                      position: 'relative',
+                      '&:hover': {
+                        backgroundColor: muiTheme.palette.mode === 'dark'
+                          ? 'rgba(255, 255, 255, 0.08)'
+                          : 'rgba(0, 0, 0, 0.08)',
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          left: 0,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '4px',
+                          height: '60%',
+                          backgroundColor: muiTheme.palette.primary.main,
+                          borderRadius: '0 4px 4px 0'
+                        }
+                      }
+                    }
+                  }}
+                >
+                  <ClickAwayListener onClickAway={handleClickAway}>
+                    <MenuList
+                      autoFocusItem={openScanners}
+                      id="scanners-menu"
+                      aria-labelledby="scanners-button"
+                      onKeyDown={handleListKeyDown}
+                    >
+                      <MenuItem 
+                        component={Link} 
+                        href="/scanners"
+                        sx={{ 
+                          fontSize: '1rem',
+                          py: 1.2
+                        }}
+                      >
+                        Scanners
+                      </MenuItem>
+                      <MenuItem 
+                        component={Link} 
+                        href="/reports"
+                        sx={{ 
+                          fontSize: '1rem',
+                          py: 1.2
+                        }}
+                      >
+                        Reports
+                      </MenuItem>
+                    </MenuList>
+                  </ClickAwayListener>
+                </Paper>
+              </Grow>
+            )}
+          </Popper>
+
+          {/* Community */}
           <Button 
             color="inherit" 
             component={Link} 
@@ -193,6 +530,8 @@ export default function Navbar() {
           >
             Community
           </Button>
+
+          {/* Marketplace */}
           <Button 
             color="inherit" 
             component={Link} 
@@ -201,14 +540,8 @@ export default function Navbar() {
           >
             Marketplace
           </Button>
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/docs"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Docs
-          </Button>
+
+          {/* Docs - removed from top nav as per requirements */}
         </Box>
         
         <Box sx={{ 
@@ -217,33 +550,33 @@ export default function Navbar() {
           display: 'flex',
           alignItems: 'center'
         }}>
-          <Tooltip title={`Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`}>
-            <IconButton 
-              color="inherit" 
-              onClick={toggleMode} 
-              sx={{ mr: 2 }}
-            >
-              {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-            </IconButton>
-          </Tooltip>
-
           {!loading && (authStatus ? (
             <>
               <IconButton 
                 size="large" 
-                onClick={handleMenu} 
+                onClick={handleProfileMenu} 
                 color="inherit"
                 sx={{ fontSize: '1.75rem' }}
               >
                 <AccountCircle />
               </IconButton>
+              
+              <Tooltip title={`Switch to ${currentMode ? 'light' : 'dark'} mode`}>
+                <IconButton 
+                  color="inherit" 
+                  onClick={handleToggleTheme} 
+                  sx={{ ml: 1 }}
+                >
+                  {currentMode ? <Brightness7Icon /> : <Brightness4Icon />}
+                </IconButton>
+              </Tooltip>
               <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleClose}
+                anchorEl={profileAnchorEl}
+                open={Boolean(profileAnchorEl)}
+                onClose={handleProfileMenuClose}
               >
-                <MenuItem component={Link} href="/profile" onClick={handleClose}>Profile</MenuItem>
-                <MenuItem component={Link} href="/support" onClick={handleClose}>Support</MenuItem>
+                <MenuItem component={Link} href="/profile" onClick={handleProfileMenuClose}>Profile</MenuItem>
+                <MenuItem component={Link} href="/support" onClick={handleProfileMenuClose}>Support</MenuItem>
                 <Divider />
                 <MenuItem onClick={handleLogout}>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
