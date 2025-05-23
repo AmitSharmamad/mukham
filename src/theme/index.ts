@@ -31,6 +31,38 @@ const commonProperties: ThemeOptions = {
         * {
           font-family: "Ubuntu", sans-serif;
           font-weight: 300;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        *::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+        html, body, #__next {
+          height: 100%;
+          overflow: hidden;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        html::-webkit-scrollbar, body::-webkit-scrollbar, #__next::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+        .MuiDrawer-paper::-webkit-scrollbar {
+          display: none;
+        }
+        .MuiDrawer-paper {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .MuiModal-root::-webkit-scrollbar {
+          display: none;
+        }
+        .MuiModal-root {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
         }
       `,
     },

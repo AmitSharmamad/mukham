@@ -43,7 +43,17 @@ export const MainLayout = ({
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      minHeight: '100vh', 
+      overflow: 'hidden',
+      '&::-webkit-scrollbar': {
+        display: 'none',
+      },
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
+    }}>
       {/* Use the updated Navbar component */}
       <Navbar 
         onToggleTheme={onToggleTheme}
@@ -92,7 +102,18 @@ export const MainLayout = ({
         </Menu>
       </Box>
 
-      <Container component="main" sx={{ flex: 1, py: 4, mt: 8 }}>
+      <Container component="main" sx={{ 
+        flex: 1, 
+        py: 4, 
+        mt: 8, 
+        overflow: 'auto', 
+        maxHeight: 'calc(100vh - 156px)',
+        '&::-webkit-scrollbar': {
+          display: 'none',
+        },
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+      }}>
         {children}
       </Container>
       <Footer />
