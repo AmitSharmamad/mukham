@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useToastContext } from '../../context/ToastContext';
+import { parseExpressions, stringifyConditions, Indicator, IndicatorExpression } from './utils/indicatorExpressionUtils';
 import { 
   Accordion,
   AccordionDetails,
@@ -60,18 +61,7 @@ export interface Instrument {
   expiry: string;
 }
 
-interface Indicator {
-  name: string;
-  config: Record<string, any>;
-  value?: string; // Making value optional since it's not always needed
-}
-
-interface IndicatorExpression {
-  indicator1: Indicator;
-  operator: string;
-  indicator2: Indicator;
-  logicalOperator?: string;
-}
+// Using Indicator and IndicatorExpression interfaces from utils/indicatorExpressionUtils.ts
 
 interface FormData {
   id?: string;  // Make id optional since it won't exist for new strategies
@@ -240,49 +230,9 @@ interface BacktestData {
   message: string;
   results: BacktestRun[];
   strategy_id?: string;
-}  const convertFormToApiData = (formData: FormData): ApiFormData => {
-    const stringifyExpression = (expression: IndicatorExpression): string => {
-      const getIndicatorString = (indicator: Indicator): string => {
-        if (indicator.name === 'Number') {
-          return indicator.config.value?.toString() || '0';
-        }
-        switch (indicator.name) {
-          case 'SMA':
-          case 'EMA':
-          case 'RSI':
-            return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-          case 'MACD':
-            return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || 12}, ${indicator.config?.slowPeriod || 26}, ${indicator.config?.signalPeriod || 9}, ${indicator.config?.offset || 0})`;
-          case 'BB_UPPER':
-          case 'BB_LOWER':
-          case 'BB_MIDDLE':
-            return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.deviations || ''}, ${indicator.config?.offset || 0})`;
-          case 'CLOSE':
-            return `CLOSE(${indicator.config?.offset || 0})`;
-          case 'OPEN':
-          case 'HIGH':
-          case 'LOW':
-          case 'VOLUME':
-          case 'MARKET_POSITION':
-            return indicator.name;
-          default:
-            return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
-        }
-      };
+}
 
-      const expr = `${getIndicatorString(expression.indicator1)} ${expression.operator} ${getIndicatorString(expression.indicator2)}`;
-      return expr;
-    };
-
-    const stringifyConditions = (conditions: IndicatorExpression[]): string => {
-      if (conditions.length === 0) return '';
-      if (conditions.length === 1) return stringifyExpression(conditions[0]);
-
-      return conditions.reduce((acc, condition, index) => {
-        if (index === 0) return stringifyExpression(condition);
-        return `${acc} ${condition.logicalOperator} ${stringifyExpression(condition)}`;
-      }, '');
-    };
+const convertFormToApiData = (formData: FormData): ApiFormData => {
     
     // Validate option legs before sending to ensure all required fields are filled
     const validatedEntryOptionLegs = formData.instrumentType === 'options' 
@@ -328,57 +278,7 @@ interface BacktestData {
     };
 };
 
-const parseExpressions = (expressionStr: string): IndicatorExpression[] => {
-  try {
-    if (!expressionStr) return [];
-    
-    // Split by logical operators while preserving them
-    const parts = expressionStr.split(/(AND|OR)/).map(part => part.trim()).filter(Boolean);
-    
-    const expressions: IndicatorExpression[] = [];
-    for (let i = 0; i < parts.length; i += 2) {
-      const expr = parts[i];
-      const logicalOp = parts[i + 1];
-      
-      // Match indicator expressions like "SMA(close, 20) > SMA(close, 50)"
-      const match = expr.match(/(\w+)\((.*?)\)\s*([><=!]+|CrossesAbove|CrossesBelow)\s*(\w+)\((.*?)\)/);
-      if (match) {
-        const [, indicator1Name, indicator1Params, operator, indicator2Name, indicator2Params] = match;
-        
-        const parseParams = (params: string) => {
-          const [field = 'CLOSE', ...rest] = params.split(',').map(p => p.trim());
-          if (indicator1Name === 'Number' || indicator2Name === 'Number') {
-            return { value: parseFloat(field) || 0 };
-          }
-          return {
-            field,
-            period: parseInt(rest[0]) || 0,
-            offset: parseInt(rest[1]) || 0
-          };
-        };
-        
-        expressions.push({
-          indicator1: {
-            name: indicator1Name,
-            config: parseParams(indicator1Params),
-            value: expr.split(operator)[0].trim()
-          },
-          operator,
-          indicator2: {
-            name: indicator2Name,
-            config: parseParams(indicator2Params),
-            value: expr.split(operator)[1].trim()
-          },
-          logicalOperator: logicalOp
-        });
-      }
-    }
-    return expressions;
-  } catch (err) {
-    console.error('Failed to parse expression string:', err);
-    return [];
-  }
-};
+// Using parseExpressions function from utility file
 
 const sampleBacktestResults: BacktestResult = {
   strategyId: '',

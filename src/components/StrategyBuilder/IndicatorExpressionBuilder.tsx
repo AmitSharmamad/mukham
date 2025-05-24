@@ -6,6 +6,16 @@ import { Button } from '../Button';
 import { useState, useMemo, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { 
+  IndicatorConfig, 
+  Indicator, 
+  IndicatorExpression,
+  stringifyExpression, 
+  stringifyConditions,
+  getIndicatorString,
+  getIndicatorFormula,
+  isIndicatorComplete
+} from './utils/indicatorExpressionUtils';
 
 // Default values for indicators
 const DEFAULT_INDICATOR_VALUES = {
@@ -115,42 +125,6 @@ interface DragItem {
   expression: IndicatorExpression;
 }
 
-interface IndicatorConfig {
-  period?: number;
-  value?: number;
-  fastPeriod?: number;
-  slowPeriod?: number;
-  signalPeriod?: number;
-  deviations?: number;
-  offset?: number;
-  field?: string;
-  type?: string;
-  multiplier?: number;
-  atrPeriod?: number;
-  accelerationFactor?: number;
-  maxAcceleration?: number;
-  longPeriod?: number;
-  shortPeriod?: number;
-  period1?: number;
-  period2?: number;
-  period3?: number;
-}
-
-interface Indicator {
-  name: string;
-  config: IndicatorConfig;
-}
-
-// Update IndicatorExpression interface to support nested conditions
-interface IndicatorExpression {
-  indicator1: Indicator;
-  operator: string;
-  indicator2: Indicator;
-  logicalOperator?: string;
-  isNested?: boolean;
-  nestedConditions?: IndicatorExpression[];
-}
-
 interface NestedExpression extends Omit<IndicatorExpression, 'indicator1' | 'operator' | 'indicator2'> {
   isNested: true;
   nestedConditions: IndicatorExpression[];
@@ -173,192 +147,13 @@ interface IndicatorExpressionBuilderProps {
   isOptional?: boolean;
 }
 
-const getIndicatorFormula = (name: string): string => {
-  switch (name) {
-    case 'SUPERTREND':
-      return 'SUPERTREND(field, period, multiplier, offset)';
-    case 'MACD':
-      return 'MACD(field, fastPeriod, slowPeriod, signalPeriod, offset)';
-    case 'VORTEX':
-      return 'VORTEX(period, offset)';
-    case 'BOLLINGER':
-      return 'BOLLINGER(field, period, deviations, offset)';
-    case 'LBB':
-      return 'LBB(field, period, deviations, type, offset)';
-    case 'DMI':
-      return 'DMI(period, offset)';
-    case 'KELTNER':
-      return 'KELTNER(field, period, atrPeriod, multiplier, offset)';
-    case 'PSAR':
-      return 'PSAR(accelerationFactor, maxAcceleration, offset)';
-    case 'FISHER':
-      return 'FISHER(period, offset)';
-    case 'MFI':
-      return 'MFI(period, offset)';
-    case 'VWAP':
-      return 'VWAP(offset)';
-    case 'TSI':
-      return 'TSI(field, longPeriod, shortPeriod, signalPeriod, offset)';
-    case 'VO':
-      return 'VO(fastPeriod, slowPeriod, offset)';
-    case 'UO':
-      return 'UO(period1, period2, period3, offset)';
-    case 'Number':
-      return 'Number(value)';
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-      return `${name}(offset)`;
-    default:
-      return `${name}(field, period, offset)`;
-  }
-};
-
-const getIndicatorString = (indicator: Indicator): string => {
-  if (!indicator.name) return '';
-  
-  switch (indicator.name) {
-    case 'SMA':
-    case 'EMA':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'SUPERTREND':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 10}, ${indicator.config?.multiplier || 3}, ${indicator.config?.offset || 0})`;
-    case 'MACD':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || 12}, ${indicator.config?.slowPeriod || 26}, ${indicator.config?.signalPeriod || 9}, ${indicator.config?.offset || 0})`;
-    case 'VORTEX':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'BOLLINGER':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.offset || 0})`;
-    case 'LBB':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.type || 'TRIPLE'}, ${indicator.config?.offset || 0})`;
-    case 'DMI':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'KELTNER':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.atrPeriod || 10}, ${indicator.config?.multiplier || 2}, ${indicator.config?.offset || 0})`;
-    case 'PSAR':
-      return `${indicator.name}(${indicator.config?.accelerationFactor || 0.02}, ${indicator.config?.maxAcceleration || 0.2}, ${indicator.config?.offset || 0})`;
-    case 'FISHER':
-      return `${indicator.name}(${indicator.config?.period || 10}, ${indicator.config?.offset || 0})`;
-    case 'MFI':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'VWAP':
-      return `${indicator.name}(${indicator.config?.offset || 0})`;
-    case 'TSI':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.longPeriod || 25}, ${indicator.config?.shortPeriod || 13}, ${indicator.config?.signalPeriod || 13}, ${indicator.config?.offset || 0})`;
-    case 'VO':
-      return `${indicator.name}(${indicator.config?.fastPeriod || 14}, ${indicator.config?.slowPeriod || 28}, ${indicator.config?.offset || 0})`;
-    case 'UO':
-      return `${indicator.name}(${indicator.config?.period1 || 7}, ${indicator.config?.period2 || 14}, ${indicator.config?.period3 || 28}, ${indicator.config?.offset || 0})`;
-    case 'Number':
-      return indicator.config?.value?.toString() || '';
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-      return `${indicator.name}(${indicator.config?.offset || 0})`;
-    default:
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
-  }
-};
-
-const isIndicatorComplete = (indicator: Indicator): boolean => {
-  if (!indicator.name) return false;
-  
-  switch (indicator.name) {
-    case 'SUPERTREND':
-      return !!(indicator.config?.period && indicator.config?.multiplier);
-    case 'MACD':
-      return !!(indicator.config?.fastPeriod && indicator.config?.slowPeriod && indicator.config?.signalPeriod);
-    case 'VORTEX':
-      return !!indicator.config?.period;
-    case 'BOLLINGER':
-      return !!(indicator.config?.period && indicator.config?.deviations);
-    case 'LBB':
-      return !!(indicator.config?.period && indicator.config?.deviations && indicator.config?.type);
-    case 'DMI':
-      return !!indicator.config?.period;
-    case 'KELTNER':
-      return !!(indicator.config?.period && indicator.config?.atrPeriod && indicator.config?.multiplier);
-    case 'PSAR':
-      return !!(indicator.config?.accelerationFactor && indicator.config?.maxAcceleration);
-    case 'FISHER':
-    case 'MFI':
-      return !!indicator.config?.period;
-    case 'VWAP':
-      return true;
-    case 'TSI':
-      return !!(indicator.config?.longPeriod && indicator.config?.shortPeriod && indicator.config?.signalPeriod);
-    case 'VO':
-      return !!(indicator.config?.fastPeriod && indicator.config?.slowPeriod);
-    case 'UO':
-      return !!(indicator.config?.period1 && indicator.config?.period2 && indicator.config?.period3);
-    case 'Number':
-      return indicator.config?.value !== undefined;
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-      return true;
-    default:
-      return !!indicator.config?.period;
-  }
-};
-
+// Use the isIndicatorComplete function from utils
 const isExpressionComplete = (expression: IndicatorExpression): boolean => {
   return (
     isIndicatorComplete(expression.indicator1) &&
     !!expression.operator &&
     isIndicatorComplete(expression.indicator2)
   );
-};
-
-const getExpressionString = (indicator: Indicator): string => {
-  if (!indicator.name) return '';
-  
-  switch (indicator.name) {
-    case 'Number':
-      return indicator.config?.value?.toString() || '';
-    case 'SUPERTREND':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 10}, ${indicator.config?.multiplier || 3}, ${indicator.config?.offset || 0})`;
-    case 'MACD':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || 12}, ${indicator.config?.slowPeriod || 26}, ${indicator.config?.signalPeriod || 9}, ${indicator.config?.offset || 0})`;
-    case 'VORTEX':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'BOLLINGER':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.offset || 0})`;
-    case 'LBB':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.type || 'TRIPLE'}, ${indicator.config?.offset || 0})`;
-    case 'DMI':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'KELTNER':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.atrPeriod || 10}, ${indicator.config?.multiplier || 2}, ${indicator.config?.offset || 0})`;
-    case 'PSAR':
-      return `${indicator.name}(${indicator.config?.accelerationFactor || 0.02}, ${indicator.config?.maxAcceleration || 0.2}, ${indicator.config?.offset || 0})`;
-    case 'FISHER':
-      return `${indicator.name}(${indicator.config?.period || 10}, ${indicator.config?.offset || 0})`;
-    case 'MFI':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'VWAP':
-      return `${indicator.name}(${indicator.config?.offset || 0})`;
-    case 'TSI':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.longPeriod || 25}, ${indicator.config?.shortPeriod || 13}, ${indicator.config?.signalPeriod || 13}, ${indicator.config?.offset || 0})`;
-    case 'VO':
-      return `${indicator.name}(${indicator.config?.fastPeriod || 14}, ${indicator.config?.slowPeriod || 28}, ${indicator.config?.offset || 0})`;
-    case 'UO':
-      return `${indicator.name}(${indicator.config?.period1 || 7}, ${indicator.config?.period2 || 14}, ${indicator.config?.period3 || 28}, ${indicator.config?.offset || 0})`;
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-      return `${indicator.name}(${indicator.config?.offset || 0})`;
-    default:
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
-  }
 };
 
 const getExpressionText = (conditions: IndicatorExpression[]): string => {
@@ -368,8 +163,8 @@ const getExpressionText = (conditions: IndicatorExpression[]): string => {
         return `(${getExpressionText(condition.nestedConditions)})`;
       }
 
-      const exp1 = getExpressionString(condition.indicator1);
-      const exp2 = getExpressionString(condition.indicator2);
+      const exp1 = getIndicatorString(condition.indicator1);
+      const exp2 = getIndicatorString(condition.indicator2);
 
       let expression = `${exp1} ${condition.operator} ${exp2}`;
       
@@ -491,7 +286,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
   const handleConfigChange = (key: keyof IndicatorConfig) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setModalConfig(prev => ({
       ...prev,
-      [key]: Number(e.target.value)
+      [key]: key === 'type' ? e.target.value : Number(e.target.value)
     }));
   };
 
