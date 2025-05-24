@@ -24,3 +24,4 @@ export {
   InstrumentCandlestickChart 
 } from './Deployment';
 export { default as MetricsDetail } from './Reports/MetricsDetail';
+export { PWAInstallPrompt } from './PWAInstallPrompt';

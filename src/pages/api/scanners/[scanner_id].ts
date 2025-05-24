@@ -9,5 +9,5 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   req.query.id = req.query.id || req.query.scanner_id;
   
   // Reflect the desired operation to the main scanners handler
-  return require('./scanners').default(req, res);
+  return require('../scanners').default(req, res);
 }
