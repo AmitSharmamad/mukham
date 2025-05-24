@@ -107,7 +107,7 @@ export const MainLayout = ({
         py: 4, 
         mt: 8, 
         overflow: 'auto', 
-        maxHeight: 'calc(100vh - 156px)',
+        maxHeight: 'calc(100vh - 64px)', // Adjusted height to remove footer spacing
         '&::-webkit-scrollbar': {
           display: 'none',
         },
@@ -116,7 +116,6 @@ export const MainLayout = ({
       }}>
         {children}
       </Container>
-      <Footer />
       <AIChat />
     </Box>
   );
