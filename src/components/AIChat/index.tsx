@@ -8,11 +8,13 @@ import {
   Typography, 
   useTheme,
   Zoom,
-  Fade
+  Fade,
+  Avatar
 } from '@mui/material';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
+import Image from 'next/image';
 
 interface Message {
   id: number;
@@ -78,7 +80,14 @@ export const AIChat: React.FC = () => {
             zIndex: theme.zIndex.drawer + 2,
           }}
         >
-          <SmartToyIcon />
+          <Avatar sx={{ width: 40, height: 40 }}>
+            <Image 
+              src="/assets/hanuman.jpg" 
+              alt="Maruti" 
+              width={40} 
+              height={40} 
+            />
+          </Avatar>
         </Fab>
       </Zoom>
 
@@ -115,7 +124,14 @@ export const AIChat: React.FC = () => {
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <SmartToyIcon sx={{ mr: 1 }} />
+              <Avatar sx={{ mr: 1, width: 32, height: 32 }}>
+                <Image 
+                  src="/assets/hanuman.jpg" 
+                  alt="Maruti" 
+                  width={32} 
+                  height={32} 
+                />
+              </Avatar>
               <Typography variant="h6">Maruti</Typography>
             </Box>
             <IconButton 
