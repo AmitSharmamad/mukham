@@ -124,11 +124,16 @@ export interface Topic {
   id: number;
   title: string;
   slug: string;
+  content?: string;
   category_id: number;
+  category_name?: string;
+  category_slug?: string;
   author: {
     id: string;
     name: string;
     avatar: string;
+    post_count?: number;
+    joined_date?: string;
   };
   is_pinned: boolean;
   view_count: number;

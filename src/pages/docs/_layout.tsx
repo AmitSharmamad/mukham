@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { DocsLayout } from '../../../components/DocsLayout';
+import { DocsLayout } from '../../components/DocsLayout';
 
 interface DocsPageLayoutProps {
   children: ReactNode;

@@ -11,6 +11,7 @@ import { ToastProvider } from '../context/ToastContext';
 import AuthGuard from '../components/AuthGuard';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import Head from 'next/head';
 import '../styles/globals.css';
 
 function AppContent({ Component, pageProps }: AppProps) {
@@ -21,6 +22,22 @@ function AppContent({ Component, pageProps }: AppProps) {
   // When the component mounts, mark it as ready to render
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Register service worker for PWA
+  useEffect(() => {
+    if ('serviceWorker' in navigator && typeof window !== 'undefined') {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').then(
+          function (registration) {
+            console.log('Service Worker registration successful with scope: ', registration.scope);
+          },
+          function (err) {
+            console.log('Service Worker registration failed: ', err);
+          }
+        );
+      });
+    }
   }, []);
 
   // During SSR and initial client render, use a basic theme
@@ -36,6 +53,9 @@ function AppContent({ Component, pageProps }: AppProps) {
 
   return (
     <MUIThemeProvider theme={theme}>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+      </Head>
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <MainLayout onToggleTheme={toggleMode} isDarkMode={mode === 'dark'} onChangeThemeColor={setThemeColor} currentTheme={color}>

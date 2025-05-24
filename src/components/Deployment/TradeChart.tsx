@@ -192,7 +192,10 @@ const TradeChart: React.FC<TradeChartProps> = ({ trades }) => {
     },
   };
 
-  const data = {
+  // Use any type to bypass TypeScript checking for the Chart data
+  // This is necessary because the Chart component expects a specific type structure
+  // but we're using a mixed chart with line and scatter types
+  const chartData: any = {
     labels: tradeData.labels,
     datasets: [
       {
@@ -240,7 +243,7 @@ const TradeChart: React.FC<TradeChartProps> = ({ trades }) => {
         </Box>
       </Box>
       <Box sx={{ height: 'calc(100% - 40px)' }}>
-        <Chart type="line" options={options} data={data} />
+        <Chart type="line" options={options} data={chartData} />
       </Box>
     </Box>
   );
