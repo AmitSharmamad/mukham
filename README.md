@@ -2,13 +2,161 @@
 
 This project is an algo trading platform with robust features for full-fledged professional traders.
 
-## Application Structure
+## Application Requirement Documentation (ARD)
 
-### Navigation
+### Overview
+
+This platform provides a comprehensive environment for algorithmic trading with the following key features:
+
+- Strategy building and management
+- Strategy backtesting
+- Performance reporting and analytics
+- Educational resources
+- User profile management
+- Dark mode support
+
+### Technology Stack
+
+- **Frontend Framework**: Next.js
+- **UI Library**: Material UI (MUI)
+- **State Management**: React Context API
+- **Charting**: Chart.js, Lightweight Charts
+- **Date Handling**: Day.js
+- **Drag and Drop**: react-dnd
+- **HTTP Client**: Axios
+
+### Navigation Structure
+
 The application features a navigation bar at the top with the following links:
 1. Home (/home)
 2. Strategy (/strategy)
 3. Reports (/reports)
+4. Docs (/docs)
+
+Additionally, there is a profile icon in the top right corner, which displays:
+1. Profile (/profile)
+2. Support (/support)
+
+### Page Structure
+
+The application consists of the following pages:
+
+1. **Home (`/home`)**
+   - Dashboard with performance metrics
+   - Quick links to other sections
+   - Overview of active strategies
+
+2. **Strategy (`/strategy`)**
+   - List of user's strategies
+   - Create/Edit/Delete strategy functionality
+   - Strategy status and performance overview
+
+3. **Strategy Builder (`/strategy/new` and `/strategy/{strategy_id}`)**
+   - Name and description section
+   - Positions configuration
+     - Buy/Sell selection
+     - Instrument selection
+     - Chart configuration (Candlestick type, Timeframe, Trade type)
+     - Quantity parameters
+   - Entry conditions with Indicator Expression Builder
+   - Exit conditions including:
+     - Indicator expressions
+     - Stop Loss
+     - Target Profit %
+     - Trailing Stop Loss
+   - Backtest parameters configuration
+
+4. **Reports (`/reports`)**
+   - Overall Profit & Loss analytics
+   - Active strategies metrics
+   - Detailed performance charts
+   - Trade history analytics
+
+5. **Documentation (`/docs`)**
+   - Platform usage guides
+   - Strategy building tutorials
+   - Technical indicator explanations
+   - Best practices
+
+6. **Profile (`/profile`)**
+   - User information management
+   - Settings and preferences
+
+7. **Support (`/support`)**
+   - Help desk
+   - Frequently asked questions
+   - Contact form
+
+### Theme and Styling
+
+The application includes a comprehensive dark mode implementation with:
+
+- Theme toggle in the navigation bar
+- Persistent theme preference
+- Optimized color palettes for both light and dark modes
+- Consistent styling across all components
+
+### Component Architecture
+
+The application is built with a modular component architecture:
+
+- **Reusable UI Components**
+  - Button
+  - TextField
+  - Select
+  - Card
+  - Paper
+  - DateTimePicker
+
+- **Feature Components**
+  - StrategyBuilder
+  - IndicatorExpressionBuilder
+  - Reports
+  - Deployment
+
+- **Layout Components**
+  - MainLayout
+  - Navbar
+  - Footer
+
+### Key Features
+
+1. **Indicator Expression Builder**
+   - Visual tool for creating trading conditions
+   - Support for various technical indicators
+   - Nested condition building
+   - Drag and drop interface
+
+2. **Strategy Backtesting**
+   - Historical performance simulation
+   - Configurable parameters
+   - Performance metrics calculation
+
+3. **Charts and Analytics**
+   - Interactive price charts
+   - Performance visualization
+   - Metrics dashboard
+
+4. **Dark Mode**
+   - Complete dark theme support
+   - Theme persistence
+   - Optimized for readability and reduced eye strain
+
+### Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
 4. Docs (/docs)
 
 A profile icon on the top right corner, when clicked, shows options for:

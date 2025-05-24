@@ -9,7 +9,7 @@
         "name": "field",
         "type": "string",
         "enum": ["CLOSE", "OPEN", "HIGH", "LOW"],
-        "default": "close"
+        "default": "CLOSE"
       },
       {
         "name": "period",
@@ -33,7 +33,7 @@
         "name": "field",
         "type": "string",
         "enum": ["CLOSE", "OPEN", "HIGH", "LOW"],
-        "default": "close"
+        "default": "CLOSE"
       },
       {
         "name": "period",
@@ -95,7 +95,7 @@
         "name": "macdType",
         "type": "string",
         "enum": ["STANDARD", "HISTOGRAM", "SIGNAL"],
-        "default": "standard"
+        "default": "STANDARD"
       },
       {
         "name": "offset",
@@ -119,7 +119,7 @@
         "name": "signal",
         "type": "string",
         "enum": ["+VI", "-VI"],
-        "default": "+vi"
+        "default": "+VI"
       },
       {
         "name": "offset",
@@ -138,7 +138,7 @@
         "name": "field",
         "type": "string",
         "enum": ["CLOSE", "OPEN", "HIGH", "LOW"],
-        "default": "close"
+        "default": "CLOSE"
       },
       {
         "name": "period",
@@ -154,7 +154,7 @@
         "name": "type",
         "type": "string",
         "enum": ["SIMPLE", "EXPONENTIAL", "WEIGHTED", "TRIPLE", "TRIANGULAR", "DOUBLE", "HULL", "MESA", "VARIABLE", "KAUFMAN", "VIDYA"],
-        "default": "simple"
+        "default": "SIMPLE"
       },
       {
         "name": "offset",
@@ -173,7 +173,7 @@
         "name": "field",
         "type": "string",
         "enum": ["CLOSE", "OPEN", "HIGH", "LOW"],
-        "default": "close"
+        "default": "CLOSE"
       },
       {
         "name": "period",
@@ -189,7 +189,7 @@
         "name": "type",
         "type": "string",
         "enum": ["SIMPLE", "EXPONENTIAL", "WEIGHTED", "TRIPLE", "TRIANGULAR", "DOUBLE", "HULL", "MESA", "VARIABLE", "KAUFMAN", "VIDYA"],
-        "default": "simple"
+        "default": "SIMPLE"
       },
       {
         "name": "offset",
@@ -208,7 +208,7 @@
         "name": "field",
         "type": "string",
         "enum": ["CLOSE", "OPEN", "HIGH", "LOW"],
-        "default": "close"
+        "default": "CLOSE"
       },
       {
         "name": "period",
@@ -224,7 +224,7 @@
         "name": "type",
         "type": "string",
         "enum": ["SIMPLE", "EXPONENTIAL", "WEIGHTED", "TRIPLE", "TRIANGULAR", "DOUBLE", "HULL", "MESA", "VARIABLE", "KAUFMAN", "VIDYA"],
-        "default": "simple"
+        "default": "SIMPLE"
       },
       {
         "name": "offset",
@@ -243,7 +243,7 @@
         "name": "field",
         "type": "string",
         "enum": ["CLOSE", "OPEN", "HIGH", "LOW"],
-        "default": "close"
+        "default": "CLOSE"
       },
       {
         "name": "period",
@@ -271,14 +271,14 @@
       {
         "name": "band",
         "type": "string",
-        "enum": ["UPPER", "LOWER", "MIDDLE"],
-        "default": "middle"
+        "enum": ["TOP", "MEDIAN", "BOTTOM"],
+        "default": "MEDIAN"
       },
       {
         "name": "maType",
         "type": "string",
-        "enum": ["EXPONENTIAL", "SIMPLE"],
-        "default": "exponential"
+        "enum": ["SIMPLE", "EXPONENTIAL", "WEIGHTED", "TRIPLE", "TRIANGULAR", "DOUBLE", "HULL", "MESA", "VARIABLE", "KAUFMAN", "VIDYA"],
+        "default": "EXPONENTIAL"
       },
       {
         "name": "shift",
@@ -330,7 +330,7 @@
         "name": "line",
         "type": "string",
         "enum": ["EF", "TRIGGER"],
-        "default": "ef"
+        "default": "EF"
       },
       {
         "name": "offset",
@@ -353,8 +353,8 @@
       {
         "name": "type",
         "type": "string",
-        "enum": ["SIMPLE", "EXPONENTIAL"],
-        "default": "simple"
+        "enum": ["SIMPLE", "EXPONENTIAL", "WEIGHTED", "TRIPLE", "TRIANGULAR", "DOUBLE", "HULL", "MESA", "VARIABLE", "KAUFMAN", "VIDYA"],
+        "default": "SIMPLE"
       },
       {
         "name": "maPeriod",
@@ -391,13 +391,13 @@
         "name": "field",
         "type": "string",
         "enum": ["CLOSE", "OPEN", "HIGH", "LOW"],
-        "default": "close"
+        "default": "CLOSE"
       },
       {
         "name": "type",
         "type": "string",
         "enum": ["TSI", "SIGNAL"],
-        "default": "tsi"
+        "default": "TSI"
       },
       {
         "name": "longPeriod",
@@ -440,8 +440,8 @@
       {
         "name": "pop",
         "type": "string",
-        "enum": ["PCT", "ABS"],
-        "default": "pct"
+        "enum": ["PCT", "POINT"],
+        "default": "PCT"
       },
       {
         "name": "offset",
@@ -538,6 +538,19 @@
     "config": [
       {
         "name": "offset",
+        "type": "number",
+        "default": 0
+      }
+    ]
+  },
+  "NUMBER": {
+    "name": "NUMBER",
+    "label": "Number",
+    "description": "A generic number indicator, which can be used for custom calculations or as a placeholder.",
+    "type": "price",
+    "config": [
+      {
+        "name": "value",
         "type": "number",
         "default": 0
       }

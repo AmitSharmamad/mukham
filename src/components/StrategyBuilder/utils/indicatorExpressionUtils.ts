@@ -1,22 +1,9 @@
+import { formatIndicatorString, isIndicatorConfigComplete } from '../../../services/indicatorService';
+
 export interface IndicatorConfig {
-  period?: number;
-  value?: number;
-  fastPeriod?: number;
-  slowPeriod?: number;
-  signalPeriod?: number;
-  deviations?: number;
-  offset?: number;
-  field?: string;
-  type?: string;
-  multiplier?: number;
-  atrPeriod?: number;
-  accelerationFactor?: number;
-  maxAcceleration?: number;
-  longPeriod?: number;
-  shortPeriod?: number;
-  period1?: number;
-  period2?: number;
-  period3?: number;
+  // Generic config that can hold any parameters from indicators.json
+  [key: string]: string | number | boolean | undefined;
+  value?: number; // For Number type indicator
 }
 
 export interface Indicator {
@@ -38,52 +25,16 @@ export interface IndicatorExpression {
  * Returns a formatted string representation of an indicator's formula
  */
 export const getIndicatorFormula = (name: string): string => {
-  switch (name) {
-    case 'SUPERTREND':
-      return 'SUPERTREND(field, period, multiplier, offset)';
-    case 'MACD':
-      return 'MACD(field, fastPeriod, slowPeriod, signalPeriod, offset)';
-    case 'VORTEX':
-      return 'VORTEX(period, offset)';
-    case 'BOLLINGER':
-      return 'BOLLINGER(field, period, deviations, offset)';
-    case 'LBB':
-      return 'LBB(field, period, deviations, type, offset)';
-    case 'DMI':
-      return 'DMI(period, offset)';
-    case 'KELTNER':
-      return 'KELTNER(field, period, atrPeriod, multiplier, offset)';
-    case 'PSAR':
-      return 'PSAR(accelerationFactor, maxAcceleration, offset)';
-    case 'FISHER':
-      return 'FISHER(period, offset)';
-    case 'MFI':
-      return 'MFI(period, offset)';
-    case 'VWAP':
-      return 'VWAP(offset)';
-    case 'TSI':
-      return 'TSI(field, longPeriod, shortPeriod, signalPeriod, offset)';
-    case 'VO':
-      return 'VO(fastPeriod, slowPeriod, offset)';
-    case 'UO':
-      return 'UO(period1, period2, period3, offset)';
-    case 'Number':
-      return 'Number(value)';
-    case 'RSI':
-      return 'RSI(field, period, offset)';
-    case 'BB_UPPER':
-    case 'BB_LOWER':
-    case 'BB_MIDDLE':
-      return `${name}(field, period, deviations, offset)`;
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-      return `${name}(offset)`;
-    default:
-      return `${name}(field, period, offset)`;
+  if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(name)) {
+    return `${name}(offset)`;
   }
+  
+  if (name === 'Number') {
+    return 'Number(value)';
+  }
+  
+  // Use the formatIndicatorString with empty config to get a template
+  return formatIndicatorString(name, {});
 };
 
 /**
@@ -92,56 +43,8 @@ export const getIndicatorFormula = (name: string): string => {
 export const getIndicatorString = (indicator: Indicator): string => {
   if (!indicator.name) return '';
   
-  switch (indicator.name) {
-    case 'SMA':
-    case 'EMA':
-    case 'RSI':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'SUPERTREND':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 10}, ${indicator.config?.multiplier || 3}, ${indicator.config?.offset || 0})`;
-    case 'MACD':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || 12}, ${indicator.config?.slowPeriod || 26}, ${indicator.config?.signalPeriod || 9}, ${indicator.config?.offset || 0})`;
-    case 'VORTEX':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'BOLLINGER':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.offset || 0})`;
-    case 'LBB':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.type || 'TRIPLE'}, ${indicator.config?.offset || 0})`;
-    case 'DMI':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'KELTNER':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.atrPeriod || 10}, ${indicator.config?.multiplier || 2}, ${indicator.config?.offset || 0})`;
-    case 'PSAR':
-      return `${indicator.name}(${indicator.config?.accelerationFactor || 0.02}, ${indicator.config?.maxAcceleration || 0.2}, ${indicator.config?.offset || 0})`;
-    case 'FISHER':
-      return `${indicator.name}(${indicator.config?.period || 10}, ${indicator.config?.offset || 0})`;
-    case 'MFI':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'VWAP':
-      return `${indicator.name}(${indicator.config?.offset || 0})`;
-    case 'TSI':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.longPeriod || 25}, ${indicator.config?.shortPeriod || 13}, ${indicator.config?.signalPeriod || 13}, ${indicator.config?.offset || 0})`;
-    case 'VO':
-      return `${indicator.name}(${indicator.config?.fastPeriod || 14}, ${indicator.config?.slowPeriod || 28}, ${indicator.config?.offset || 0})`;
-    case 'UO':
-      return `${indicator.name}(${indicator.config?.period1 || 7}, ${indicator.config?.period2 || 14}, ${indicator.config?.period3 || 28}, ${indicator.config?.offset || 0})`;
-    case 'BB_UPPER':
-    case 'BB_LOWER':
-    case 'BB_MIDDLE':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.offset || 0})`;
-    case 'Number':
-      return indicator.config?.value?.toString() || '0';
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-      return `${indicator.name}(${indicator.config?.offset || 0})`;
-    case 'MARKET_POSITION':
-      return indicator.name;
-    default:
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
-  }
+  // Use the formatIndicatorString from the service
+  return formatIndicatorString(indicator.name, indicator.config);
 };
 
 /**
@@ -150,52 +53,16 @@ export const getIndicatorString = (indicator: Indicator): string => {
 export const isIndicatorComplete = (indicator: Indicator): boolean => {
   if (!indicator.name) return false;
   
-  switch (indicator.name) {
-    case 'SMA':
-    case 'EMA':
-    case 'RSI':
-      return !!indicator.config?.period;
-    case 'SUPERTREND':
-      return !!(indicator.config?.period && indicator.config?.multiplier);
-    case 'MACD':
-      return !!(indicator.config?.fastPeriod && indicator.config?.slowPeriod && indicator.config?.signalPeriod);
-    case 'VORTEX':
-      return !!indicator.config?.period;
-    case 'BOLLINGER':
-    case 'BB_UPPER':
-    case 'BB_LOWER':
-    case 'BB_MIDDLE':
-      return !!(indicator.config?.period && indicator.config?.deviations);
-    case 'LBB':
-      return !!(indicator.config?.period && indicator.config?.deviations && indicator.config?.type);
-    case 'DMI':
-      return !!indicator.config?.period;
-    case 'KELTNER':
-      return !!(indicator.config?.period && indicator.config?.atrPeriod && indicator.config?.multiplier);
-    case 'PSAR':
-      return !!(indicator.config?.accelerationFactor && indicator.config?.maxAcceleration);
-    case 'FISHER':
-    case 'MFI':
-      return !!indicator.config?.period;
-    case 'VWAP':
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-    case 'MARKET_POSITION':
-      return true;
-    case 'TSI':
-      return !!(indicator.config?.longPeriod && indicator.config?.shortPeriod && indicator.config?.signalPeriod);
-    case 'VO':
-      return !!(indicator.config?.fastPeriod && indicator.config?.slowPeriod);
-    case 'UO':
-      return !!(indicator.config?.period1 && indicator.config?.period2 && indicator.config?.period3);
-    case 'Number':
-      return indicator.config?.value !== undefined;
-    default:
-      return !!indicator.config?.period;
+  if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME', 'MARKET_POSITION'].includes(indicator.name)) {
+    return true;
   }
+  
+  if (indicator.name === 'Number') {
+    return indicator.config?.value !== undefined;
+  }
+  
+  // Use the isIndicatorConfigComplete from the service
+  return isIndicatorConfigComplete(indicator.name, indicator.config);
 };
 
 /**
@@ -242,30 +109,42 @@ export const parseExpressions = (expressionStr: string): IndicatorExpression[] =
         const [, indicator1Name, indicator1Params, operator, indicator2Name, indicator2Params] = match;
         
         const parseParams = (params: string, indicatorName: string) => {
+          // Handle empty params
+          if (!params.trim()) return {};
+          
           const paramArray = params.split(',').map(p => p.trim());
           
           if (indicatorName === 'Number') {
             return { value: parseFloat(paramArray[0]) || 0 };
           }
           
-          // Special case for LBB which has type parameter
-          if (indicatorName === 'LBB') {
-            return {
-              field: paramArray[0] || 'CLOSE',
-              period: parseInt(paramArray[1]) || 20,
-              deviations: parseInt(paramArray[2]) || 2,
-              type: paramArray[3] || 'TRIPLE',
-              offset: parseInt(paramArray[4]) || 0
-            };
+          if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(indicatorName)) {
+            return { offset: parseInt(paramArray[0]) || 0 };
           }
           
-          // Default case
-          const [field = 'CLOSE', ...rest] = paramArray;
-          return {
-            field,
-            period: parseInt(rest[0]) || 0,
-            offset: parseInt(rest[1]) || 0
-          };
+          // For other indicators, get their parameter names from the indicators.json
+          // and map them to the values in the correct order
+          const { indicators } = require('../../../services/indicatorService');
+          const indicatorDef = indicators[indicatorName];
+          
+          if (!indicatorDef) {
+            return { offset: 0 }; // Default fallback
+          }
+          
+          // Create a config object with the parameter values
+          const config: Record<string, any> = {};
+          indicatorDef.config.forEach((param, index) => {
+            if (index < paramArray.length) {
+              const value = paramArray[index];
+              // Convert to number if needed
+              config[param.name] = param.type === 'number' ? parseFloat(value) || param.default : value;
+            } else {
+              // Use default if parameter is missing in the string
+              config[param.name] = param.default;
+            }
+          });
+          
+          return config;
         };
         
         expressions.push({
