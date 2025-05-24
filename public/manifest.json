@@ -3,10 +3,13 @@
   "short_name": "Mukham",
   "description": "A robust algo trading platform for professional traders",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#121212",
-  "theme_color": "#121212",
+  "theme_color": "#00E676",
   "orientation": "portrait-primary",
+  "categories": ["finance", "business", "productivity"],
+  "lang": "en",
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

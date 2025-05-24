@@ -8,7 +8,8 @@ import {
   Slide,
   useTheme
 } from '@mui/material';
-import { Download, Close } from '@mui/icons-material';
+import { Download, Close, Info } from '@mui/icons-material';
+import { PWAInstallInstructions } from '../PWAInstallInstructions';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -18,6 +19,7 @@ interface BeforeInstallPromptEvent extends Event {
 export function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const theme = useTheme();
 
   useEffect(() => {
@@ -63,51 +65,81 @@ export function PWAInstallPrompt() {
     setShowPrompt(false);
   };
 
+  const handleShowInstructions = () => {
+    setShowInstructions(true);
+    setShowPrompt(false);
+  };
+
   if (!showPrompt) {
-    return null;
+    return (
+      <>
+        <PWAInstallInstructions 
+          open={showInstructions} 
+          onClose={() => setShowInstructions(false)} 
+        />
+      </>
+    );
   }
 
   return (
-    <Snackbar
-      open={showPrompt}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      TransitionComponent={Slide}
-    >
-      <Alert 
-        severity="info"
-        icon={<Download />}
-        action={
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Button 
-              color="primary" 
-              size="small" 
-              variant="contained" 
-              onClick={handleInstallClick}
-              sx={{ mr: 1 }}
-            >
-              Install
-            </Button>
-            <Button 
-              size="small" 
-              onClick={handleClose}
-              color="inherit"
-            >
-              <Close fontSize="small" />
-            </Button>
-          </Box>
-        }
-        sx={{ 
-          width: '100%', 
-          maxWidth: 500,
-          backgroundColor: theme.palette.background.paper,
-          color: theme.palette.text.primary,
-          border: `1px solid ${theme.palette.divider}`,
-        }}
+    <>
+      <Snackbar
+        open={showPrompt}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        TransitionComponent={Slide}
       >
-        <Typography variant="body2">
-          Install Mukham for a better experience
-        </Typography>
-      </Alert>
-    </Snackbar>
+        <Alert 
+          severity="info"
+          icon={<Download />}
+          action={
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {deferredPrompt && (
+                <Button 
+                  color="primary" 
+                  size="small" 
+                  variant="contained" 
+                  onClick={handleInstallClick}
+                  sx={{ mr: 1 }}
+                >
+                  Install
+                </Button>
+              )}
+              <Button 
+                size="small" 
+                onClick={handleShowInstructions}
+                color="inherit"
+                startIcon={<Info />}
+                sx={{ mr: 1 }}
+              >
+                How
+              </Button>
+              <Button 
+                size="small" 
+                onClick={handleClose}
+                color="inherit"
+              >
+                <Close fontSize="small" />
+              </Button>
+            </Box>
+          }
+          sx={{ 
+            width: '100%', 
+            maxWidth: 500,
+            backgroundColor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+            border: `1px solid ${theme.palette.divider}`,
+          }}
+        >
+          <Typography variant="body2">
+            Install Mukham for a better trading experience
+          </Typography>
+        </Alert>
+      </Snackbar>
+      
+      <PWAInstallInstructions 
+        open={showInstructions} 
+        onClose={() => setShowInstructions(false)} 
+      />
+    </>
   );
 }
