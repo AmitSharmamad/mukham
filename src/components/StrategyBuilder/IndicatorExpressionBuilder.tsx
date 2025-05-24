@@ -536,6 +536,16 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                       inputProps={{ min: 0, step: 0.1 }}
                     />
                   </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
                 </>
               ) : indicator.name === 'MACD' ? (
                 <>
@@ -625,6 +635,16 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                       inputProps={{ min: 0, step: 0.1 }}
                     />
                   </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
                 </>
               ) : indicator.name === 'LBB' ? (
                 <>
@@ -662,6 +682,16 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                       sx={{ width: '100%' }}
                     />
                   </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
                 </>
               ) : indicator.name === 'KELTNER' ? (
                 <>
@@ -695,6 +725,16 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                       inputProps={{ min: 0, step: 0.1 }}
                     />
                   </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
                 </>
               ) : indicator.name === 'PSAR' ? (
                 <>
@@ -716,6 +756,16 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                       value={modalConfig.maxAcceleration ?? 0.2}
                       onChange={handleConfigChange('maxAcceleration')}
                       inputProps={{ min: 0, step: 0.01 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
+                      inputProps={{ min: 0 }}
                     />
                   </Grid>
                 </>
@@ -751,6 +801,16 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                       inputProps={{ min: 0 }}
                     />
                   </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
                 </>
               ) : indicator.name === 'VO' ? (
                 <>
@@ -771,6 +831,16 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                       type="number"
                       value={modalConfig.slowPeriod ?? 28}
                       onChange={handleConfigChange('slowPeriod')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
                       inputProps={{ min: 0 }}
                     />
                   </Grid>
@@ -804,6 +874,16 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                       type="number"
                       value={modalConfig.period3 ?? 28}
                       onChange={handleConfigChange('period3')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Offset"
+                      type="number"
+                      value={modalConfig.offset ?? 0}
+                      onChange={handleConfigChange('offset')}
                       inputProps={{ min: 0 }}
                     />
                   </Grid>
