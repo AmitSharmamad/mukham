@@ -15,16 +15,23 @@ import {
   CardContent,
   LinearProgress,
   Divider,
-  useTheme
+  useTheme,
+  Container,
+  Button
 } from '@mui/material';
 import { 
   TrendingUp, 
   TrendingDown, 
   ShowChart, 
   DonutSmall, 
-  Timeline 
+  Timeline,
+  MenuBook,
+  Assessment,
+  BarChart,
+  Build
 } from '@mui/icons-material';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { DashboardWidget } from '../components/DashboardWidget';
 import { checkPageAuth } from '../utils/pageAuthUtils';
 
@@ -307,6 +314,81 @@ export default function Home() {
               </Typography>
             </Box>
           </Paper>
+          
+          {/* Navigation Cards to link to other pages */}
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Quick Navigation
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Card 
+                  sx={{ 
+                    p: 2, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }}
+                  onClick={() => router.push('/strategy')}
+                >
+                  <Build 
+                    sx={{ fontSize: 32, color: 'primary.main', mr: 2 }} 
+                  />
+                  <Box>
+                    <Typography variant="h6">Strategy</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Build and manage your trading strategies
+                    </Typography>
+                  </Box>
+                </Card>
+              </Grid>
+              <Grid item xs={12}>
+                <Card 
+                  sx={{ 
+                    p: 2, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }}
+                  onClick={() => router.push('/reports')}
+                >
+                  <Assessment 
+                    sx={{ fontSize: 32, color: 'secondary.main', mr: 2 }} 
+                  />
+                  <Box>
+                    <Typography variant="h6">Reports</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      View detailed performance analytics
+                    </Typography>
+                  </Box>
+                </Card>
+              </Grid>
+              <Grid item xs={12}>
+                <Card 
+                  sx={{ 
+                    p: 2, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }}
+                  onClick={() => router.push('/docs')}
+                >
+                  <MenuBook 
+                    sx={{ fontSize: 32, color: 'info.main', mr: 2 }} 
+                  />
+                  <Box>
+                    <Typography variant="h6">Documentation</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Learn how to use the platform effectively
+                    </Typography>
+                  </Box>
+                </Card>
+              </Grid>
+            </Grid>
+          </Box>
         </Grid>
       </Grid>
     </Box>
