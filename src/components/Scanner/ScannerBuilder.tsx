@@ -21,6 +21,8 @@ import {
 } from '@mui/material';
 import { IndicatorExpressionBuilder } from '../StrategyBuilder/IndicatorExpressionBuilder';
 import InstrumentSelector from '../StrategyBuilder/InstrumentSelector';
+import { SimpleInstrumentSelector } from './SimpleInstrumentSelector';
+import { SimpleExpressionBuilder } from './SimpleExpressionBuilder';
 
 interface ScannerBuilderProps {
   onSave: (scannerData: any) => void;
@@ -154,7 +156,7 @@ const ScannerBuilder: React.FC<ScannerBuilderProps> = ({
         {activeStep === 1 && (
           <Box>
             <Typography variant="h6" gutterBottom>Select Instruments</Typography>
-            <InstrumentSelector 
+            <SimpleInstrumentSelector 
               selectedInstruments={scannerData.instruments}
               onChange={handleInstrumentsChange}
             />
@@ -164,7 +166,7 @@ const ScannerBuilder: React.FC<ScannerBuilderProps> = ({
         {activeStep === 2 && (
           <Box>
             <Typography variant="h6" gutterBottom>Scanner Conditions</Typography>
-            <IndicatorExpressionBuilder 
+            <SimpleExpressionBuilder
               expressions={scannerData.conditions}
               onChange={handleConditionsChange}
             />

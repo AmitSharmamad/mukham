@@ -201,7 +201,7 @@ export default function ExitConditions() {
               </Typography>
               <Box component="ul" sx={{ pl: 4 }}>
                 <Typography component="li" variant="body2" paragraph>
-                  <strong>Primary Exit:</strong> Price crosses below VWAP AND Volume < Average(Volume, 20) - Exit when momentum fades
+                  <strong>Primary Exit:</strong> Price crosses below VWAP AND Volume {'<'} Average(Volume, 20) - Exit when momentum fades
                 </Typography>
                 <Typography component="li" variant="body2" paragraph>
                   <strong>Target Profit:</strong> 5% - Larger target for capturing strong breakout moves

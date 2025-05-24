@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 import { Footer } from '../Footer';
 import { AIChat } from '../AIChat';
 import Navbar from '../Navbar';
+import { PWAInstallPrompt } from '../PWAInstallPrompt';
 import { ThemeColor, themes } from '../../theme';
 
 interface MainLayoutProps {
@@ -118,6 +119,9 @@ export const MainLayout = ({
       </Container>
       <Footer />
       <AIChat />
+      
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </Box>
   );
 };
