@@ -25,6 +25,7 @@ const DEFAULT_INDICATOR_VALUES = {
   MACD: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9, offset: 0, field: 'CLOSE' },
   VORTEX: { period: 14, offset: 0 },
   BOLLINGER: { period: 20, deviations: 2, offset: 0, field: 'CLOSE' },
+  LBB: { period: 20, deviations: 2, type: 'TRIPLE', offset: 0, field: 'CLOSE' },
   DMI: { period: 14, offset: 0 },
   KELTNER: { period: 20, atrPeriod: 10, multiplier: 2, offset: 0, field: 'CLOSE' },
   PSAR: { accelerationFactor: 0.02, maxAcceleration: 0.2, offset: 0 },
@@ -56,6 +57,7 @@ const INDICATORS = [
   { value: 'MACD', label: 'MACD' },
   { value: 'VORTEX', label: 'Vortex Indicator' },
   { value: 'BOLLINGER', label: 'Bollinger Bands' },
+  { value: 'LBB', label: 'Lower Bollinger Bands (LBB)' },
   { value: 'DMI', label: 'Directional Movement Index' },
   { value: 'KELTNER', label: 'Keltner Channels' },
   { value: 'PSAR', label: 'Parabolic SAR' },
@@ -76,6 +78,14 @@ const FIELD_OPTIONS = [
   { value: 'HIGH', label: 'High' },
   { value: 'LOW', label: 'Low' },
   { value: 'VOLUME', label: 'Volume' },
+];
+
+const TYPE_OPTIONS = [
+  { value: 'SIMPLE', label: 'Simple' },
+  { value: 'EXPONENTIAL', label: 'Exponential' },
+  { value: 'WEIGHTED', label: 'Weighted' },
+  { value: 'TRIPLE', label: 'Triple' },
+  { value: 'TRIANGULAR', label: 'Triangular' },
 ];
 
 const OPERATORS = [
@@ -114,6 +124,7 @@ interface IndicatorConfig {
   deviations?: number;
   offset?: number;
   field?: string;
+  type?: string;
   multiplier?: number;
   atrPeriod?: number;
   accelerationFactor?: number;
@@ -172,6 +183,8 @@ const getIndicatorFormula = (name: string): string => {
       return 'VORTEX(period, offset)';
     case 'BOLLINGER':
       return 'BOLLINGER(field, period, deviations, offset)';
+    case 'LBB':
+      return 'LBB(field, period, deviations, type, offset)';
     case 'DMI':
       return 'DMI(period, offset)';
     case 'KELTNER':
@@ -218,6 +231,8 @@ const getIndicatorString = (indicator: Indicator): string => {
       return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
     case 'BOLLINGER':
       return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.offset || 0})`;
+    case 'LBB':
+      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.type || 'TRIPLE'}, ${indicator.config?.offset || 0})`;
     case 'DMI':
       return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
     case 'KELTNER':
@@ -261,6 +276,8 @@ const isIndicatorComplete = (indicator: Indicator): boolean => {
       return !!indicator.config?.period;
     case 'BOLLINGER':
       return !!(indicator.config?.period && indicator.config?.deviations);
+    case 'LBB':
+      return !!(indicator.config?.period && indicator.config?.deviations && indicator.config?.type);
     case 'DMI':
       return !!indicator.config?.period;
     case 'KELTNER':
@@ -313,6 +330,8 @@ const getExpressionString = (indicator: Indicator): string => {
       return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
     case 'BOLLINGER':
       return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.offset || 0})`;
+    case 'LBB':
+      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.type || 'TRIPLE'}, ${indicator.config?.offset || 0})`;
     case 'DMI':
       return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
     case 'KELTNER':
@@ -809,6 +828,43 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                       value={modalConfig.deviations ?? 2}
                       onChange={handleConfigChange('deviations')}
                       inputProps={{ min: 0, step: 0.1 }}
+                    />
+                  </Grid>
+                </>
+              ) : indicator.name === 'LBB' ? (
+                <>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Period"
+                      type="number"
+                      value={modalConfig.period ?? 20}
+                      onChange={handleConfigChange('period')}
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Deviations"
+                      type="number"
+                      value={modalConfig.deviations ?? 2}
+                      onChange={handleConfigChange('deviations')}
+                      inputProps={{ min: 0, step: 0.1 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Select
+                      label="Type"
+                      options={TYPE_OPTIONS}
+                      value={modalConfig.type ?? 'TRIPLE'}
+                      onChange={(value) => {
+                        setModalConfig(prev => ({
+                          ...prev,
+                          type: value as string
+                        }));
+                      }}
+                      sx={{ width: '100%' }}
                     />
                   </Grid>
                 </>
