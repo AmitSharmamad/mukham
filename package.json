@@ -2,9 +2,11 @@
   "name": "mukham",
   "version": "1.0.0",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "dev": "NODE_ENV=development next dev",
+    "dev:clean": "rm -rf .next && NODE_ENV=development next dev",
+    "build": "NODE_ENV=production next build",
+    "start": "NODE_ENV=production next start",
+    "clean": "rm -rf .next && rm -f public/sw.js && rm -f public/workbox-*.js"
   },
   "dependencies": {
     "@date-io/dayjs": "^3.2.0",
@@ -17,6 +19,7 @@
     "@mui/x-date-pickers": "^7.28.3",
     "axios": "^1.8.4",
     "chart.js": "^4.4.9",
+    "critters": "^0.0.23",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "jsonwebtoken": "^9.0.2",
