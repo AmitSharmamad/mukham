@@ -78,19 +78,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [mounted]);
 
-  // Check authentication periodically (every minute)
+  // Check authentication periodically (every 5 minutes instead of every minute)
   useEffect(() => {
     if (!mounted) return;
     
     const intervalId = setInterval(() => {
       const token = localStorage.getItem('token');
-      if (token) {
+      if (token && isLoggedIn) {
+        // Only check if we're already logged in (reduces unnecessary calls)
         checkUserAuth();
       }
-    }, 60 * 1000);
+    }, 5 * 60 * 1000); // 5 minutes
     
     return () => clearInterval(intervalId);
-  }, [mounted]);
+  }, [mounted, isLoggedIn]); // Add isLoggedIn dependency
 
   const login = (token: string) => {
     localStorage.setItem('token', token);

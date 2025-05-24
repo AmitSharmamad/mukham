@@ -1,6 +1,7 @@
 // filepath: /Users/amit/workspace/mukham/src/components/Navbar.tsx
 import Link from 'next/link';
 import Router from 'next/router';
+import Image from 'next/image';
 import axios from 'axios';
 import { 
   AppBar, 
@@ -18,7 +19,8 @@ import {
   Grow,
   Paper,
   MenuList,
-  ClickAwayListener
+  ClickAwayListener,
+  Avatar
 } from '@mui/material';
 import { useState, useEffect, useRef } from 'react';
 import AccountCircle from '@mui/icons-material/AccountCircle';
@@ -70,39 +72,8 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
           
           // Only attempt authentication if API is up
           if (isAPIUp) {
-            // Check directly against /api/user/me endpoint as per requirements
-            try {
-              const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
-              const response = await axios.get('/api/user/me', {
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                validateStatus: (status) => status >= 200 && status < 600, // Accept any status to handle all cases
-              });
-              
-              if (response.status === 200) {
-                // Show profile icon if 200 is returned
-                setAuthStatus(true);
-              } else if (response.status === 401 || response.status === 403) {
-                // Show login button for 401/403 status codes
-                if (typeof window !== 'undefined') {
-                  localStorage.removeItem('token');
-                }
-                setAuthStatus(false);
-              } else {
-                // Handle other status codes
-                setAuthStatus(false);
-              }
-            } catch (error: any) {
-              // Show login button if 401/403 or any other error
-              if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                if (typeof window !== 'undefined') {
-                  localStorage.removeItem('token');
-                }
-              }
-              setAuthStatus(false);
-            }
+            const isAuth = await checkUserAuth();
+            setAuthStatus(isAuth);
           } else {
             // If API is down, assume not authenticated
             if (isMounted) {
@@ -134,12 +105,12 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
     
     Router.events.on('routeChangeComplete', handleRouteChange);
     
-    // Check auth status regularly (every minute)
+    // Check auth status regularly (every 5 minutes instead of every minute)
     const intervalId = setInterval(() => {
       if (isMounted) {
         checkAuth();
       }
-    }, 60 * 1000);
+    }, 5 * 60 * 1000); // Changed from 60 * 1000 to 5 * 60 * 1000
     
     return () => {
       isMounted = false;
@@ -411,6 +382,24 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             sx={{ fontSize: '1.1rem' }}
           >
             Marketplace
+          </Button>
+
+          {/* Maruti (Chat) */}
+          <Button 
+            color="inherit" 
+            component={Link} 
+            href="/chat"
+            sx={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 1 }}
+          >
+            <Avatar sx={{ width: 24, height: 24 }}>
+              <Image 
+                src="/assets/hanuman.jpg" 
+                alt="Maruti" 
+                width={24} 
+                height={24} 
+              />
+            </Avatar>
+            Maruti
           </Button>
 
           {/* Docs - removed from top nav as per requirements */}

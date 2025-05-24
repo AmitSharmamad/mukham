@@ -81,6 +81,7 @@ The strategy builder (/strategy/new or /strategy/{strategy_id}) includes:
 - **Component-based Architecture**: Reusable component system
 - **API Integration**: RESTful API integration for data fetching and submission
 - **Authentication**: Token-based auth with route protection
+- **Chat Assistant**: AI-powered trading assistant for strategy advice and market insights
 
 ### Project Structure
 ```
@@ -89,6 +90,12 @@ src/
 ├── components/          # Reusable UI components
 │   ├── Button/          # Custom button component
 │   ├── Card/            # Card component
+│   ├── Chat/            # Chat interface components
+│   │   ├── ChatContainer.tsx  # Main chat UI container
+│   │   ├── ChatHistory.tsx    # Chat conversation history 
+│   │   ├── ChatInput.tsx      # Message input component
+│   │   ├── ChatMessage.tsx    # Individual message display
+│   │   └── index.tsx          # Component exports
 │   ├── DateTimePicker/  # Date and time picker
 │   ├── Select/          # Custom dropdown component
 │   ├── TextField/       # Text input component
