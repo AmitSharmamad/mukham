@@ -129,7 +129,7 @@ export default function CreatingStrategy() {
                   "EMA(9) crosses above EMA(21)" - Enter when shorter-term EMA crosses above longer-term EMA.
                 </Typography>
                 <Typography component="li" variant="body2" paragraph>
-                  "MACD Line crosses above Signal Line AND RSI(14) > 50" - Enter when MACD gives a bullish signal and RSI confirms upward momentum.
+                  "MACD Line crosses above Signal Line AND RSI(14) {'>'} 50" - Enter when MACD gives a bullish signal and RSI confirms upward momentum.
                 </Typography>
               </Box>
               <Typography variant="body2" paragraph>

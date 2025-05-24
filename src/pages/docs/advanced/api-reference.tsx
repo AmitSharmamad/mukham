@@ -63,7 +63,7 @@ export default function ApiReference() {
                   Log in to your सूत्रम् account.
                 </Typography>
                 <Typography component="li" variant="body2" paragraph>
-                  Navigate to Profile > API Settings.
+                  Navigate to Profile {'->'} API Settings.
                 </Typography>
                 <Typography component="li" variant="body2" paragraph>
                   Click "Generate New API Key".

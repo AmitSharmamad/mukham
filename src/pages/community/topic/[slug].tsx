@@ -241,7 +241,10 @@ export default function TopicDetailPage() {
     );
   }
 
-  const renderMarkdown = (content: string) => {
+  const renderMarkdown = (content: string | undefined) => {
+    // Return empty fragment if content is undefined
+    if (!content) return <></>;
+    
     // This is a simplified markdown renderer
     // In a real app, use a markdown library
     return content.split('\n').map((line, i) => {
