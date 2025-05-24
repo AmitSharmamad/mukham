@@ -432,7 +432,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       formData.candlestickType &&
       formData.timeframe &&
       formData.tradeType &&
-      (!isRenkoType || (isRenkoType && formData.brickSize))
+      formData.maxAllocation &&
+      formData.maxAllocation !== '' &&
+      parseFloat(formData.maxAllocation) > 0 &&
+      formData.maxQuantity &&
+      formData.maxQuantity !== '' &&
+      parseFloat(formData.maxQuantity) > 0
     );
     
     const isEntrySectionValid = isOptionsType 
@@ -477,6 +482,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         if (isRenkoType && !formData.brickSize) missing.push('Brick Size');
         if (!formData.timeframe) missing.push('Timeframe');
         if (!formData.tradeType) missing.push('Trade Type');
+        if (!formData.maxAllocation) missing.push('Max Allocation');
+        if (!formData.maxQuantity) missing.push('Max Quantity');
         break;
       
       case 'entry':
@@ -555,6 +562,18 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       newErrors.candlestickType = 'Candlestick type is required';
     }
     
+    if (!formData.maxAllocation || formData.maxAllocation === '' || parseFloat(formData.maxAllocation) <= 0) {
+      newErrors.maxAllocation = 'Max Allocation is required and must be greater than 0';
+    }
+
+    if (!formData.maxQuantity || formData.maxQuantity === '' || parseFloat(formData.maxQuantity) <= 0) {
+      newErrors.maxQuantity = 'Max Quantity is required and must be greater than 0';
+    }
+
+    if (!formData.maxQuantity || formData.maxQuantity === '' || parseFloat(formData.maxQuantity) <= 0) {
+      newErrors.maxQuantity = 'Max Quantity is required and must be greater than 0';
+    }
+
     if (isRenkoType && (!formData.brickSize || formData.brickSize === '0')) {
       newErrors.brickSize = 'Brick size is required for Renko charts';
     }
@@ -736,7 +755,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           selectedInstruments.length > 0 &&
           !!formData.candlestickType &&
           !!formData.timeframe &&
-          !!formData.tradeType
+          !!formData.tradeType &&
+          !!formData.maxAllocation &&
+          formData.maxAllocation !== '' &&
+          parseFloat(formData.maxAllocation) > 0
         );
       
       case 'entry':
@@ -933,6 +955,9 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                   type="number"
                   value={formData.maxAllocation}
                   onChange={(e) => handleChange('maxAllocation')(e.target.value)}
+                  error={attemptedSubmit && !!errors.maxAllocation}
+                  helperText={attemptedSubmit && errors.maxAllocation}
+                  required
                   inputProps={{ min: 0 }}
                 />
               </Grid>
@@ -944,6 +969,9 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                   type="number"
                   value={formData.maxQuantity}
                   onChange={(e) => handleChange('maxQuantity')(e.target.value)}
+                  error={attemptedSubmit && !!errors.maxQuantity}
+                  helperText={attemptedSubmit && errors.maxQuantity}
+                  required
                   inputProps={{ min: 0 }}
                 />
               </Grid>
