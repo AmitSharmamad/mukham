@@ -104,7 +104,7 @@
       }
     ]
   },
-  "VORTEX": {
+  "VTX": {
     "name": "VORTEX",
     "label": "Vortex Indicator",
     "description": "The Vortex indicator identifies trend direction and strength by comparing price highs and lows over a period, using +VI and -VI lines.",
