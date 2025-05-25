@@ -335,6 +335,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const [isInstrumentSelectorOpen, setInstrumentSelectorOpen] = useState(false);
   const [selectedInstruments, setSelectedInstruments] = useState<Instrument[]>(initialInstruments);
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(sampleBacktestResults);
+  const [rawBacktestData, setRawBacktestData] = useState<BacktestData | null>(null);
   const [isBacktesting, setIsBacktesting] = useState(false);
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
   const backtestResultsRef = useRef<HTMLDivElement>(null);
@@ -1375,6 +1376,9 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
         const backtestData: BacktestData = await response.json();
         
+        // Store raw backtest data for TradesTable
+        setRawBacktestData(backtestData);
+        
         if (backtestData && backtestData.results) {
           // Filter out any runs with null metrics or instrument_id = 0 (aggregated metrics)
           const validRuns = backtestData.results.filter(run => 
@@ -1707,7 +1711,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         </TableContainer>
         
         {/* Add Metrics Section below the table */}
-        <MetricsSection backtestResults={backtestResults} />
+        <MetricsSection
+          backtestResults={backtestResults}
+          rawBacktestData={rawBacktestData}
+          instruments={selectedInstruments}
+        />
+        
         {/* Performance Charts Section */}
         <Box sx={{ mt: 4 }}>
           <Typography variant="h6" gutterBottom>Performance Metrics</Typography>
