@@ -264,7 +264,7 @@
     "type": "trend",
     "config": [
       {
-        "name": "length",
+        "name": "period",
         "type": "number",
         "default": 50
       },
