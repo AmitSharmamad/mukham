@@ -5,7 +5,6 @@ import { useTheme } from '@mui/material/styles';
 import { Palette } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { Footer } from '../Footer';
-import { AIChat } from '../AIChat';
 import Navbar from '../Navbar';
 import { PWAInstallPrompt } from '../PWAInstallPrompt';
 import { ThemeColor, themes } from '../../theme';
@@ -117,7 +116,6 @@ export const MainLayout = ({
       }}>
         {children}
       </Container>
-      <AIChat />
       
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
