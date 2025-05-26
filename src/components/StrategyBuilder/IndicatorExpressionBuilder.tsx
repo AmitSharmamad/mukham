@@ -6,71 +6,56 @@ import { Button } from '../Button';
 import { useState, useMemo, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { 
+  IndicatorConfig, 
+  Indicator, 
+  IndicatorExpression,
+  stringifyExpression, 
+  stringifyConditions,
+  getIndicatorString,
+  getIndicatorFormula,
+  isIndicatorComplete
+} from './utils/indicatorExpressionUtils';
 
-// Default values for indicators
-const DEFAULT_INDICATOR_VALUES = {
-  // Price indicators
+import { getAvailableIndicators, getIndicatorDefaults } from '../../services/indicatorService';
+
+// Price indicators constant values
+const PRICE_INDICATORS = {
   OPEN: { offset: 0 },
   HIGH: { offset: 0 },
   LOW: { offset: 0 },
   CLOSE: { offset: 0 },
   VOLUME: { offset: 0 },
-  
-  // Basic Moving Averages
-  SMA: { period: 14, offset: 0, field: 'CLOSE' },
-  EMA: { period: 9, offset: 0, field: 'CLOSE' },
-  
-  // Technical Indicators
-  SUPERTREND: { period: 10, multiplier: 3, offset: 0, field: 'CLOSE' },
-  MACD: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9, offset: 0, field: 'CLOSE' },
-  VORTEX: { period: 14, offset: 0 },
-  BOLLINGER: { period: 20, deviations: 2, offset: 0, field: 'CLOSE' },
-  LBB: { period: 20, deviations: 2, type: 'TRIPLE', offset: 0, field: 'CLOSE' },
-  DMI: { period: 14, offset: 0 },
-  KELTNER: { period: 20, atrPeriod: 10, multiplier: 2, offset: 0, field: 'CLOSE' },
-  PSAR: { accelerationFactor: 0.02, maxAcceleration: 0.2, offset: 0 },
-  FISHER: { period: 10, offset: 0 },
-  MFI: { period: 14, offset: 0 },
-  VWAP: { offset: 0 },
-  TSI: { longPeriod: 25, shortPeriod: 13, signalPeriod: 13, offset: 0, field: 'CLOSE' },
-  VO: { fastPeriod: 14, slowPeriod: 28, offset: 0 },
-  UO: { period1: 7, period2: 14, period3: 28, offset: 0 },
-  
-  // Utility Indicator
   Number: { value: 0 }
-} as const;
+};
 
+// Get default values from the indicators.json through the service
+const DEFAULT_INDICATOR_VALUES: Record<string, any> = {
+  ...PRICE_INDICATORS,
+  // The rest will be loaded dynamically based on indicators.json
+};
+
+// Populate available indicators from the service
 const INDICATORS = [
-  // Price indicators
-  { value: 'OPEN', label: 'Open Price' },
-  { value: 'HIGH', label: 'High Price' },
-  { value: 'LOW', label: 'Low Price' },
-  { value: 'CLOSE', label: 'Close Price' },
-  { value: 'VOLUME', label: 'Volume' },
+  // Price indicators (static)
+  // { value: 'OPEN', label: 'Open Price' },
+  // { value: 'HIGH', label: 'High Price' },
+  // { value: 'LOW', label: 'Low Price' },
+  // { value: 'CLOSE', label: 'Close Price' },
+  // { value: 'VOLUME', label: 'Volume' },
+  // { value: 'Number', label: 'Number' },
   
-  // Basic Moving Averages
-  { value: 'SMA', label: 'Simple Moving Average' },
-  { value: 'EMA', label: 'Exponential Moving Average' },
-  
-  // Technical Indicators
-  { value: 'SUPERTREND', label: 'SuperTrend' },
-  { value: 'MACD', label: 'MACD' },
-  { value: 'VORTEX', label: 'Vortex Indicator' },
-  { value: 'BOLLINGER', label: 'Bollinger Bands' },
-  { value: 'LBB', label: 'Lower Bollinger Bands (LBB)' },
-  { value: 'DMI', label: 'Directional Movement Index' },
-  { value: 'KELTNER', label: 'Keltner Channels' },
-  { value: 'PSAR', label: 'Parabolic SAR' },
-  { value: 'FISHER', label: 'Fisher Transform' },
-  { value: 'MFI', label: 'Money Flow Index' },
-  { value: 'VWAP', label: 'Volume Weighted Average Price' },
-  { value: 'TSI', label: 'True Strength Index' },
-  { value: 'VO', label: 'Volume Oscillator' },
-  { value: 'UO', label: 'Ultimate Oscillator' },
-  
-  // Utility Indicator
-  { value: 'Number', label: 'Number' },
+  // Dynamic indicators from indicators.json
+  ...getAvailableIndicators().map(indicator => ({
+    value: indicator.value,
+    label: indicator.label // Using the label from the indicator definition
+  }))
 ];
+
+// Initialize default values for each indicator from indicators.json
+getAvailableIndicators().forEach(indicator => {
+  DEFAULT_INDICATOR_VALUES[indicator.value] = getIndicatorDefaults(indicator.value);
+});
 
 const FIELD_OPTIONS = [
   { value: 'CLOSE', label: 'Close' },
@@ -115,42 +100,6 @@ interface DragItem {
   expression: IndicatorExpression;
 }
 
-interface IndicatorConfig {
-  period?: number;
-  value?: number;
-  fastPeriod?: number;
-  slowPeriod?: number;
-  signalPeriod?: number;
-  deviations?: number;
-  offset?: number;
-  field?: string;
-  type?: string;
-  multiplier?: number;
-  atrPeriod?: number;
-  accelerationFactor?: number;
-  maxAcceleration?: number;
-  longPeriod?: number;
-  shortPeriod?: number;
-  period1?: number;
-  period2?: number;
-  period3?: number;
-}
-
-interface Indicator {
-  name: string;
-  config: IndicatorConfig;
-}
-
-// Update IndicatorExpression interface to support nested conditions
-interface IndicatorExpression {
-  indicator1: Indicator;
-  operator: string;
-  indicator2: Indicator;
-  logicalOperator?: string;
-  isNested?: boolean;
-  nestedConditions?: IndicatorExpression[];
-}
-
 interface NestedExpression extends Omit<IndicatorExpression, 'indicator1' | 'operator' | 'indicator2'> {
   isNested: true;
   nestedConditions: IndicatorExpression[];
@@ -173,192 +122,13 @@ interface IndicatorExpressionBuilderProps {
   isOptional?: boolean;
 }
 
-const getIndicatorFormula = (name: string): string => {
-  switch (name) {
-    case 'SUPERTREND':
-      return 'SUPERTREND(field, period, multiplier, offset)';
-    case 'MACD':
-      return 'MACD(field, fastPeriod, slowPeriod, signalPeriod, offset)';
-    case 'VORTEX':
-      return 'VORTEX(period, offset)';
-    case 'BOLLINGER':
-      return 'BOLLINGER(field, period, deviations, offset)';
-    case 'LBB':
-      return 'LBB(field, period, deviations, type, offset)';
-    case 'DMI':
-      return 'DMI(period, offset)';
-    case 'KELTNER':
-      return 'KELTNER(field, period, atrPeriod, multiplier, offset)';
-    case 'PSAR':
-      return 'PSAR(accelerationFactor, maxAcceleration, offset)';
-    case 'FISHER':
-      return 'FISHER(period, offset)';
-    case 'MFI':
-      return 'MFI(period, offset)';
-    case 'VWAP':
-      return 'VWAP(offset)';
-    case 'TSI':
-      return 'TSI(field, longPeriod, shortPeriod, signalPeriod, offset)';
-    case 'VO':
-      return 'VO(fastPeriod, slowPeriod, offset)';
-    case 'UO':
-      return 'UO(period1, period2, period3, offset)';
-    case 'Number':
-      return 'Number(value)';
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-      return `${name}(offset)`;
-    default:
-      return `${name}(field, period, offset)`;
-  }
-};
-
-const getIndicatorString = (indicator: Indicator): string => {
-  if (!indicator.name) return '';
-  
-  switch (indicator.name) {
-    case 'SMA':
-    case 'EMA':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'SUPERTREND':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 10}, ${indicator.config?.multiplier || 3}, ${indicator.config?.offset || 0})`;
-    case 'MACD':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || 12}, ${indicator.config?.slowPeriod || 26}, ${indicator.config?.signalPeriod || 9}, ${indicator.config?.offset || 0})`;
-    case 'VORTEX':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'BOLLINGER':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.offset || 0})`;
-    case 'LBB':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.type || 'TRIPLE'}, ${indicator.config?.offset || 0})`;
-    case 'DMI':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'KELTNER':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.atrPeriod || 10}, ${indicator.config?.multiplier || 2}, ${indicator.config?.offset || 0})`;
-    case 'PSAR':
-      return `${indicator.name}(${indicator.config?.accelerationFactor || 0.02}, ${indicator.config?.maxAcceleration || 0.2}, ${indicator.config?.offset || 0})`;
-    case 'FISHER':
-      return `${indicator.name}(${indicator.config?.period || 10}, ${indicator.config?.offset || 0})`;
-    case 'MFI':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'VWAP':
-      return `${indicator.name}(${indicator.config?.offset || 0})`;
-    case 'TSI':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.longPeriod || 25}, ${indicator.config?.shortPeriod || 13}, ${indicator.config?.signalPeriod || 13}, ${indicator.config?.offset || 0})`;
-    case 'VO':
-      return `${indicator.name}(${indicator.config?.fastPeriod || 14}, ${indicator.config?.slowPeriod || 28}, ${indicator.config?.offset || 0})`;
-    case 'UO':
-      return `${indicator.name}(${indicator.config?.period1 || 7}, ${indicator.config?.period2 || 14}, ${indicator.config?.period3 || 28}, ${indicator.config?.offset || 0})`;
-    case 'Number':
-      return indicator.config?.value?.toString() || '';
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-      return `${indicator.name}(${indicator.config?.offset || 0})`;
-    default:
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
-  }
-};
-
-const isIndicatorComplete = (indicator: Indicator): boolean => {
-  if (!indicator.name) return false;
-  
-  switch (indicator.name) {
-    case 'SUPERTREND':
-      return !!(indicator.config?.period && indicator.config?.multiplier);
-    case 'MACD':
-      return !!(indicator.config?.fastPeriod && indicator.config?.slowPeriod && indicator.config?.signalPeriod);
-    case 'VORTEX':
-      return !!indicator.config?.period;
-    case 'BOLLINGER':
-      return !!(indicator.config?.period && indicator.config?.deviations);
-    case 'LBB':
-      return !!(indicator.config?.period && indicator.config?.deviations && indicator.config?.type);
-    case 'DMI':
-      return !!indicator.config?.period;
-    case 'KELTNER':
-      return !!(indicator.config?.period && indicator.config?.atrPeriod && indicator.config?.multiplier);
-    case 'PSAR':
-      return !!(indicator.config?.accelerationFactor && indicator.config?.maxAcceleration);
-    case 'FISHER':
-    case 'MFI':
-      return !!indicator.config?.period;
-    case 'VWAP':
-      return true;
-    case 'TSI':
-      return !!(indicator.config?.longPeriod && indicator.config?.shortPeriod && indicator.config?.signalPeriod);
-    case 'VO':
-      return !!(indicator.config?.fastPeriod && indicator.config?.slowPeriod);
-    case 'UO':
-      return !!(indicator.config?.period1 && indicator.config?.period2 && indicator.config?.period3);
-    case 'Number':
-      return indicator.config?.value !== undefined;
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-      return true;
-    default:
-      return !!indicator.config?.period;
-  }
-};
-
+// Use the isIndicatorComplete function from utils
 const isExpressionComplete = (expression: IndicatorExpression): boolean => {
   return (
     isIndicatorComplete(expression.indicator1) &&
     !!expression.operator &&
     isIndicatorComplete(expression.indicator2)
   );
-};
-
-const getExpressionString = (indicator: Indicator): string => {
-  if (!indicator.name) return '';
-  
-  switch (indicator.name) {
-    case 'Number':
-      return indicator.config?.value?.toString() || '';
-    case 'SUPERTREND':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 10}, ${indicator.config?.multiplier || 3}, ${indicator.config?.offset || 0})`;
-    case 'MACD':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.fastPeriod || 12}, ${indicator.config?.slowPeriod || 26}, ${indicator.config?.signalPeriod || 9}, ${indicator.config?.offset || 0})`;
-    case 'VORTEX':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'BOLLINGER':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.offset || 0})`;
-    case 'LBB':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.deviations || 2}, ${indicator.config?.type || 'TRIPLE'}, ${indicator.config?.offset || 0})`;
-    case 'DMI':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'KELTNER':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || 20}, ${indicator.config?.atrPeriod || 10}, ${indicator.config?.multiplier || 2}, ${indicator.config?.offset || 0})`;
-    case 'PSAR':
-      return `${indicator.name}(${indicator.config?.accelerationFactor || 0.02}, ${indicator.config?.maxAcceleration || 0.2}, ${indicator.config?.offset || 0})`;
-    case 'FISHER':
-      return `${indicator.name}(${indicator.config?.period || 10}, ${indicator.config?.offset || 0})`;
-    case 'MFI':
-      return `${indicator.name}(${indicator.config?.period || 14}, ${indicator.config?.offset || 0})`;
-    case 'VWAP':
-      return `${indicator.name}(${indicator.config?.offset || 0})`;
-    case 'TSI':
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.longPeriod || 25}, ${indicator.config?.shortPeriod || 13}, ${indicator.config?.signalPeriod || 13}, ${indicator.config?.offset || 0})`;
-    case 'VO':
-      return `${indicator.name}(${indicator.config?.fastPeriod || 14}, ${indicator.config?.slowPeriod || 28}, ${indicator.config?.offset || 0})`;
-    case 'UO':
-      return `${indicator.name}(${indicator.config?.period1 || 7}, ${indicator.config?.period2 || 14}, ${indicator.config?.period3 || 28}, ${indicator.config?.offset || 0})`;
-    case 'OPEN':
-    case 'HIGH':
-    case 'LOW':
-    case 'CLOSE':
-    case 'VOLUME':
-      return `${indicator.name}(${indicator.config?.offset || 0})`;
-    default:
-      return `${indicator.name}(${indicator.config?.field || 'CLOSE'}, ${indicator.config?.period || ''}, ${indicator.config?.offset || 0})`;
-  }
 };
 
 const getExpressionText = (conditions: IndicatorExpression[]): string => {
@@ -368,8 +138,8 @@ const getExpressionText = (conditions: IndicatorExpression[]): string => {
         return `(${getExpressionText(condition.nestedConditions)})`;
       }
 
-      const exp1 = getExpressionString(condition.indicator1);
-      const exp2 = getExpressionString(condition.indicator2);
+      const exp1 = getIndicatorString(condition.indicator1);
+      const exp2 = getIndicatorString(condition.indicator2);
 
       let expression = `${exp1} ${condition.operator} ${exp2}`;
       
@@ -488,10 +258,23 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
     }
   };
 
-  const handleConfigChange = (key: keyof IndicatorConfig) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleConfigChange = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Dynamically determine if the parameter is a string based on the indicator definition
+    const isStringParameter = () => {
+      if (!editingIndicator) return false;
+      
+      const { indicators } = require('../../services/indicatorService');
+      const indicatorDef = indicators[editingIndicator.indicator.name];
+      
+      if (!indicatorDef) return false;
+      
+      const param = indicatorDef.config.find((p: any) => p.name === key);
+      return param && param.type === 'string';
+    };
+
     setModalConfig(prev => ({
       ...prev,
-      [key]: Number(e.target.value)
+      [key]: isStringParameter() ? e.target.value : Number(e.target.value)
     }));
   };
 
@@ -695,6 +478,127 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
 
     const { indicator } = editingIndicator;
 
+    // Import indicator service here to avoid any module issues
+    const { indicators, getParameterOptions } = require('../../services/indicatorService');
+
+    const renderParameterField = (param: { name: string; type: string; enum?: string[]; default?: any; required?: boolean }) => {
+      const paramValue = modalConfig[param.name] !== undefined ? modalConfig[param.name] : param.default;
+      
+      // If parameter has enum options, render a select
+      if (param.enum) {
+        const options = param.enum.map(value => ({ value, label: value }));
+        return (
+          <Grid item xs={12} key={param.name}>
+            <Select
+              label={`${param.name.charAt(0).toUpperCase() + param.name.slice(1)}${param.required ? ' *' : ''}`}
+              options={options}
+              value={paramValue}
+              onChange={(value) => {
+                setModalConfig(prev => ({
+                  ...prev,
+                  [param.name]: value
+                }));
+              }}
+              sx={{ width: '100%' }}
+            />
+          </Grid>
+        );
+      }
+      
+      // Otherwise render a text field (number or string)
+      const isNumber = param.type === 'number';
+      const getStepValue = () => {
+        if (!isNumber) return undefined;
+        if (['multiplier', 'deviations', 'minimumAF', 'maximumAF'].includes(param.name)) return 0.1;
+        return 1;
+      };
+      
+      return (
+        <Grid item xs={12} key={param.name}>
+          <TextField
+            fullWidth
+            label={`${param.name.charAt(0).toUpperCase() + param.name.slice(1)}${param.required ? ' *' : ''}`}
+            type={isNumber ? "number" : "text"}
+            value={paramValue ?? ''}
+            onChange={handleConfigChange(param.name)}
+            required={param.required}
+            inputProps={isNumber ? { 
+              min: 0, 
+              step: getStepValue() 
+            } : {}}
+          />
+        </Grid>
+      );
+    };
+
+    const renderParameters = () => {
+      // Special case for price indicators and Number
+      if (indicator.name === 'Number') {
+        return (
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Value"
+              type="number"
+              value={modalConfig.value ?? 0}
+              onChange={handleConfigChange('value')}
+              inputProps={{ step: 'any' }}
+            />
+          </Grid>
+        );
+      }
+
+      if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(indicator.name)) {
+        return (
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Offset"
+              type="number"
+              value={modalConfig.offset ?? 0}
+              onChange={handleConfigChange('offset')}
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+        );
+      }
+
+      // Dynamic rendering based on indicators.json
+      const { indicators } = require('../../services/indicatorService');
+      const indicatorDef = indicators[indicator.name];
+      
+      if (!indicatorDef) {
+        // Fallback for indicators not found in indicators.json
+        return (
+          <>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Period"
+                type="number"
+                value={modalConfig.period ?? 14}
+                onChange={handleConfigChange('period')}
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Offset"
+                type="number"
+                value={modalConfig.offset ?? 0}
+                onChange={handleConfigChange('offset')}
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+          </>
+        );
+      }
+
+      // Render fields based on indicator definition
+      return indicatorDef.config.map(renderParameterField);
+    };
+
     return (
       <Dialog open={true} onClose={handleEditClose} maxWidth="xs" fullWidth>
         <DialogTitle>
@@ -703,362 +607,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             <Grid container spacing={2}>
-          {!['Number', 'OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME', 'VORTEX', 'DMI', 'FISHER', 'MFI', 'VWAP', 'PSAR'].includes(indicator.name) && (
-                <Grid item xs={12}>
-                  <Select
-                    label="Field"
-                    options={FIELD_OPTIONS}
-                    value={modalConfig.field ?? 'CLOSE'}
-                    onChange={(value) => {
-                      setModalConfig(prev => ({
-                        ...prev,
-                        field: value as string
-                      }));
-                    }}
-                    sx={{ width: '100%' }}
-                  />
-                </Grid>
-              )}
-              {indicator.name === 'SUPERTREND' ? (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Period"
-                      type="number"
-                      value={modalConfig.period ?? 10}
-                      onChange={handleConfigChange('period')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Multiplier"
-                      type="number"
-                      value={modalConfig.multiplier ?? 3}
-                      onChange={handleConfigChange('multiplier')}
-                      inputProps={{ min: 0, step: 0.1 }}
-                    />
-                  </Grid>
-                </>
-              ) : indicator.name === 'MACD' ? (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Fast Period"
-                      type="number"
-                      value={modalConfig.fastPeriod ?? 12}
-                      onChange={handleConfigChange('fastPeriod')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Slow Period"
-                      type="number"
-                      value={modalConfig.slowPeriod ?? 26}
-                      onChange={handleConfigChange('slowPeriod')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Signal Period"
-                      type="number"
-                      value={modalConfig.signalPeriod ?? 9}
-                      onChange={handleConfigChange('signalPeriod')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Offset"
-                      type="number"
-                      value={modalConfig.offset ?? 0}
-                      onChange={handleConfigChange('offset')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                </>
-              ) : indicator.name === 'VORTEX' || indicator.name === 'DMI' || indicator.name === 'FISHER' || indicator.name === 'MFI' ? (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Period"
-                      type="number"
-                      value={modalConfig.period ?? 14}
-                      onChange={handleConfigChange('period')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Offset"
-                      type="number"
-                      value={modalConfig.offset ?? 0}
-                      onChange={handleConfigChange('offset')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                </>
-              ) : indicator.name === 'BOLLINGER' ? (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Period"
-                      type="number"
-                      value={modalConfig.period ?? 20}
-                      onChange={handleConfigChange('period')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Deviations"
-                      type="number"
-                      value={modalConfig.deviations ?? 2}
-                      onChange={handleConfigChange('deviations')}
-                      inputProps={{ min: 0, step: 0.1 }}
-                    />
-                  </Grid>
-                </>
-              ) : indicator.name === 'LBB' ? (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Period"
-                      type="number"
-                      value={modalConfig.period ?? 20}
-                      onChange={handleConfigChange('period')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Deviations"
-                      type="number"
-                      value={modalConfig.deviations ?? 2}
-                      onChange={handleConfigChange('deviations')}
-                      inputProps={{ min: 0, step: 0.1 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Select
-                      label="Type"
-                      options={TYPE_OPTIONS}
-                      value={modalConfig.type ?? 'TRIPLE'}
-                      onChange={(value) => {
-                        setModalConfig(prev => ({
-                          ...prev,
-                          type: value as string
-                        }));
-                      }}
-                      sx={{ width: '100%' }}
-                    />
-                  </Grid>
-                </>
-              ) : indicator.name === 'KELTNER' ? (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Period"
-                      type="number"
-                      value={modalConfig.period ?? 20}
-                      onChange={handleConfigChange('period')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="ATR Period"
-                      type="number"
-                      value={modalConfig.atrPeriod ?? 10}
-                      onChange={handleConfigChange('atrPeriod')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Multiplier"
-                      type="number"
-                      value={modalConfig.multiplier ?? 2}
-                      onChange={handleConfigChange('multiplier')}
-                      inputProps={{ min: 0, step: 0.1 }}
-                    />
-                  </Grid>
-                </>
-              ) : indicator.name === 'PSAR' ? (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Acceleration Factor"
-                      type="number"
-                      value={modalConfig.accelerationFactor ?? 0.02}
-                      onChange={handleConfigChange('accelerationFactor')}
-                      inputProps={{ min: 0, step: 0.01 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Max Acceleration"
-                      type="number"
-                      value={modalConfig.maxAcceleration ?? 0.2}
-                      onChange={handleConfigChange('maxAcceleration')}
-                      inputProps={{ min: 0, step: 0.01 }}
-                    />
-                  </Grid>
-                </>
-              ) : indicator.name === 'TSI' ? (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Long Period"
-                      type="number"
-                      value={modalConfig.longPeriod ?? 25}
-                      onChange={handleConfigChange('longPeriod')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Short Period"
-                      type="number"
-                      value={modalConfig.shortPeriod ?? 13}
-                      onChange={handleConfigChange('shortPeriod')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Signal Period"
-                      type="number"
-                      value={modalConfig.signalPeriod ?? 13}
-                      onChange={handleConfigChange('signalPeriod')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                </>
-              ) : indicator.name === 'VO' ? (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Fast Period"
-                      type="number"
-                      value={modalConfig.fastPeriod ?? 14}
-                      onChange={handleConfigChange('fastPeriod')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Slow Period"
-                      type="number"
-                      value={modalConfig.slowPeriod ?? 28}
-                      onChange={handleConfigChange('slowPeriod')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                </>
-              ) : indicator.name === 'UO' ? (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Period 1"
-                      type="number"
-                      value={modalConfig.period1 ?? 7}
-                      onChange={handleConfigChange('period1')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Period 2"
-                      type="number"
-                      value={modalConfig.period2 ?? 14}
-                      onChange={handleConfigChange('period2')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Period 3"
-                      type="number"
-                      value={modalConfig.period3 ?? 28}
-                      onChange={handleConfigChange('period3')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                </>
-              ) : indicator.name === 'Number' ? (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Value"
-                    type="number"
-                    value={modalConfig.value ?? 0}
-                    onChange={handleConfigChange('value')}
-                    inputProps={{ step: 'any' }}
-                  />
-                </Grid>
-              ) : indicator.name === 'OPEN' || indicator.name === 'HIGH' || indicator.name === 'LOW' || indicator.name === 'CLOSE' || indicator.name === 'VOLUME' || indicator.name === 'VWAP' ? (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Offset"
-                    type="number"
-                    value={modalConfig.offset ?? 0}
-                    onChange={handleConfigChange('offset')}
-                    inputProps={{ min: 0 }}
-                  />
-                </Grid>
-              ) : (
-                <>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Period"
-                      type="number"
-                      value={modalConfig.period ?? 14}
-                      onChange={handleConfigChange('period')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Offset"
-                      type="number"
-                      value={modalConfig.offset ?? 0}
-                      onChange={handleConfigChange('offset')}
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
-                </>
-              )}
+              {renderParameters()}
             </Grid>
           </Box>
         </DialogContent>

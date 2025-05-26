@@ -402,7 +402,15 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             Maruti
           </Button>
 
-          {/* Docs - removed from top nav as per requirements */}
+          {/* Docs */}
+          <Button 
+            color="inherit" 
+            component={Link} 
+            href="/docs"
+            sx={{ fontSize: '1.1rem' }}
+          >
+            Docs
+          </Button>
         </Box>
         
         <Box sx={{ 
