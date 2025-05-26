@@ -11,12 +11,32 @@ import {
   Info
 } from '@mui/icons-material';
 import TradeChart from './TradeChart';
+import TradesTable from './TradesTable';
+
+interface Instrument {
+  id: number;
+  exchange: string;
+  segment: string;
+  symbol: string;
+  instrument: string;
+  instrument_id: number;
+  start_date: string;
+  expiry: string;
+}
+
+interface BacktestData {
+  message: string;
+  results: any[];
+  strategy_id?: string;
+}
 
 interface MetricsSectionProps {
   backtestResults: BacktestResult;
+  rawBacktestData?: BacktestData | null;
+  instruments?: Instrument[];
 }
 
-const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults }) => {
+const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBacktestData, instruments = [] }) => {
   const theme = useTheme();
   const metrics = backtestResults.aggregatedMetrics;
   const [animate, setAnimate] = useState(false);
@@ -170,6 +190,21 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults }) => {
           <TradeChart backtestResults={backtestResults} />
         </Box>
         
+        {/* Trades Table */}
+        {rawBacktestData && (
+          <Box sx={{
+            opacity: animate ? 1 : 0,
+            transition: 'opacity 0.8s ease-in',
+            transitionDelay: '400ms'
+          }}>
+            <TradesTable
+              backtestData={rawBacktestData}
+              instruments={instruments}
+              isVisible={true}
+            />
+          </Box>
+        )}
+
         <Grid container spacing={3}>
           {categories.map((category, index) => (
             <Grid 
