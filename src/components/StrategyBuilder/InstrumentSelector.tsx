@@ -23,7 +23,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 
 interface Instrument {
-  id: number;
+  exchange_security_id: number;
   exchange: string;
   segment: string;
   symbol: string;
@@ -37,7 +37,6 @@ interface Instrument {
   lotSize?: number;
   tickSize?: number;
   expiryDate?: string;
-  exchange_security_id?: number; // Added exchange_security_id property
 }
 
 interface InstrumentSelectorProps {
@@ -137,13 +136,12 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
           if (responseData.success && responseData.data && Array.isArray(responseData.data.data)) {
             // Map the API response to match our Instrument interface
             const mappedInstruments = responseData.data.data.map((item: any) => ({
-              id: item.instrumentToken || item.exchange_security_id, // Use exchange_security_id instead of id
+              exchange_security_id: item.exchange_security_id,
               exchange: item.exchange,
               segment: item.segment,
               symbol: item.tradingSymbol || item.symbol,
               instrument: item.name || item.tradingSymbol || item.symbol,
-              instrument_id: item.instrumentToken || item.exchange_security_id, // Use exchange_security_id
-              exchange_security_id: item.exchange_security_id, // Add the exchange_security_id field
+              instrument_id: item.instrumentToken || item.exchange_security_id,
               start_date: item.start_date || '',
               expiry: item.expiryDate || item.expiry || '',
               lotSize: item.lotSize,
@@ -230,10 +228,10 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
         <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           {tempSelected.map((instrument) => (
             <Chip
-              key={instrument.exchange_security_id || instrument.id}
+              key={instrument.exchange_security_id}
               label={`${instrument.symbol} - ${instrument.exchange}`}
               onDelete={() => {
-                setTempSelected(tempSelected.filter(item => (item.exchange_security_id || item.id) !== (instrument.exchange_security_id || instrument.id)));
+                setTempSelected(tempSelected.filter(item => item.exchange_security_id !== instrument.exchange_security_id));
               }}
               size="small"
               color="primary"
@@ -316,8 +314,8 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 {instruments.length > 0 ? (
                   <List dense>
                     {instruments.map((instrument, index) => {
-                      const labelId = `checkbox-list-label-${instrument.exchange_security_id || instrument.id}`;
-                      const isSelected = tempSelected.some(item => (item.exchange_security_id || item.id) === (instrument.exchange_security_id || instrument.id));
+                      const labelId = `checkbox-list-label-${instrument.exchange_security_id}`;
+                      const isSelected = tempSelected.some(item => item.exchange_security_id === instrument.exchange_security_id);
                       
                       // Add ref to the last element for infinite scrolling
                       const isLastElement = index === instruments.length - 1;
@@ -325,11 +323,11 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                       return (
                         <ListItem 
                           ref={isLastElement ? lastInstrumentElementRef : null}
-                          key={instrument.exchange_security_id || instrument.id}
+                          key={instrument.exchange_security_id}
                           dense
                           onClick={() => {
                             const newSelected = isSelected
-                              ? tempSelected.filter(item => (item.exchange_security_id || item.id) !== (instrument.exchange_security_id || instrument.id))
+                              ? tempSelected.filter(item => item.exchange_security_id !== instrument.exchange_security_id)
                               : [...tempSelected, instrument];
                             setTempSelected(newSelected);
                           }}
