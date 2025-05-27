@@ -224,6 +224,9 @@ interface BacktestRun {
   positions: BacktestPosition[] | null;
   metrics: BacktestMetric;
   exchange?: string;
+  instrument_master?: {
+    instrument_name: string;
+  };
 }
 
 interface BacktestData {
@@ -1400,7 +1403,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               
               return {
                 instrumentId: Number(run.instrument_id),
-                instrumentName: run.exchange || `Instrument ${run.instrument_id}`,
+                instrumentName: run.instrument_master?.instrument_name || `Instrument ${run.instrument_id}`,
                 totalTrades,
                 winningTrades,
                 losingTrades: totalTrades - winningTrades,

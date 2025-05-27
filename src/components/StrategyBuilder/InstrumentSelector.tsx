@@ -48,7 +48,6 @@ interface InstrumentSelectorProps {
 }
 
 const exchanges = ['NSE', 'BSE', 'MCX'];
-const segments = ['C', 'D', 'I'];
 
 const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   open,
@@ -59,7 +58,6 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
 }) => {
   const [tempSelected, setTempSelected] = useState<Instrument[]>(Array.isArray(selectedInstruments) ? selectedInstruments : []);
   const [selectedExchange, setSelectedExchange] = useState<string | null>(null);
-  const [selectedSegment, setSelectedSegment] = useState<string | null>(null);
   const [instruments, setInstruments] = useState<Instrument[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -90,12 +88,12 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   // Search functionality - only triggered when modal is open
   useEffect(() => {
     // Reset state when search parameters change
-    if (searchQuery || selectedExchange || selectedSegment) {
+    if (searchQuery || selectedExchange) {
       setInstruments([]);
       setPage(1);
       setHasMore(true);
     }
-  }, [searchQuery, selectedExchange, selectedSegment]);
+  }, [searchQuery, selectedExchange]);
 
   useEffect(() => {
     if (!open) {
@@ -118,10 +116,6 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
         
         if (selectedExchange) {
           queryParams.append('exchange', selectedExchange);
-        }
-        
-        if (selectedSegment) {
-          queryParams.append('segment', selectedSegment);
         }
         
         if (searchQuery) {
@@ -183,14 +177,13 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
       active = false;
       clearTimeout(debounceTimeout);
     };
-  }, [selectedExchange, selectedSegment, page, searchQuery, open, pageSize, hasMore]);
+  }, [selectedExchange, page, searchQuery, open, pageSize, hasMore]);
 
   const handleClose = () => {
     setPage(1);
     setSearchQuery('');
     setInstruments([]);
     setSelectedExchange(null);
-    setSelectedSegment(null);
     setHasMore(true);
     setTempSelected(Array.isArray(selectedInstruments) ? selectedInstruments : []); // Reset to original selection
     onClose();
@@ -253,7 +246,6 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 value={selectedExchange}
                 onChange={(_, newValue) => {
                   setSelectedExchange(newValue);
-                  setSelectedSegment(null);
                   setPage(1);
                 }}
                 renderInput={(params) => (
@@ -266,25 +258,10 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <Autocomplete
-                disablePortal
-                options={segments}
-                value={selectedSegment}
-                onChange={(_, newValue) => {
-                  setSelectedSegment(newValue);
-                  setPage(1);
-                }}
-                disabled={!selectedExchange}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    variant="outlined"
-                    label="Filter by Segment"
-                    placeholder="Select segment"
-                  />
-                )}
-              />
+            <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Button onClick={handleSelect} variant="contained" color="primary" size="large">
+                Select {tempSelected.length > 0 ? `(${tempSelected.length})` : ''}
+              </Button>
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -390,11 +367,8 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
         </Box>
         
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 2, borderTop: 1, borderColor: 'divider' }}>
-          <Button onClick={handleClose} color="inherit" sx={{ mr: 1 }}>
+          <Button onClick={handleClose} color="inherit">
             Cancel
-          </Button>
-          <Button onClick={handleSelect} variant="contained" color="primary">
-            Select {tempSelected.length > 0 ? `(${tempSelected.length})` : ''}
           </Button>
         </Box>
       </Box>
