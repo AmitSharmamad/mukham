@@ -163,6 +163,68 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
   const [showIndicatorList1, setShowIndicatorList1] = useState(false);
   const [showIndicatorList2, setShowIndicatorList2] = useState(false);
 
+  // Validation function to check if form is valid
+  const isFormValid = () => {
+    if (!editingIndicator) {
+      return false;
+    }
+
+    const { indicators } = require('../../services/indicatorService');
+    const indicatorDef = indicators[editingIndicator.indicator.name];
+
+    // Handle special cases for indicators not in indicators.json
+    if (!indicatorDef) {
+      // For price indicators (OPEN, HIGH, LOW, CLOSE, VOLUME), offset field validation
+      if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(editingIndicator.indicator.name)) {
+        // Check if offset field is empty when user has interacted with it
+        const offset = modalConfig.offset;
+        
+        // If user has set the offset field to empty string, consider it invalid
+        if (modalConfig.hasOwnProperty('offset') && (offset === '' || offset === null || offset === undefined)) {
+          return false;
+        }
+        
+        return true;
+      }
+      
+      // For Number indicator, value is required
+      if (editingIndicator.indicator.name === 'Number') {
+        const value = modalConfig.value;
+        return value !== undefined && String(value).trim() !== '' && value !== null;
+      }
+      
+      // For other indicators, period is typically required
+      const period = modalConfig.period;
+      return period !== undefined && String(period).trim() !== '' && period !== null;
+    }
+
+    // For indicators defined in indicators.json, check required fields
+    // Since indicators.json doesn't have explicit 'required' flags, we'll define
+    // commonly required fields based on the parameter name and type
+    for (const param of indicatorDef.config) {
+      const value = modalConfig[param.name];
+      
+      // Define which parameters should be considered required
+      const isRequiredParam = 
+        param.name === 'period' || // Period is almost always required for indicators
+        param.name === 'value' ||  // Value is required for Number indicators
+        (param.required === true); // Explicit required flag if it exists
+      
+      if (isRequiredParam) {
+        if (value === undefined || String(value).trim() === '' || value === null) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  };
+
+  // Memoized validation result that updates when modalConfig changes
+  const isFormValidMemo = useMemo(() => {
+    return isFormValid();
+  }, [modalConfig, editingIndicator]);
+
   // Filter indicators based on search query
   const filteredIndicators1 = useMemo(() => {
     return INDICATORS.filter(indicator => 
@@ -246,6 +308,13 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
 
   const handleEditSave = () => {
     if (editingIndicator) {
+      // Validate the form before saving
+      const isValid = isFormValidMemo;
+      if (!isValid) {
+        window.alert('Please fill in all required fields.');
+        return;
+      }
+      
       onChange({
         ...value,
         [editingIndicator.field]: {
@@ -272,9 +341,18 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
       return param && param.type === 'string';
     };
 
+    let value;
+    if (isStringParameter()) {
+      value = e.target.value;
+    } else {
+      // For number parameters, if the value is empty, keep it as empty string
+      // Otherwise convert to number
+      value = e.target.value === '' ? '' : Number(e.target.value);
+    }
+
     setModalConfig(prev => ({
       ...prev,
-      [key]: isStringParameter() ? e.target.value : Number(e.target.value)
+      [key]: value
     }));
   };
 
@@ -482,7 +560,15 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
     const { indicators, getParameterOptions } = require('../../services/indicatorService');
 
     const renderParameterField = (param: { name: string; type: string; enum?: string[]; default?: any; required?: boolean }) => {
-      const paramValue = modalConfig[param.name] !== undefined ? modalConfig[param.name] : param.default;
+      // If the parameter exists in modalConfig, use it (including empty strings)
+      // Only use default if the parameter has never been set
+      const paramValue = modalConfig.hasOwnProperty(param.name) ? modalConfig[param.name] : param.default;
+      
+      // Define which parameters should be considered required
+      const isRequiredParam = 
+        param.name === 'period' || // Period is almost always required for indicators
+        param.name === 'value' ||  // Value is required for Number indicators
+        (param.required === true); // Explicit required flag if it exists
       
       // If parameter has enum options, render a select
       if (param.enum) {
@@ -490,7 +576,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
         return (
           <Grid item xs={12} key={param.name}>
             <Select
-              label={`${param.name.charAt(0).toUpperCase() + param.name.slice(1)}${param.required ? ' *' : ''}`}
+              label={`${param.name.charAt(0).toUpperCase() + param.name.slice(1)}${isRequiredParam ? ' *' : ''}`}
               options={options}
               value={paramValue}
               onChange={(value) => {
@@ -517,11 +603,11 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
         <Grid item xs={12} key={param.name}>
           <TextField
             fullWidth
-            label={`${param.name.charAt(0).toUpperCase() + param.name.slice(1)}${param.required ? ' *' : ''}`}
+            label={`${param.name.charAt(0).toUpperCase() + param.name.slice(1)}${isRequiredParam ? ' *' : ''}`}
             type={isNumber ? "number" : "text"}
             value={paramValue ?? ''}
             onChange={handleConfigChange(param.name)}
-            required={param.required}
+            required={isRequiredParam}
             inputProps={isNumber ? { 
               min: 0, 
               step: getStepValue() 
@@ -538,11 +624,12 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Value"
+              label="Value *"
               type="number"
-              value={modalConfig.value ?? 0}
+              value={modalConfig.value ?? ''}
               onChange={handleConfigChange('value')}
               inputProps={{ step: 'any' }}
+              required
             />
           </Grid>
         );
@@ -553,11 +640,12 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Offset"
+              label="Offset *"
               type="number"
-              value={modalConfig.offset ?? 0}
+              value={modalConfig.hasOwnProperty('offset') ? modalConfig.offset : ''}
               onChange={handleConfigChange('offset')}
               inputProps={{ min: 0 }}
+              required
             />
           </Grid>
         );
@@ -576,7 +664,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                 fullWidth
                 label="Period"
                 type="number"
-                value={modalConfig.period ?? 14}
+                value={modalConfig.hasOwnProperty('period') ? modalConfig.period : 14}
                 onChange={handleConfigChange('period')}
                 inputProps={{ min: 0 }}
               />
@@ -586,7 +674,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                 fullWidth
                 label="Offset"
                 type="number"
-                value={modalConfig.offset ?? 0}
+                value={modalConfig.hasOwnProperty('offset') ? modalConfig.offset : ''}
                 onChange={handleConfigChange('offset')}
                 inputProps={{ min: 0 }}
               />
@@ -613,7 +701,20 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
         </DialogContent>
         <DialogActions>
           <Button onClick={handleEditClose} color="inherit">Cancel</Button>
-          <Button onClick={handleEditSave} variant="contained">Save</Button>
+          <Tooltip 
+            title={!isFormValidMemo ? "Please fill in all required fields (marked with *)" : ""}
+            disableHoverListener={isFormValidMemo}
+          >
+            <span>
+              <Button 
+                onClick={handleEditSave} 
+                variant="contained"
+                disabled={!isFormValidMemo}
+              >
+                Save
+              </Button>
+            </span>
+          </Tooltip>
         </DialogActions>
       </Dialog>
     );

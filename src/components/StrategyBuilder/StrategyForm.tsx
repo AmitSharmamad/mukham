@@ -51,7 +51,7 @@ import { BacktestResult } from '../../types/strategy';
 import { createDeployment, ApiResponse } from '../../services/deploymentService';
 
 export interface Instrument {
-  id: number;
+  exchange_security_id: number;
   exchange: string;
   segment: string;
   symbol: string;
@@ -224,6 +224,9 @@ interface BacktestRun {
   positions: BacktestPosition[] | null;
   metrics: BacktestMetric;
   exchange?: string;
+  instrument_master?: {
+    instrument_name: string;
+  };
 }
 
 interface BacktestData {
@@ -396,7 +399,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const fetchInstrumentsByIds = async (instrumentIds: number[]): Promise<Instrument[]> => {
     try {
-      const response = await fetch(`/api/instrument-master/by-ids?ids=${instrumentIds.join(',')}`, {
+      const response = await fetch(`/api/instrument-master/by-exchange-security-ids?exchange_security_ids=${instrumentIds.join(',')}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -739,7 +742,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const handleInstrumentSelect = (instruments: Instrument[]) => {
     setSelectedInstruments(instruments);
-    handleChange('instruments')(instruments.map(i => i.id));
+    handleChange('instruments')(instruments.map(i => i.exchange_security_id));
   };
 
   const isSectionComplete = (sectionId: string): boolean => {
@@ -857,12 +860,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                 <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                   {selectedInstruments.map((instrument) => (
                     <Chip
-                      key={instrument.id}
+                      key={instrument.exchange_security_id}
                       label={instrument.symbol}
                       onDelete={() => {
-                        const newInstruments = selectedInstruments.filter(i => i.id !== instrument.id);
+                        const newInstruments = selectedInstruments.filter(i => i.exchange_security_id !== instrument.exchange_security_id);
                         setSelectedInstruments(newInstruments);
-                        handleChange('instruments')(newInstruments.map(i => i.id));
+                        handleChange('instruments')(newInstruments.map(i => i.exchange_security_id));
                       }}
                     />
                   ))}
@@ -1252,7 +1255,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         // Make sure we have the instrument IDs correctly set in formData before sending
         if (selectedInstruments.length > 0) {
           // Update formData.instruments with the correct instrument IDs from selectedInstruments
-          const instrumentIds = selectedInstruments.map(instrument => instrument.id);
+          const instrumentIds = selectedInstruments.map(instrument => instrument.exchange_security_id);
           setFormData(prev => ({
             ...prev,
             instruments: instrumentIds
@@ -1400,7 +1403,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               
               return {
                 instrumentId: Number(run.instrument_id),
-                instrumentName: run.exchange || `Instrument ${run.instrument_id}`,
+                instrumentName: run.instrument_master?.instrument_name || `Instrument ${run.instrument_id}`,
                 totalTrades,
                 winningTrades,
                 losingTrades: totalTrades - winningTrades,

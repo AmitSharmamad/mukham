@@ -158,7 +158,7 @@ export const ChatMessage = ({ content, isUser, timestamp }: ChatMessageProps) =>
             }}
           >
             <Image 
-              src="/assets/hanuman.jpg" 
+              src="/hanuman.jpg" 
               alt="Maruti" 
               width={24} 
               height={24} 

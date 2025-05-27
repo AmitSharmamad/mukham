@@ -8,7 +8,7 @@ import { mapTimeframeToDisplay } from '../../constants';
 import { checkPageAuth } from '../../utils/pageAuthUtils';
 
 interface Instrument {
-  id: number;
+  exchange_security_id: number;
   exchange: string;
   segment: string;
   symbol: string;
@@ -53,7 +53,7 @@ export default function EditStrategy() {
 
   const fetchInstrumentDetails = useCallback(async (instrumentIds: number[]): Promise<void> => {
     try {
-      const response = await fetch(`/api/instrument-master/by-ids?ids=${instrumentIds.join(',')}`);
+      const response = await fetch(`/api/instrument-master/by-exchange-security-ids?exchange_security_ids=${instrumentIds.join(',')}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
