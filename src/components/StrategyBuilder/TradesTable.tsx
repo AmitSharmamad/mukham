@@ -32,6 +32,7 @@ interface BacktestPosition {
   exit_time_order: string;
   exit_reason: string;
   profit_loss_absolute: number;
+  position_size: number;
 }
 
 interface Instrument {
@@ -68,7 +69,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
   const [maxPnL, setMaxPnL] = useState<string>('');
 
   // Sorting state
-  const [sortBy, setSortBy] = useState<'entryTime' | 'exitTime' | 'profitLoss'>('entryTime');
+  const [sortBy, setSortBy] = useState<'entryTime' | 'exitTime' | 'profitLoss' | 'positionSize'>('entryTime');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Create instrument options for the dropdown
@@ -184,6 +185,9 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
         case 'profitLoss':
           comparison = a.profit_loss_absolute - b.profit_loss_absolute;
           break;
+        case 'positionSize':
+          comparison = a.position_size - b.position_size;
+          break;
         default:
           comparison = 0;
       }
@@ -222,7 +226,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
     setMaxPnL('');
   };
 
-  const handleSort = (column: 'entryTime' | 'exitTime' | 'profitLoss') => {
+  const handleSort = (column: 'entryTime' | 'exitTime' | 'profitLoss' | 'positionSize') => {
     if (sortBy === column) {
       // Toggle sort order if clicking the same column
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -479,6 +483,17 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
                 </TableCell>
                 <TableCell align="right">
                   <TableSortLabel
+                    active={sortBy === 'positionSize'}
+                    direction={sortBy === 'positionSize' ? sortOrder : 'asc'}
+                    onClick={() => handleSort('positionSize')}
+                  >
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      Position Size
+                    </Typography>
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel
                     active={sortBy === 'profitLoss'}
                     direction={sortBy === 'profitLoss' ? sortOrder : 'asc'}
                     onClick={() => handleSort('profitLoss')}
@@ -540,6 +555,11 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
                       }
                       sx={{ fontSize: '0.7rem', height: '24px' }}
                     />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2">
+                      {position.position_size.toLocaleString()}
+                    </Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography 
