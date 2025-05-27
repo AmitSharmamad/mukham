@@ -174,7 +174,7 @@ export const ChatContainer = ({
               >
                 <Avatar sx={{ width: 30, height: 30 }}>
                   <Image 
-                    src="/assets/hanuman.jpg" 
+                    src="/hanuman.jpg" 
                     alt="Maruti" 
                     width={30} 
                     height={30} 

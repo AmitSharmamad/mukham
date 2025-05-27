@@ -206,7 +206,7 @@ export const ChatHistory = ({
         >
           <Avatar sx={{ width: 24, height: 24 }}>
             <Image 
-              src="/assets/hanuman.jpg" 
+              src="/hanuman.jpg" 
               alt="Maruti" 
               width={24} 
               height={24} 

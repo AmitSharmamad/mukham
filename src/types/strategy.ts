@@ -34,7 +34,7 @@ export interface StrategyResponse {
 }
 
 export interface Instrument {
-  id: number;
+  exchange_security_id: number;
   exchange: string;
   segment: string;
   symbol: string;

@@ -14,7 +14,7 @@ import TradeChart from './TradeChart';
 import TradesTable from './TradesTable';
 
 interface Instrument {
-  id: number;
+  exchange_security_id: number;
   exchange: string;
   segment: string;
   symbol: string;

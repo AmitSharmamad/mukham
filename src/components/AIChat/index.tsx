@@ -82,7 +82,7 @@ export const AIChat: React.FC = () => {
         >
           <Avatar sx={{ width: 40, height: 40 }}>
             <Image 
-              src="/assets/hanuman.jpg" 
+              src="/hanuman.jpg" 
               alt="Maruti" 
               width={40} 
               height={40} 
@@ -126,7 +126,7 @@ export const AIChat: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Avatar sx={{ mr: 1, width: 32, height: 32 }}>
                 <Image 
-                  src="/assets/hanuman.jpg" 
+                  src="/hanuman.jpg" 
                   alt="Maruti" 
                   width={32} 
                   height={32} 
