@@ -81,11 +81,11 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
       .filter(run => run.positions && run.positions.length > 0)
       .map(run => {
         const instrumentId = Number(run.instrument_id);
-        // Use instrument_master from API response first, then fallback to instruments prop
-        const instrumentName = run.instrument_master?.instrument_name || 
-          instruments.find(inst => inst.instrument_id === instrumentId)?.symbol || 
-          `Instrument ${instrumentId}`;
-        
+        // Enhanced fallback logic: use instruments prop symbol if instrument_master is not available
+        const instrumentName = run.instrument_master?.instrument_name ||
+          instruments.find(inst => inst.instrument_id === instrumentId)?.symbol ||
+          instruments.find(inst => inst.exchange_security_id === instrumentId)?.symbol ||
+          `Instrument ${run.instrument_id}`;
         return {
           id: instrumentId,
           name: instrumentName,
@@ -123,11 +123,11 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
         .filter(run => run.positions && run.positions.length > 0)
         .flatMap(run => {
           const instrumentId = Number(run.instrument_id);
-          // Use instrument_master from API response first, then fallback to instruments prop
-          const instrumentName = run.instrument_master?.instrument_name || 
-            instruments.find(inst => inst.instrument_id === instrumentId)?.symbol || 
-            `Instrument ${instrumentId}`;
-          
+          // Enhanced fallback logic: use instruments prop symbol if instrument_master is not available
+          const instrumentName = run.instrument_master?.instrument_name ||
+            instruments.find(inst => inst.instrument_id === instrumentId)?.symbol ||
+            instruments.find(inst => inst.exchange_security_id === instrumentId)?.symbol ||
+            `Instrument ${run.instrument_id}`;
           return run.positions!.map(position => ({
             ...position,
             instrumentName,
@@ -142,10 +142,11 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
       
       if (selectedRun && selectedRun.positions) {
         const instrumentId = Number(selectedRun.instrument_id);
-        // Use instrument_master from API response first, then fallback to instruments prop
-        const instrumentName = selectedRun.instrument_master?.instrument_name || 
-          instruments.find(inst => inst.instrument_id === instrumentId)?.symbol || 
-          `Instrument ${instrumentId}`;
+        // Enhanced fallback logic: use instruments prop symbol if instrument_master is not available
+        const instrumentName = selectedRun.instrument_master?.instrument_name ||
+          instruments.find(inst => inst.instrument_id === instrumentId)?.symbol ||
+          instruments.find(inst => inst.exchange_security_id === instrumentId)?.symbol ||
+          `Instrument ${selectedRun.instrument_id}`;
         
         positions = selectedRun.positions.map(position => ({
           ...position,
