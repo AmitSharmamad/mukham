@@ -27,6 +27,7 @@ import Add from '@mui/icons-material/Add';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import Cancel from '@mui/icons-material/Cancel';
+import Refresh from '@mui/icons-material/Refresh';
 import dayjs, { Dayjs } from 'dayjs';
 import { Button } from '../Button';
 import { Select } from '../Select';
@@ -349,6 +350,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const { showToast, showSuccess, showError } = useToastContext();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showBacktestResults, setShowBacktestResults] = useState(false);
+  const [deploymentStatuses, setDeploymentStatuses] = useState<Map<number, boolean>>(new Map());
 
   useEffect(() => {
     if (initialData) {
@@ -1489,6 +1491,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                       };
                       setBacktestResults(transformedResults);
                       setShowBacktestResults(true);
+                      
+                      // Check deployment status for all instruments in the backtest results
+                      const instrumentIds = transformedResults.results.map(r => r.instrumentId);
+                      await checkDeploymentStatus(transformedResults.strategyId, instrumentIds);
                     }
                   }
                 } catch (error) {
@@ -1556,6 +1562,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         isActive: true
       });
 
+      // Update deployment status for this instrument
+      const newDeploymentStatuses = new Map(deploymentStatuses);
+      newDeploymentStatuses.set(instrumentId, true);
+      setDeploymentStatuses(newDeploymentStatuses);
+
       showSuccess(
         `Strategy deployed successfully for ${instrumentName}`,
         'Your strategy is now live and will execute trades based on your defined conditions.'
@@ -1578,39 +1589,43 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     if (!backtestResults) return;
     
     try {
-      // Set all instruments as deploying
-      const allInstrumentIds = backtestResults.results.map(r => r.instrumentId);
-      setDeployingInstruments(new Set(allInstrumentIds));
+      // Filter out instruments that are already deployed
+      const instrumentsToDeployIds = backtestResults.results
+        .filter(result => !deploymentStatuses.get(result.instrumentId))
+        .map(result => result.instrumentId);
+      
+      if (instrumentsToDeployIds.length === 0) {
+        showToast('All instruments are already deployed', 'info');
+        return;
+      }
+      
+      // Set only undeployed instruments as deploying
+      setDeployingInstruments(new Set(instrumentsToDeployIds));
       
       const strategyId = initialData?.id || '';
       
-      // Call the deploy all API endpoint
-      const response = await fetch(`/api/deployment/all?strategy_id=${strategyId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      // Deploy each undeployed instrument individually
+      const deploymentPromises = backtestResults.results
+        .filter(result => !deploymentStatuses.get(result.instrumentId))
+        .map(result => createDeployment({
+          strategy_id: strategyId,
+          instrument_id: result.instrumentId,
+          name: `${formData.name} - ${result.instrumentName}`,
+          description: formData.description,
+          isActive: true
+        }));
+      
+      await Promise.all(deploymentPromises);
+      
+      // Update deployment statuses for newly deployed instruments
+      const newDeploymentStatuses = new Map(deploymentStatuses);
+      instrumentsToDeployIds.forEach(instrumentId => {
+        newDeploymentStatuses.set(instrumentId, true);
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      // Deploy each instrument individually as a fallback
-      if (response.status !== 200) {
-        for (const result of backtestResults.results) {
-          await createDeployment({
-            strategy_id: strategyId,
-            instrument_id: result.instrumentId,
-            name: `${formData.name} - ${result.instrumentName}`,
-            description: formData.description,
-            isActive: true
-          });
-        }
-      }
+      setDeploymentStatuses(newDeploymentStatuses);
       
       showSuccess(
-        'All strategies deployed successfully',
+        `${instrumentsToDeployIds.length} strategies deployed successfully`,
         'Your strategies are now live and will execute trades based on your defined conditions.'
       );
       
@@ -1628,6 +1643,53 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     } finally {
       setDeployingInstruments(new Set());
     }
+  };
+
+  const checkDeploymentStatus = async (strategyId: string, instrumentIds: number[], retryCount = 0) => {
+    const maxRetries = 2;
+    
+    try {
+      if (!strategyId || instrumentIds.length === 0) return;
+      
+      const instrumentsParam = instrumentIds.join(',');
+      const response = await fetch(`/api/deployment/strategy/${strategyId}/status?instruments=${instrumentsParam}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.data && data.data.instruments) {
+        const statusMap = new Map<number, boolean>();
+        data.data.instruments.forEach((item: any) => {
+          statusMap.set(item.instrument_id, item.has_deployment);
+        });
+        setDeploymentStatuses(statusMap);
+      } else {
+        throw new Error('Invalid response format from deployment status API');
+      }
+    } catch (error) {
+      console.error('Error checking deployment status:', error);
+      
+      // Retry logic
+      if (retryCount < maxRetries) {
+        console.log(`Retrying deployment status check... (${retryCount + 1}/${maxRetries})`);
+        setTimeout(() => {
+          checkDeploymentStatus(strategyId, instrumentIds, retryCount + 1);
+        }, 1000 * (retryCount + 1)); // Exponential backoff
+      } else {
+        // Show user-friendly error message only after all retries fail
+        showToast('Unable to check deployment status. Please refresh to see latest status.', 'warning');
+      }
+    }
+  };
+
+  const refreshDeploymentStatus = async () => {
+    if (!backtestResults || !initialData?.id) return;
+    
+    const instrumentIds = backtestResults.results.map(r => r.instrumentId);
+    await checkDeploymentStatus(initialData.id, instrumentIds);
   };
 
   const renderBacktestResults = () => {
@@ -1669,7 +1731,18 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
     return (
       <Box ref={backtestResultsRef} sx={{ mt: 4 }}>
-        <Typography variant="h6" gutterBottom>Backtest Results</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6">Backtest Results</Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={refreshDeploymentStatus}
+            startIcon={<Refresh />}
+            sx={{ ml: 2 }}
+          >
+            Refresh Status
+          </Button>
+        </Box>
         <TableContainer 
           component={Paper}
           sx={{ 
@@ -1723,16 +1796,35 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.maxDrawdown.toFixed(2)}%</strong></TableCell>
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.sharpeRatio.toFixed(2)}</strong></TableCell>
                 <TableCell align="center">
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={handleDeployAll}
-                    disabled={deployingInstruments.size > 0}
-                  >
-                    {deployingInstruments.size > 0 ? (
-                      <CircularProgress size={20} />
-                    ) : 'Deploy All'}
-                  </Button>
+                  {(() => {
+                    const undeployedCount = backtestResults.results.filter(
+                      result => !deploymentStatuses.get(result.instrumentId)
+                    ).length;
+                    
+                    if (undeployedCount === 0) {
+                      return (
+                        <Chip
+                          label="All Deployed"
+                          color="success"
+                          size="small"
+                          variant="filled"
+                        />
+                      );
+                    }
+                    
+                    return (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={handleDeployAll}
+                        disabled={deployingInstruments.size > 0}
+                      >
+                        {deployingInstruments.size > 0 ? (
+                          <CircularProgress size={20} />
+                        ) : `Deploy ${undeployedCount === backtestResults.results.length ? 'All' : undeployedCount}`}
+                      </Button>
+                    );
+                  })()}
                 </TableCell>
               </TableRow>
               {backtestResults.results.map((result) => (
@@ -1760,19 +1852,28 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                     <TableCell align="right">{result.maxDrawdown.toFixed(2)}%</TableCell>
                     <TableCell align="right">{result.sharpeRatio.toFixed(2)}</TableCell>
                     <TableCell align="center">
-                      <Button
-                        variant="contained"
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent row click
-                          handleDeploy(result.instrumentId);
-                        }}
-                        disabled={deployingInstruments.has(result.instrumentId)}
-                      >
-                        {deployingInstruments.has(result.instrumentId) ? (
-                          <CircularProgress size={20} />
-                        ) : 'Deploy'}
-                      </Button>
+                      {deploymentStatuses.get(result.instrumentId) ? (
+                        <Chip
+                          label="Deployed"
+                          color="success"
+                          size="small"
+                          variant="filled"
+                        />
+                      ) : (
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent row click
+                            handleDeploy(result.instrumentId);
+                          }}
+                          disabled={deployingInstruments.has(result.instrumentId)}
+                        >
+                          {deployingInstruments.has(result.instrumentId) ? (
+                            <CircularProgress size={20} />
+                          ) : 'Deploy'}
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 </React.Fragment>
