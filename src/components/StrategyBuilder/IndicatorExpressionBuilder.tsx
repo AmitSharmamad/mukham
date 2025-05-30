@@ -141,15 +141,10 @@ const getExpressionText = (conditions: IndicatorExpression[]): string => {
       const exp1 = getIndicatorString(condition.indicator1);
       const exp2 = getIndicatorString(condition.indicator2);
 
-      let expression = `${exp1} ${condition.operator} ${exp2}`;
-      
-      if (index < conditions.length - 1 && condition.logicalOperator) {
-        expression += ` ${condition.logicalOperator}`;
-      }
-      
-      return expression;
+      return `${exp1} ${condition.operator} ${exp2}`;
     })
-    .join(' ');
+    .filter(expr => expr.trim()) // Remove empty expressions
+    .join(` ${conditions[0]?.logicalOperator || 'AND'} `);
 };
 
 const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: IndicatorComponentProps) => {

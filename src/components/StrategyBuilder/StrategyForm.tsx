@@ -27,6 +27,7 @@ import Add from '@mui/icons-material/Add';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import Cancel from '@mui/icons-material/Cancel';
+import Refresh from '@mui/icons-material/Refresh';
 import dayjs, { Dayjs } from 'dayjs';
 import { Button } from '../Button';
 import { Select } from '../Select';
@@ -349,6 +350,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const { showToast, showSuccess, showError } = useToastContext();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showBacktestResults, setShowBacktestResults] = useState(false);
+  const [deploymentStatuses, setDeploymentStatuses] = useState<Map<number, boolean>>(new Map());
 
   useEffect(() => {
     if (initialData) {
@@ -1248,6 +1250,13 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const handleSave = async () => {
     setAttemptedSubmit(true);
+    
+    if (!isFormValid()) {
+      // If form is not valid, expand the first incomplete section to guide the user
+      expandFirstIncompleteSection();
+      return;
+    }
+    
     if (validateForm()) {
       try {
         setLoading(true);
@@ -1301,8 +1310,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               setFormData(prev => ({ ...prev, id: result.data.id }));
             }
             
-            // Redirect to the strategy edit page with the correct ID
-            if (strategyId) {
+            // Only redirect to the strategy edit page if this is a new strategy creation
+            if (strategyId && !isEdit) {
               router.push(`/strategy/${strategyId}`);
             }
             
@@ -1363,109 +1372,174 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           throw new Error('Cannot backtest: No valid strategy ID found');
         }
         
-        // Make the API call to run backtest using the current strategy ID
+        // Create SSE connection for backtest using POST data
+        const formDataToSend = convertFormToApiData(formData);
+        
+        // First, send the POST request to initiate the backtest and handle SSE stream directly
         const response = await fetch(`/api/backtest/run?strategy_id=${currentStrategyId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(convertFormToApiData(formData))
+          body: JSON.stringify(formDataToSend),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        if (!response.ok || !response.body) {
+          throw new Error(`Failed to start backtest: ${response.statusText}`);
         }
 
-        const backtestData: BacktestData = await response.json();
-        
-        // Store raw backtest data for TradesTable
-        setRawBacktestData(backtestData);
-        
-        if (backtestData && backtestData.results) {
-          // Filter out any runs with null metrics or instrument_id = 0 (aggregated metrics)
-          const validRuns = backtestData.results.filter(run => 
-            run.metrics && String(run.instrument_id) !== "0");
-          
-          // Transform the API response to match our BacktestResult interface
-          const transformedResults: BacktestResult = {
-            strategyId: backtestData.strategy_id || initialData?.id || '',
-            results: validRuns.map((run: BacktestRun) => {
-              // Calculate winning trades by counting positions with positive P&L
-              const winningTrades = run.positions ? 
-                run.positions.filter(pos => pos.profit_loss_absolute > 0).length : 0;
-              
-              // Count total trades from positions or fallback to metrics
-              const totalTrades = run.positions ? run.positions.length : run.metrics.total_trades;
-              
-              // Calculate win rate based on winning trades and total trades
-              const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;
-              
-              return {
-                instrumentId: Number(run.instrument_id),
-                instrumentName: run.instrument_master?.instrument_name || `Instrument ${run.instrument_id}`,
-                totalTrades,
-                winningTrades,
-                losingTrades: totalTrades - winningTrades,
-                winRate,
-                profitFactor: run.metrics.profit_factor || 0,
-                totalPnL: run.metrics.total_return_pct,
-                maxDrawdown: run.metrics.max_drawdown,
-                sharpeRatio: run.metrics.sharpe_ratio
-              };
-            }),
-            aggregatedMetrics: {
-              instrumentId: 0,
-              instrumentName: 'Total',
-              totalTrades: validRuns.reduce((sum: number, run: BacktestRun) => 
-                sum + (run.positions ? run.positions.length : run.metrics.total_trades), 0),
-              winningTrades: validRuns.reduce((sum: number, run: BacktestRun) => {
-                if (run.positions) {
-                  return sum + run.positions.filter(pos => pos.profit_loss_absolute > 0).length;
+        // Read and parse SSE events from the response stream
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        let backtestData: BacktestData | null = null;
+        let done = false;
+
+        while (!done) {
+          const { value, done: streamDone } = await reader.read();
+          done = streamDone;
+          if (value) {
+            buffer += decoder.decode(value, { stream: true });
+            let eventBoundary;
+            while ((eventBoundary = buffer.indexOf('\n\n')) !== -1) {
+              const rawEvent = buffer.slice(0, eventBoundary);
+              buffer = buffer.slice(eventBoundary + 2);
+              // Parse SSE event
+              const lines = rawEvent.split('\n');
+              let eventType = '';
+              let eventData = '';
+              for (const line of lines) {
+                if (line.startsWith('event:')) {
+                  eventType = line.replace('event:', '').trim();
+                } else if (line.startsWith('data:')) {
+                  eventData += line.replace('data:', '').trim();
                 }
-                return sum;
-              }, 0),
-              losingTrades: validRuns.reduce((sum: number, run: BacktestRun) => {
-                if (run.positions) {
-                  return sum + run.positions.filter(pos => pos.profit_loss_absolute <= 0).length;
-                }
-                return sum;
-              }, 0),
-              winRate: validRuns.length > 0 ? 
-                validRuns.reduce((sum: number, run: BacktestRun) => {
-                  if (run.positions) {
-                    const winningPositions = run.positions.filter(pos => pos.profit_loss_absolute > 0).length;
-                    const winRate = run.positions.length > 0 ? winningPositions / run.positions.length : 0;
-                    return sum + winRate;
+              }
+              if (eventType === 'results') {
+                try {
+                  const rawData = JSON.parse(eventData);
+                  if (rawData && rawData.results) {
+                    backtestData = {
+                      message: rawData.message || 'Backtest completed',
+                      strategy_id: rawData.strategy_id || '',
+                      results: rawData.results.map((item: any) => ({
+                        instrument_id: item.instrument_id,
+                        instrument_master: item.instrument_master,
+                        positions: item.positions || [],
+                        metrics: item.metrics || {}
+                      }))
+                    };
+                    setRawBacktestData(backtestData);
+                    if (backtestData && backtestData.results) {
+                      const validRuns = backtestData.results.filter(run => run.metrics && String(run.instrument_id) !== "0");
+                      const transformedResults: BacktestResult = {
+                        strategyId: backtestData.strategy_id || initialData?.id || '',
+                        results: validRuns.map((run: BacktestRun) => {
+                          const winningTrades = run.positions ? run.positions.filter(pos => pos.profit_loss_absolute > 0).length : 0;
+                          const totalTrades = run.positions ? run.positions.length : run.metrics.total_trades;
+                          const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;
+                          const instrumentId = Number(run.instrument_id);
+                          // Enhanced fallback logic: use selectedInstruments symbol if instrument_master is not available
+                          const instrumentName = run.instrument_master?.instrument_name ||
+                            selectedInstruments.find(inst => inst.instrument_id === instrumentId)?.symbol ||
+                            selectedInstruments.find(inst => inst.exchange_security_id === instrumentId)?.symbol ||
+                            `Instrument ${run.instrument_id}`;
+                          
+                          return {
+                            instrumentId,
+                            instrumentName,
+                            totalTrades,
+                            winningTrades,
+                            losingTrades: totalTrades - winningTrades,
+                            winRate,
+                            profitFactor: run.metrics.profit_factor || 0,
+                            totalPnL: run.metrics.total_return_pct,
+                            maxDrawdown: run.metrics.max_drawdown,
+                            sharpeRatio: run.metrics.sharpe_ratio
+                          };
+                        }),
+                        aggregatedMetrics: {
+                          instrumentId: 0,
+                          instrumentName: 'Total',
+                          totalTrades: validRuns.reduce((sum: number, run: BacktestRun) => sum + (run.positions ? run.positions.length : run.metrics.total_trades), 0),
+                          winningTrades: validRuns.reduce((sum: number, run: BacktestRun) => {
+                            if (run.positions) {
+                              return sum + run.positions.filter(pos => pos.profit_loss_absolute > 0).length;
+                            }
+                            return sum;
+                          }, 0),
+                          losingTrades: validRuns.reduce((sum: number, run: BacktestRun) => {
+                            if (run.positions) {
+                              return sum + run.positions.filter(pos => pos.profit_loss_absolute <= 0).length;
+                            }
+                            return sum;
+                          }, 0),
+                          winRate: validRuns.length > 0 ? 
+                            validRuns.reduce((sum: number, run: BacktestRun) => {
+                              if (run.positions) {
+                                const winningPositions = run.positions.filter(pos => pos.profit_loss_absolute > 0).length;
+                                const winRate = run.positions.length > 0 ? winningPositions / run.positions.length : 0;
+                                return sum + winRate;
+                              }
+                              return sum;
+                            }, 0) / validRuns.length : 0,
+                          profitFactor: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.profit_factor || 0) / arr.length, 0),
+                          totalPnL: validRuns.reduce((sum: number, run: BacktestRun) => sum + run.metrics.total_return_pct, 0),
+                          maxDrawdown: validRuns.length > 0 ? Math.max(...validRuns.map((run: BacktestRun) => run.metrics.max_drawdown || 0)) : 0,
+                          sharpeRatio: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.sharpe_ratio || 0) / arr.length, 0)
+                        }
+                      };
+                      setBacktestResults(transformedResults);
+                      setShowBacktestResults(true);
+                      
+                      // Check deployment status for all instruments in the backtest results
+                      const instrumentIds = transformedResults.results.map(r => r.instrumentId);
+                      await checkDeploymentStatus(transformedResults.strategyId, instrumentIds);
+                    }
                   }
-                  return sum;
-                }, 0) / validRuns.length : 0,
-              profitFactor: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
-                sum + (run.metrics.profit_factor || 0) / arr.length, 0),
-              totalPnL: validRuns.reduce((sum: number, run: BacktestRun) => 
-                sum + run.metrics.total_return_pct, 0),
-              maxDrawdown: validRuns.length > 0 ? 
-                Math.max(...validRuns.map((run: BacktestRun) => run.metrics.max_drawdown || 0)) : 0,
-              sharpeRatio: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
-                sum + (run.metrics.sharpe_ratio || 0) / arr.length, 0)
+                } catch (error) {
+                  console.error('Error parsing backtest results:', error);
+                  setIsBacktesting(false);
+                  const errorMessage = 'Invalid backtest response format';
+                  setErrors(prev => ({
+                    ...prev,
+                    submit: errorMessage
+                  }));
+                  showToast(errorMessage, 'error');
+                }
+              } else if (eventType === 'done') {
+                setIsBacktesting(false);
+                if (backtestData) {
+                  showToast('Backtest completed successfully', 'success');
+                } else {
+                  const errorMessage = 'No backtest results received';
+                  setErrors(prev => ({
+                    ...prev,
+                    submit: errorMessage
+                  }));
+                  showToast(errorMessage, 'error');
+                }
+              } else if (eventType === 'error') {
+                setIsBacktesting(false);
+                const errorMessage = 'Connection error during backtest';
+                setErrors(prev => ({
+                  ...prev,
+                  submit: errorMessage
+                }));
+                showToast(errorMessage, 'error');
+              }
             }
-          };
-          
-          setBacktestResults(transformedResults);
-          setShowBacktestResults(true);
-          showToast('Backtest completed successfully', 'success');
-        } else {
-          throw new Error('Invalid backtest response format');
+          }
         }
       } catch (error) {
+        // Handle errors that occur during strategy saving or EventSource creation
         const errorMessage = error instanceof Error ? error.message : 'Error running backtest';
+        setIsBacktesting(false);
         setErrors(prev => ({
           ...prev,
           submit: errorMessage
         }));
         showToast(errorMessage, 'error');
-      } finally {
-        setIsBacktesting(false);
       }
     }
   };
@@ -1487,6 +1561,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         description: formData.description,
         isActive: true
       });
+
+      // Update deployment status for this instrument
+      const newDeploymentStatuses = new Map(deploymentStatuses);
+      newDeploymentStatuses.set(instrumentId, true);
+      setDeploymentStatuses(newDeploymentStatuses);
 
       showSuccess(
         `Strategy deployed successfully for ${instrumentName}`,
@@ -1510,39 +1589,43 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     if (!backtestResults) return;
     
     try {
-      // Set all instruments as deploying
-      const allInstrumentIds = backtestResults.results.map(r => r.instrumentId);
-      setDeployingInstruments(new Set(allInstrumentIds));
+      // Filter out instruments that are already deployed
+      const instrumentsToDeployIds = backtestResults.results
+        .filter(result => !deploymentStatuses.get(result.instrumentId))
+        .map(result => result.instrumentId);
+      
+      if (instrumentsToDeployIds.length === 0) {
+        showToast('All instruments are already deployed', 'info');
+        return;
+      }
+      
+      // Set only undeployed instruments as deploying
+      setDeployingInstruments(new Set(instrumentsToDeployIds));
       
       const strategyId = initialData?.id || '';
       
-      // Call the deploy all API endpoint
-      const response = await fetch(`/api/deployment/all?strategy_id=${strategyId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      // Deploy each undeployed instrument individually
+      const deploymentPromises = backtestResults.results
+        .filter(result => !deploymentStatuses.get(result.instrumentId))
+        .map(result => createDeployment({
+          strategy_id: strategyId,
+          instrument_id: result.instrumentId,
+          name: `${formData.name} - ${result.instrumentName}`,
+          description: formData.description,
+          isActive: true
+        }));
+      
+      await Promise.all(deploymentPromises);
+      
+      // Update deployment statuses for newly deployed instruments
+      const newDeploymentStatuses = new Map(deploymentStatuses);
+      instrumentsToDeployIds.forEach(instrumentId => {
+        newDeploymentStatuses.set(instrumentId, true);
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      // Deploy each instrument individually as a fallback
-      if (response.status !== 200) {
-        for (const result of backtestResults.results) {
-          await createDeployment({
-            strategy_id: strategyId,
-            instrument_id: result.instrumentId,
-            name: `${formData.name} - ${result.instrumentName}`,
-            description: formData.description,
-            isActive: true
-          });
-        }
-      }
+      setDeploymentStatuses(newDeploymentStatuses);
       
       showSuccess(
-        'All strategies deployed successfully',
+        `${instrumentsToDeployIds.length} strategies deployed successfully`,
         'Your strategies are now live and will execute trades based on your defined conditions.'
       );
       
@@ -1560,6 +1643,53 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     } finally {
       setDeployingInstruments(new Set());
     }
+  };
+
+  const checkDeploymentStatus = async (strategyId: string, instrumentIds: number[], retryCount = 0) => {
+    const maxRetries = 2;
+    
+    try {
+      if (!strategyId || instrumentIds.length === 0) return;
+      
+      const instrumentsParam = instrumentIds.join(',');
+      const response = await fetch(`/api/deployment/strategy/${strategyId}/status?instruments=${instrumentsParam}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.data && data.data.instruments) {
+        const statusMap = new Map<number, boolean>();
+        data.data.instruments.forEach((item: any) => {
+          statusMap.set(item.instrument_id, item.has_deployment);
+        });
+        setDeploymentStatuses(statusMap);
+      } else {
+        throw new Error('Invalid response format from deployment status API');
+      }
+    } catch (error) {
+      console.error('Error checking deployment status:', error);
+      
+      // Retry logic
+      if (retryCount < maxRetries) {
+        console.log(`Retrying deployment status check... (${retryCount + 1}/${maxRetries})`);
+        setTimeout(() => {
+          checkDeploymentStatus(strategyId, instrumentIds, retryCount + 1);
+        }, 1000 * (retryCount + 1)); // Exponential backoff
+      } else {
+        // Show user-friendly error message only after all retries fail
+        showToast('Unable to check deployment status. Please refresh to see latest status.', 'warning');
+      }
+    }
+  };
+
+  const refreshDeploymentStatus = async () => {
+    if (!backtestResults || !initialData?.id) return;
+    
+    const instrumentIds = backtestResults.results.map(r => r.instrumentId);
+    await checkDeploymentStatus(initialData.id, instrumentIds);
   };
 
   const renderBacktestResults = () => {
@@ -1601,7 +1731,18 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
     return (
       <Box ref={backtestResultsRef} sx={{ mt: 4 }}>
-        <Typography variant="h6" gutterBottom>Backtest Results</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6">Backtest Results</Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={refreshDeploymentStatus}
+            startIcon={<Refresh />}
+            sx={{ ml: 2 }}
+          >
+            Refresh Status
+          </Button>
+        </Box>
         <TableContainer 
           component={Paper}
           sx={{ 
@@ -1650,21 +1791,40 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                     fontWeight: 'bold'
                   }}
                 >
-                  {backtestResults.aggregatedMetrics.totalPnL.toFixed(2)}%
+                  {backtestResults.aggregatedMetrics.totalPnL.toFixed(2)}
                 </TableCell>
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.maxDrawdown.toFixed(2)}%</strong></TableCell>
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.sharpeRatio.toFixed(2)}</strong></TableCell>
                 <TableCell align="center">
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={handleDeployAll}
-                    disabled={deployingInstruments.size > 0}
-                  >
-                    {deployingInstruments.size > 0 ? (
-                      <CircularProgress size={20} />
-                    ) : 'Deploy All'}
-                  </Button>
+                  {(() => {
+                    const undeployedCount = backtestResults.results.filter(
+                      result => !deploymentStatuses.get(result.instrumentId)
+                    ).length;
+                    
+                    if (undeployedCount === 0) {
+                      return (
+                        <Chip
+                          label="All Deployed"
+                          color="success"
+                          size="small"
+                          variant="filled"
+                        />
+                      );
+                    }
+                    
+                    return (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={handleDeployAll}
+                        disabled={deployingInstruments.size > 0}
+                      >
+                        {deployingInstruments.size > 0 ? (
+                          <CircularProgress size={20} />
+                        ) : `Deploy ${undeployedCount === backtestResults.results.length ? 'All' : undeployedCount}`}
+                      </Button>
+                    );
+                  })()}
                 </TableCell>
               </TableRow>
               {backtestResults.results.map((result) => (
@@ -1687,24 +1847,33 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                         color: result.totalPnL >= 0 ? 'success.main' : 'error.main'
                       }}
                     >
-                      {result.totalPnL.toFixed(2)}%
+                      {result.totalPnL.toFixed(2)}
                     </TableCell>
                     <TableCell align="right">{result.maxDrawdown.toFixed(2)}%</TableCell>
                     <TableCell align="right">{result.sharpeRatio.toFixed(2)}</TableCell>
                     <TableCell align="center">
-                      <Button
-                        variant="contained"
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent row click
-                          handleDeploy(result.instrumentId);
-                        }}
-                        disabled={deployingInstruments.has(result.instrumentId)}
-                      >
-                        {deployingInstruments.has(result.instrumentId) ? (
-                          <CircularProgress size={20} />
-                        ) : 'Deploy'}
-                      </Button>
+                      {deploymentStatuses.get(result.instrumentId) ? (
+                        <Chip
+                          label="Deployed"
+                          color="success"
+                          size="small"
+                          variant="filled"
+                        />
+                      ) : (
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent row click
+                            handleDeploy(result.instrumentId);
+                          }}
+                          disabled={deployingInstruments.has(result.instrumentId)}
+                        >
+                          {deployingInstruments.has(result.instrumentId) ? (
+                            <CircularProgress size={20} />
+                          ) : 'Deploy'}
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 </React.Fragment>
@@ -1863,30 +2032,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Set attempted submit to true to show validation errors
-    setAttemptedSubmit(true);
-    
-    if (!isFormValid()) {
-      // If form is not valid, expand the first incomplete section to guide the user
-      expandFirstIncompleteSection();
-      return;
-    }
-    
-    const savedStrategy = await handleSave();
-    // If we saved successfully and got a strategy ID, update the form data
-    if (savedStrategy?.id && !formData.id) {
-      setFormData(prev => ({
-        ...prev,
-        id: savedStrategy.id
-      }));
-    }
-  };
-
   return (
-    <form onSubmit={handleSubmit}>
+    <Box>
       <Box sx={{ 
         display: 'flex', 
         flexDirection: 'row',
@@ -1966,6 +2113,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               )}
               <Tooltip 
                 title={isSectionComplete(section.id) 
+                  
                   ? "Section is complete" 
                   : `Section is incomplete. Missing: ${getMissingSectionFields(section.id).join(', ')}`}
                 arrow
@@ -1996,9 +2144,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           <span>
             <Button 
               variant="contained" 
-              onClick={handleSubmit}
+              onClick={handleSave}
               disabled={loading || (initialData && !hasUnsavedChanges) || !isFormValid()}
-              type="submit"
             >
               {loading ? <CircularProgress size={24} /> : 'Save'}
             </Button>
@@ -2018,6 +2165,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       </Box>
 
       {showBacktestResults && renderBacktestResults()}
-    </form>
+    </Box>
   );
 };
