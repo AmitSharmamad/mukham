@@ -1366,7 +1366,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         // Create SSE connection for backtest using POST data
         const formDataToSend = convertFormToApiData(formData);
         
-        // First, send the POST request to initiate the backtest
+        // First, send the POST request to initiate the backtest and handle SSE stream directly
         const response = await fetch(`/api/backtest/run?strategy_id=${currentStrategyId}`, {
           method: 'POST',
           headers: {
@@ -1375,150 +1375,142 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           body: JSON.stringify(formDataToSend),
         });
 
-        if (!response.ok) {
+        if (!response.ok || !response.body) {
           throw new Error(`Failed to start backtest: ${response.statusText}`);
         }
 
-        const { sessionId } = await response.json();
-        
-        // Then connect to SSE endpoint using the session ID
-        const eventSource = new EventSource(`/api/backtest/stream/${sessionId}`);
-        
+        // Read and parse SSE events from the response stream
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
         let backtestData: BacktestData | null = null;
-        
-        eventSource.addEventListener('results', (event) => {
-          try {
-            const rawData = JSON.parse(event.data);
-            
-            // Handle the actual API response structure
-            if (rawData && rawData.results) {
-              // Transform the raw API response to match our BacktestData interface
-              backtestData = {
-                message: rawData.message || 'Backtest completed',
-                strategy_id: rawData.strategy_id || '',
-                results: rawData.results.map((item: any) => ({
-                  instrument_id: item.instrument_id,
-                  instrument_master: item.instrument_master,
-                  positions: item.positions || [],
-                  metrics: item.metrics || {}
-                }))
-              };
-              
-              // Store raw backtest data for TradesTable
-              setRawBacktestData(backtestData);
-              
-              if (backtestData && backtestData.results) {
-                // Filter out any runs with null metrics or instrument_id = 0 (aggregated metrics)
-                const validRuns = backtestData.results.filter(run => 
-                  run.metrics && String(run.instrument_id) !== "0");
-                
-                // Transform the API response to match our BacktestResult interface
-                const transformedResults: BacktestResult = {
-                strategyId: backtestData.strategy_id || initialData?.id || '',
-                results: validRuns.map((run: BacktestRun) => {
-                  // Calculate winning trades by counting positions with positive P&L
-                  const winningTrades = run.positions ? 
-                    run.positions.filter(pos => pos.profit_loss_absolute > 0).length : 0;
-                  
-                  // Count total trades from positions or fallback to metrics
-                  const totalTrades = run.positions ? run.positions.length : run.metrics.total_trades;
-                  
-                  // Calculate win rate based on winning trades and total trades
-                  const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;
-                  
-                  return {
-                    instrumentId: Number(run.instrument_id),
-                    instrumentName: run.instrument_master?.instrument_name || `Instrument ${run.instrument_id}`,
-                    totalTrades,
-                    winningTrades,
-                    losingTrades: totalTrades - winningTrades,
-                    winRate,
-                    profitFactor: run.metrics.profit_factor || 0,
-                    totalPnL: run.metrics.total_return_pct,
-                    maxDrawdown: run.metrics.max_drawdown,
-                    sharpeRatio: run.metrics.sharpe_ratio
-                  };
-                }),
-                aggregatedMetrics: {
-                  instrumentId: 0,
-                  instrumentName: 'Total',
-                  totalTrades: validRuns.reduce((sum: number, run: BacktestRun) => 
-                    sum + (run.positions ? run.positions.length : run.metrics.total_trades), 0),
-                  winningTrades: validRuns.reduce((sum: number, run: BacktestRun) => {
-                    if (run.positions) {
-                      return sum + run.positions.filter(pos => pos.profit_loss_absolute > 0).length;
-                    }
-                    return sum;
-                  }, 0),
-                  losingTrades: validRuns.reduce((sum: number, run: BacktestRun) => {
-                    if (run.positions) {
-                      return sum + run.positions.filter(pos => pos.profit_loss_absolute <= 0).length;
-                    }
-                    return sum;
-                  }, 0),
-                  winRate: validRuns.length > 0 ? 
-                    validRuns.reduce((sum: number, run: BacktestRun) => {
-                      if (run.positions) {
-                        const winningPositions = run.positions.filter(pos => pos.profit_loss_absolute > 0).length;
-                        const winRate = run.positions.length > 0 ? winningPositions / run.positions.length : 0;
-                        return sum + winRate;
-                      }
-                      return sum;
-                    }, 0) / validRuns.length : 0,
-                  profitFactor: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
-                    sum + (run.metrics.profit_factor || 0) / arr.length, 0),
-                  totalPnL: validRuns.reduce((sum: number, run: BacktestRun) => 
-                    sum + run.metrics.total_return_pct, 0),
-                  maxDrawdown: validRuns.length > 0 ? 
-                    Math.max(...validRuns.map((run: BacktestRun) => run.metrics.max_drawdown || 0)) : 0,
-                  sharpeRatio: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => 
-                    sum + (run.metrics.sharpe_ratio || 0) / arr.length, 0)
+        let done = false;
+
+        while (!done) {
+          const { value, done: streamDone } = await reader.read();
+          done = streamDone;
+          if (value) {
+            buffer += decoder.decode(value, { stream: true });
+            let eventBoundary;
+            while ((eventBoundary = buffer.indexOf('\n\n')) !== -1) {
+              const rawEvent = buffer.slice(0, eventBoundary);
+              buffer = buffer.slice(eventBoundary + 2);
+              // Parse SSE event
+              const lines = rawEvent.split('\n');
+              let eventType = '';
+              let eventData = '';
+              for (const line of lines) {
+                if (line.startsWith('event:')) {
+                  eventType = line.replace('event:', '').trim();
+                } else if (line.startsWith('data:')) {
+                  eventData += line.replace('data:', '').trim();
                 }
-              };
-              
-              setBacktestResults(transformedResults);
-              setShowBacktestResults(true);
+              }
+              if (eventType === 'results') {
+                try {
+                  const rawData = JSON.parse(eventData);
+                  if (rawData && rawData.results) {
+                    backtestData = {
+                      message: rawData.message || 'Backtest completed',
+                      strategy_id: rawData.strategy_id || '',
+                      results: rawData.results.map((item: any) => ({
+                        instrument_id: item.instrument_id,
+                        instrument_master: item.instrument_master,
+                        positions: item.positions || [],
+                        metrics: item.metrics || {}
+                      }))
+                    };
+                    setRawBacktestData(backtestData);
+                    if (backtestData && backtestData.results) {
+                      const validRuns = backtestData.results.filter(run => run.metrics && String(run.instrument_id) !== "0");
+                      const transformedResults: BacktestResult = {
+                        strategyId: backtestData.strategy_id || initialData?.id || '',
+                        results: validRuns.map((run: BacktestRun) => {
+                          const winningTrades = run.positions ? run.positions.filter(pos => pos.profit_loss_absolute > 0).length : 0;
+                          const totalTrades = run.positions ? run.positions.length : run.metrics.total_trades;
+                          const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;
+                          return {
+                            instrumentId: Number(run.instrument_id),
+                            instrumentName: run.instrument_master?.instrument_name || `Instrument ${run.instrument_id}`,
+                            totalTrades,
+                            winningTrades,
+                            losingTrades: totalTrades - winningTrades,
+                            winRate,
+                            profitFactor: run.metrics.profit_factor || 0,
+                            totalPnL: run.metrics.total_return_pct,
+                            maxDrawdown: run.metrics.max_drawdown,
+                            sharpeRatio: run.metrics.sharpe_ratio
+                          };
+                        }),
+                        aggregatedMetrics: {
+                          instrumentId: 0,
+                          instrumentName: 'Total',
+                          totalTrades: validRuns.reduce((sum: number, run: BacktestRun) => sum + (run.positions ? run.positions.length : run.metrics.total_trades), 0),
+                          winningTrades: validRuns.reduce((sum: number, run: BacktestRun) => {
+                            if (run.positions) {
+                              return sum + run.positions.filter(pos => pos.profit_loss_absolute > 0).length;
+                            }
+                            return sum;
+                          }, 0),
+                          losingTrades: validRuns.reduce((sum: number, run: BacktestRun) => {
+                            if (run.positions) {
+                              return sum + run.positions.filter(pos => pos.profit_loss_absolute <= 0).length;
+                            }
+                            return sum;
+                          }, 0),
+                          winRate: validRuns.length > 0 ? 
+                            validRuns.reduce((sum: number, run: BacktestRun) => {
+                              if (run.positions) {
+                                const winningPositions = run.positions.filter(pos => pos.profit_loss_absolute > 0).length;
+                                const winRate = run.positions.length > 0 ? winningPositions / run.positions.length : 0;
+                                return sum + winRate;
+                              }
+                              return sum;
+                            }, 0) / validRuns.length : 0,
+                          profitFactor: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.profit_factor || 0) / arr.length, 0),
+                          totalPnL: validRuns.reduce((sum: number, run: BacktestRun) => sum + run.metrics.total_return_pct, 0),
+                          maxDrawdown: validRuns.length > 0 ? Math.max(...validRuns.map((run: BacktestRun) => run.metrics.max_drawdown || 0)) : 0,
+                          sharpeRatio: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.sharpe_ratio || 0) / arr.length, 0)
+                        }
+                      };
+                      setBacktestResults(transformedResults);
+                      setShowBacktestResults(true);
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error parsing backtest results:', error);
+                  setIsBacktesting(false);
+                  const errorMessage = 'Invalid backtest response format';
+                  setErrors(prev => ({
+                    ...prev,
+                    submit: errorMessage
+                  }));
+                  showToast(errorMessage, 'error');
+                }
+              } else if (eventType === 'done') {
+                setIsBacktesting(false);
+                if (backtestData) {
+                  showToast('Backtest completed successfully', 'success');
+                } else {
+                  const errorMessage = 'No backtest results received';
+                  setErrors(prev => ({
+                    ...prev,
+                    submit: errorMessage
+                  }));
+                  showToast(errorMessage, 'error');
+                }
+              } else if (eventType === 'error') {
+                setIsBacktesting(false);
+                const errorMessage = 'Connection error during backtest';
+                setErrors(prev => ({
+                  ...prev,
+                  submit: errorMessage
+                }));
+                showToast(errorMessage, 'error');
               }
             }
-          } catch (error) {
-            console.error('Error parsing backtest results:', error);
-            eventSource.close();
-            setIsBacktesting(false);
-            const errorMessage = 'Invalid backtest response format';
-            setErrors(prev => ({
-              ...prev,
-              submit: errorMessage
-            }));
-            showToast(errorMessage, 'error');
           }
-        });
-        
-        eventSource.addEventListener('done', (event) => {
-          eventSource.close();
-          setIsBacktesting(false);
-          
-          if (backtestData) {
-            showToast('Backtest completed successfully', 'success');
-          } else {
-            const errorMessage = 'No backtest results received';
-            setErrors(prev => ({
-              ...prev,
-              submit: errorMessage
-            }));
-            showToast(errorMessage, 'error');
-          }
-        });
-        
-        eventSource.addEventListener('error', (event) => {
-          eventSource.close();
-          setIsBacktesting(false);
-          const errorMessage = 'Connection error during backtest';
-          setErrors(prev => ({
-            ...prev,
-            submit: errorMessage
-          }));
-          showToast(errorMessage, 'error');
-        });
+        }
       } catch (error) {
         // Handle errors that occur during strategy saving or EventSource creation
         const errorMessage = error instanceof Error ? error.message : 'Error running backtest';
@@ -2028,6 +2020,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               )}
               <Tooltip 
                 title={isSectionComplete(section.id) 
+                  
                   ? "Section is complete" 
                   : `Section is incomplete. Missing: ${getMissingSectionFields(section.id).join(', ')}`}
                 arrow
