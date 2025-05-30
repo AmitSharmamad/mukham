@@ -1248,6 +1248,13 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const handleSave = async () => {
     setAttemptedSubmit(true);
+    
+    if (!isFormValid()) {
+      // If form is not valid, expand the first incomplete section to guide the user
+      expandFirstIncompleteSection();
+      return;
+    }
+    
     if (validateForm()) {
       try {
         setLoading(true);
@@ -1301,8 +1308,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               setFormData(prev => ({ ...prev, id: result.data.id }));
             }
             
-            // Redirect to the strategy edit page with the correct ID
-            if (strategyId) {
+            // Only redirect to the strategy edit page if this is a new strategy creation
+            if (strategyId && !isEdit) {
               router.push(`/strategy/${strategyId}`);
             }
             
@@ -1429,9 +1436,16 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                           const winningTrades = run.positions ? run.positions.filter(pos => pos.profit_loss_absolute > 0).length : 0;
                           const totalTrades = run.positions ? run.positions.length : run.metrics.total_trades;
                           const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;
+                          const instrumentId = Number(run.instrument_id);
+                          // Enhanced fallback logic: use selectedInstruments symbol if instrument_master is not available
+                          const instrumentName = run.instrument_master?.instrument_name ||
+                            selectedInstruments.find(inst => inst.instrument_id === instrumentId)?.symbol ||
+                            selectedInstruments.find(inst => inst.exchange_security_id === instrumentId)?.symbol ||
+                            `Instrument ${run.instrument_id}`;
+                          
                           return {
-                            instrumentId: Number(run.instrument_id),
-                            instrumentName: run.instrument_master?.instrument_name || `Instrument ${run.instrument_id}`,
+                            instrumentId,
+                            instrumentName,
                             totalTrades,
                             winningTrades,
                             losingTrades: totalTrades - winningTrades,
@@ -1704,7 +1718,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                     fontWeight: 'bold'
                   }}
                 >
-                  {backtestResults.aggregatedMetrics.totalPnL.toFixed(2)}%
+                  {backtestResults.aggregatedMetrics.totalPnL.toFixed(2)}
                 </TableCell>
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.maxDrawdown.toFixed(2)}%</strong></TableCell>
                 <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.sharpeRatio.toFixed(2)}</strong></TableCell>
@@ -1741,7 +1755,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                         color: result.totalPnL >= 0 ? 'success.main' : 'error.main'
                       }}
                     >
-                      {result.totalPnL.toFixed(2)}%
+                      {result.totalPnL.toFixed(2)}
                     </TableCell>
                     <TableCell align="right">{result.maxDrawdown.toFixed(2)}%</TableCell>
                     <TableCell align="right">{result.sharpeRatio.toFixed(2)}</TableCell>
@@ -1917,30 +1931,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Set attempted submit to true to show validation errors
-    setAttemptedSubmit(true);
-    
-    if (!isFormValid()) {
-      // If form is not valid, expand the first incomplete section to guide the user
-      expandFirstIncompleteSection();
-      return;
-    }
-    
-    const savedStrategy = await handleSave();
-    // If we saved successfully and got a strategy ID, update the form data
-    if (savedStrategy?.id && !formData.id) {
-      setFormData(prev => ({
-        ...prev,
-        id: savedStrategy.id
-      }));
-    }
-  };
-
   return (
-    <form onSubmit={handleSubmit}>
+    <Box>
       <Box sx={{ 
         display: 'flex', 
         flexDirection: 'row',
@@ -2051,9 +2043,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           <span>
             <Button 
               variant="contained" 
-              onClick={handleSubmit}
+              onClick={handleSave}
               disabled={loading || (initialData && !hasUnsavedChanges) || !isFormValid()}
-              type="submit"
             >
               {loading ? <CircularProgress size={24} /> : 'Save'}
             </Button>
@@ -2073,6 +2064,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       </Box>
 
       {showBacktestResults && renderBacktestResults()}
-    </form>
+    </Box>
   );
 };
