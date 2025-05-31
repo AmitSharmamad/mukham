@@ -285,23 +285,6 @@ const convertFormToApiData = (formData: FormData): ApiFormData => {
 
 // Using parseExpressions function from utility file
 
-const sampleBacktestResults: BacktestResult = {
-  strategyId: '',
-  results: [],
-  aggregatedMetrics: {
-    instrumentId: 0,
-    instrumentName: 'Total',
-    totalTrades: 0,
-    winningTrades: 0,
-    losingTrades: 0,
-    winRate: 0,
-    profitFactor: 0,
-    totalPnL: 0,
-    maxDrawdown: 0,
-    sharpeRatio: 0
-  }
-};
-
 export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initialInstruments = [], pageTitle }) => {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
@@ -339,7 +322,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isInstrumentSelectorOpen, setInstrumentSelectorOpen] = useState(false);
   const [selectedInstruments, setSelectedInstruments] = useState<Instrument[]>(initialInstruments);
-  const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(sampleBacktestResults);
+  const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(null);
   const [rawBacktestData, setRawBacktestData] = useState<BacktestData | null>(null);
   const [isBacktesting, setIsBacktesting] = useState(false);
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
@@ -540,6 +523,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     }
 
     setHasUnsavedChanges(true);
+
+    // Note: Backtest results are kept during editing and only cleared after successful save
   };
 
   const validateForm = () => {
@@ -1249,7 +1234,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (clearBacktestResults = true) => {
     setAttemptedSubmit(true);
     
     if (!isFormValid()) {
@@ -1303,6 +1288,13 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             showToast('Strategy saved successfully', 'success');
             setHasUnsavedChanges(false); // Reset unsaved changes after successful save
             
+            // Clear backtest results after successful save only if requested
+            if (clearBacktestResults) {
+              setShowBacktestResults(false);
+              setBacktestResults(null); // Clear results completely
+              setRawBacktestData(null);
+            }
+
             // Get the strategy ID - either from the response or from the existing form data
             const strategyId = result.data?.id || formData.id;
             
@@ -1361,8 +1353,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         let currentStrategyId = initialData?.id || formData.id || '';
         
         if (!currentStrategyId || hasUnsavedChanges) {
-          // Save the strategy and get the updated ID
-          const saveResponse = await handleSave();
+          // Save the strategy and get the updated ID, but don't clear backtest results
+          const saveResponse = await handleSave(false); // Pass false to prevent clearing backtest results
           if (saveResponse?.id) {
             currentStrategyId = saveResponse.id;
           }
@@ -1886,19 +1878,22 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           <span>
             <Button 
               variant="contained" 
-              onClick={handleSave}
+              onClick={() => handleSave()}
               disabled={loading || (initialData && !hasUnsavedChanges) || !isFormValid()}
             >
               {loading ? <CircularProgress size={24} /> : 'Save'}
             </Button>
           </span>
         </Tooltip>
-        <Tooltip title={!isFormValid() ? "Please fill in all required fields to run backtest" : ""} arrow>
+        <Tooltip title={
+          !isFormValid() ? "Please fill in all required fields to run backtest" :
+          hasUnsavedChanges ? "Please save your changes before running backtest" : ""
+        } arrow>
           <span>
             <Button 
               variant="contained" 
               onClick={handleBacktest}
-              disabled={isBacktesting || (initialData && hasUnsavedChanges) || !isFormValid()}
+              disabled={isBacktesting || hasUnsavedChanges || !isFormValid()}
             >
               {isBacktesting ? <CircularProgress size={24} /> : 'Backtest'}
             </Button>
