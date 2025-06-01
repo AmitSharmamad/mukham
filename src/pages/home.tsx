@@ -43,7 +43,7 @@ const mockData = {
   winRate: '68%',
   totalTrades: 124,
   profitFactor: 1.86,
-  maxDrawdown: '14.2%',
+  maxDrawdown: '14.2',
   sharpeRatio: 1.32,
   recentTrades: [
     { id: 1, strategy: 'MACD Crossover', instrument: 'RELIANCE', entry: '2458.50', exit: '2487.25', pnl: '+₹2,875', date: '2025-05-19' },

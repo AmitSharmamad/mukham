@@ -41,6 +41,14 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
   const metrics = backtestResults.aggregatedMetrics;
   const [animate, setAnimate] = useState(false);
   
+  // Debug logging
+  console.log('MetricsSection Props:', { 
+    backtestResults, 
+    rawBacktestData,
+    capitalProgression: rawBacktestData?.results?.[0]?.metrics?.capital_progression?.length,
+    resultsLength: rawBacktestData?.results?.length
+  });
+  
   useEffect(() => {
     // Trigger animation after component mounts
     const timer = setTimeout(() => {
@@ -82,7 +90,7 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
       case 'totalPnL':
         return `${value.toFixed(2)}%`;
       case 'maxDrawdown':
-        return `${value.toFixed(2)}%`;
+        return `${value.toFixed(2)}`;
       case 'winRate':
         return `${(value * 100).toFixed(2)}%`;
       case 'profitFactor':
@@ -187,7 +195,10 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
           transition: 'opacity 0.8s ease-in', 
           transitionDelay: '200ms' 
         }}>
-          <TradeChart backtestResults={backtestResults} />
+          <TradeChart 
+            backtestResults={backtestResults} 
+            capitalProgression={rawBacktestData?.results?.[0]?.metrics?.capital_progression}
+          />
         </Box>
         
         {/* Trades Table */}

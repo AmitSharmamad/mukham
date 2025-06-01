@@ -49,10 +49,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       pageSize: data.pageSize || parseInt(pageSize as string)
     });
   } catch (error) {
-    console.error('Error fetching instruments:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch instruments',
-      message: error instanceof Error ? error.message : 'Unknown error'
+    console.error('Failed to fetch instruments from backend:', error);
+    
+    // Return error response when backend is not available
+    res.status(500).json({
+      result: false,
+      error: 'Failed to fetch instruments from backend',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
     });
   }
 }
