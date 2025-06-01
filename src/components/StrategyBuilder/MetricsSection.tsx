@@ -34,9 +34,10 @@ interface MetricsSectionProps {
   backtestResults: BacktestResult;
   rawBacktestData?: BacktestData | null;
   instruments?: Instrument[];
+  timeframe?: string;
 }
 
-const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBacktestData, instruments = [] }) => {
+const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBacktestData, instruments = [], timeframe }) => {
   const theme = useTheme();
   const metrics = backtestResults.aggregatedMetrics;
   const [animate, setAnimate] = useState(false);
@@ -213,6 +214,7 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
               backtestData={rawBacktestData}
               instruments={instruments}
               isVisible={true}
+              timeframe={timeframe}
             />
           </Box>
         )}
