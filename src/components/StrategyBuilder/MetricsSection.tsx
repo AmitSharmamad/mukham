@@ -197,7 +197,8 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
         }}>
           <TradeChart 
             backtestResults={backtestResults} 
-            capitalProgression={rawBacktestData?.results?.[0]?.metrics?.capital_progression}
+            rawBacktestData={rawBacktestData}
+            instruments={instruments}
           />
         </Box>
         
