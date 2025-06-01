@@ -116,7 +116,6 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
               <TableCell align="right">Profit Factor</TableCell>
               <TableCell align="right">Total P&L</TableCell>
               <TableCell align="right">Max Drawdown</TableCell>
-              <TableCell align="right">Sharpe Ratio</TableCell>
               <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -141,7 +140,6 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
                 {backtestResults.aggregatedMetrics.totalPnL.toFixed(2)}
               </TableCell>
               <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.maxDrawdown.toFixed(2)}%</strong></TableCell>
-              <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.sharpeRatio.toFixed(2)}</strong></TableCell>
               <TableCell align="center">
                 {(() => {
                   const undeployedCount = backtestResults.results.filter(
@@ -197,7 +195,6 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
                     {result.totalPnL.toFixed(2)}
                   </TableCell>
                   <TableCell align="right">{result.maxDrawdown.toFixed(2)}%</TableCell>
-                  <TableCell align="right">{result.sharpeRatio.toFixed(2)}</TableCell>
                   <TableCell align="center">
                     {deploymentStatuses.get(result.instrumentId) ? (
                       <Chip
@@ -296,10 +293,6 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Max Drawdown:</Typography>
                   <Typography variant="body2">{(backtestResults.aggregatedMetrics.maxDrawdown || 0).toFixed(2)}%</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">Sharpe Ratio:</Typography>
-                  <Typography variant="body2">{(backtestResults.aggregatedMetrics.sharpeRatio || 0).toFixed(2)}</Typography>
                 </Box>
               </Box>
             </Paper>
