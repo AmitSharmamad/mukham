@@ -1028,6 +1028,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                           sharpeRatio: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.sharpe_ratio || 0) / arr.length, 0)
                         }
                       };
+                      
+                      // Console log the transformed results for debugging
+                      console.log('Transformed Backtest Results:', transformedResults);
+                      console.log('Individual Results:', transformedResults.results);
+                      console.log('Aggregated Metrics:', transformedResults.aggregatedMetrics);
+                      
                       setBacktestResults(transformedResults);
                       setShowBacktestResults(true);
                       

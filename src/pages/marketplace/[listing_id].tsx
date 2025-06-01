@@ -319,7 +319,7 @@ export default function StrategyDetails() {
                     Max Drawdown
                   </Typography>
                   <Typography variant="body1" fontWeight="bold">
-                    {listing.performance.max_drawdown}%
+                    {listing.performance.max_drawdown}
                   </Typography>
                 </Grid>
               )}
