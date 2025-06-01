@@ -61,9 +61,10 @@ interface TradesTableProps {
   };
   instruments: Instrument[];
   isVisible: boolean;
+  timeframe?: string;
 }
 
-const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, isVisible }) => {
+const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, isVisible, timeframe }) => {
   const theme = useTheme();
   const [selectedInstrument, setSelectedInstrument] = useState<string>('all');
   const [selectedExitReason, setSelectedExitReason] = useState<string>('all');
@@ -252,6 +253,17 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
   const formatDateTime = (dateString: string) => {
     try {
       const date = new Date(dateString);
+      
+      // For 1-day timeframe, show only date without time
+      if (timeframe === '1d') {
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit'
+        });
+      }
+      
+      // For other timeframes, show full date and time
       return date.toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',

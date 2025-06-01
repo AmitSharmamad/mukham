@@ -28,6 +28,7 @@ interface BacktestResultsDisplayProps {
   expandedInstrument: number | null;
   showingPositions: boolean;
   backtestResultsRef: React.RefObject<HTMLDivElement | null>;
+  timeframe?: string;
   onTogglePositions: (instrumentId: number) => void;
   onDeploy: (instrumentId: number) => void;
   onDeployAll: () => void;
@@ -44,6 +45,7 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
   expandedInstrument,
   showingPositions,
   backtestResultsRef,
+  timeframe,
   onTogglePositions,
   onDeploy,
   onDeployAll,
@@ -232,6 +234,7 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
         backtestResults={backtestResults}
         rawBacktestData={rawBacktestData}
         instruments={selectedInstruments}
+        timeframe={timeframe}
       />
       
       {/* Performance Charts Section */}
