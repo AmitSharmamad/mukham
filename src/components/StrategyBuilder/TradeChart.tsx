@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTheme, Paper, Box, Typography } from '@mui/material';
 import { 
   Chart as ChartJS, 
@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { BacktestResult } from '../../types/strategy';
+import Select from '../Select';
 
 ChartJS.register(
   CategoryScale,
@@ -40,9 +41,33 @@ interface CapitalProgression {
   position_size: number;
 }
 
+interface BacktestData {
+  message: string;
+  results: {
+    instrument_id: number;
+    instrument_name: string;
+    metrics: {
+      capital_progression: CapitalProgression[];
+    };
+  }[];
+  strategy_id?: string;
+}
+
+interface Instrument {
+  exchange_security_id: number;
+  exchange: string;
+  segment: string;
+  symbol: string;
+  instrument: string;
+  instrument_id: number;
+  start_date: string;
+  expiry: string;
+}
+
 interface TradeChartProps {
   backtestResults: BacktestResult;
-  capitalProgression?: CapitalProgression[];
+  rawBacktestData?: BacktestData | null;
+  instruments?: Instrument[];
 }
 
 interface TradePoint {
@@ -50,11 +75,77 @@ interface TradePoint {
   y: number;
 }
 
-const TradeChart: React.FC<TradeChartProps> = ({ backtestResults, capitalProgression }) => {
+const TradeChart: React.FC<TradeChartProps> = ({ backtestResults, rawBacktestData, instruments = [] }) => {
   const theme = useTheme();
+  
+  // Helper function to get instrument name by ID
+  const getInstrumentName = (instrumentId: number): string => {
+    const instrument = instruments.find(inst => inst.exchange_security_id === Number(instrumentId));
+    if (instrument) {
+      // Use symbol as primary name, fallback to instrument name
+      return instrument.symbol;
+    }
+    return `Instrument ${instrumentId}`;
+  };
+  
+  // Extract available instruments from raw backtest data
+  const availableInstruments = useMemo(() => {
+    if (!rawBacktestData?.results) return [];
+    
+    return rawBacktestData.results.map(result => ({
+      value: result.instrument_id,
+      label: getInstrumentName(result.instrument_id)
+    }));
+  }, [rawBacktestData, instruments]);
+
+  // State for selected instrument (default to first instrument or 'all')
+  const [selectedInstrument, setSelectedInstrument] = useState<string | number>(() => {
+    if (availableInstruments.length > 0) {
+      return availableInstruments[0].value;
+    }
+    return 'all';
+  });
+
+  // Update selected instrument when available instruments change
+  React.useEffect(() => {
+    if (availableInstruments.length > 0 && selectedInstrument === 'all') {
+      setSelectedInstrument(availableInstruments[0].value);
+    }
+  }, [availableInstruments]);
+
+  // Get capital progression for selected instrument
+  const getCapitalProgression = useMemo(() => {
+    if (!rawBacktestData?.results) return [];
+    
+    if (selectedInstrument === 'all') {
+      // Combine all instruments' capital progression
+      const allProgression: CapitalProgression[] = [];
+      rawBacktestData.results.forEach(result => {
+        if (result.metrics?.capital_progression) {
+          allProgression.push(...result.metrics.capital_progression);
+        }
+      });
+      // Sort by position_index to maintain chronological order
+      return allProgression.sort((a, b) => a.position_index - b.position_index);
+    } else {
+      // Get progression for specific instrument
+      const instrumentResult = rawBacktestData.results.find(
+        result => result.instrument_id === selectedInstrument
+      );
+      return instrumentResult?.metrics?.capital_progression || [];
+    }
+  }, [rawBacktestData, selectedInstrument]);
+
+  // Create dropdown options including "All Instruments"
+  const dropdownOptions = useMemo(() => {
+    const options = [{ value: 'all', label: 'All Instruments' }];
+    return [...options, ...availableInstruments];
+  }, [availableInstruments]);
   
   // Create simple line chart data using capital_after values
   const createChartData = () => {
+    const capitalProgression = getCapitalProgression;
+    
     if (!capitalProgression || capitalProgression.length === 0) {
       return {
         labels: ['No Data'],
@@ -98,14 +189,11 @@ const TradeChart: React.FC<TradeChartProps> = ({ backtestResults, capitalProgres
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
-        labels: {
-          color: theme.palette.text.primary,
-        }
+        display: false,
       },
       title: {
         display: true,
-        text: 'Capital Progression',
+        text: 'Profit/Loss Over Trade',
         color: theme.palette.text.primary,
       },
       tooltip: {
@@ -149,17 +237,32 @@ const TradeChart: React.FC<TradeChartProps> = ({ backtestResults, capitalProgres
         borderRadius: 2,
       }}
     >
-      <Typography variant="h6" gutterBottom color="text.primary">
-        Trade Chart
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6" color="text.primary">
+          Trade Chart
+        </Typography>
+        
+        {/* Instrument Filter Dropdown */}
+        {dropdownOptions.length > 1 && (
+          <Box sx={{ minWidth: 200 }}>
+            <Select
+              label="Filter by Instrument"
+              options={dropdownOptions}
+              value={selectedInstrument}
+              onChange={setSelectedInstrument}
+              size="small"
+            />
+          </Box>
+        )}
+      </Box>
       
       <Box sx={{ height: 400, width: '100%' }}>
         <Line data={chartData} options={options} />
       </Box>
       
-      {(!capitalProgression || capitalProgression.length === 0) && (
+      {getCapitalProgression.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-          No backtest data available. Run a backtest to see the capital progression chart.
+          No backtest data available for the selected instrument. Run a backtest to see the capital progression chart.
         </Typography>
       )}
     </Paper>
