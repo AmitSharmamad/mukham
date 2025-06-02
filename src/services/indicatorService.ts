@@ -85,7 +85,7 @@ export const formatIndicatorString = (indicator: string, config: Record<string, 
   if (!indicatorDef) return indicator;
   
   // If this is a price point indicator or a number, just return the value
-  if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME', 'Number'].includes(indicator)) {
+  if (['HIGH', 'LOW', 'CLOSE', 'VOLUME', 'Number'].includes(indicator)) {
     if (indicator === 'Number') {
       return config.value?.toString() || '0';
     }
