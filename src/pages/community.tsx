@@ -12,6 +12,7 @@ import {
 import { Add } from '@mui/icons-material';
 import CategoryList from '../components/Community/CategoryList';
 import TopicList from '../components/Community/TopicList';
+import Leaderboard from '../components/Community/Leaderboard';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -96,6 +97,7 @@ export default function Community() {
             >
               <Tab label="Categories" />
               <Tab label="Recent Topics" />
+              <Tab label="Leaderboard" />
               <Tab label="Popular Topics" />
               <Tab label="Unanswered" />
             </Tabs>
@@ -108,6 +110,9 @@ export default function Community() {
             <TopicList />
           </TabPanel>
           <TabPanel value={tabValue} index={2}>
+            <Leaderboard />
+          </TabPanel>
+          <TabPanel value={tabValue} index={3}>
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="h6">Popular Topics</Typography>
               <Typography variant="body2" color="text.secondary">
@@ -115,7 +120,7 @@ export default function Community() {
               </Typography>
             </Box>
           </TabPanel>
-          <TabPanel value={tabValue} index={3}>
+          <TabPanel value={tabValue} index={4}>
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="h6">Unanswered Topics</Typography>
               <Typography variant="body2" color="text.secondary">
