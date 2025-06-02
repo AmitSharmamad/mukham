@@ -14,7 +14,7 @@ import {
   Grid,
   Chip
 } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
+import { Refresh, Download } from '@mui/icons-material';
 import { BacktestResult, Instrument } from '../../types/strategy';
 import MetricsSection from './MetricsSection';
 
@@ -29,6 +29,7 @@ interface BacktestResultsDisplayProps {
   showingPositions: boolean;
   backtestResultsRef: React.RefObject<HTMLDivElement | null>;
   timeframe?: string;
+  strategyId?: string;
   onTogglePositions: (instrumentId: number) => void;
   onDeploy: (instrumentId: number) => void;
   onDeployAll: () => void;
@@ -46,11 +47,51 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
   showingPositions,
   backtestResultsRef,
   timeframe,
+  strategyId,
   onTogglePositions,
   onDeploy,
   onDeployAll,
   onRefreshDeploymentStatus
 }) => {
+  // Function to handle Excel export
+  const handleExportToExcel = async () => {
+    if (!strategyId) {
+      console.error('Strategy ID is required for export');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/backtest/export/indicators?strategy_id=${strategyId}`);
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      // Get the filename from the response header or use a default
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = 'backtest_data.xlsx';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+    }
+  };
+
   // Return loading animation if we're still backtesting
   if (isBacktesting) {
     return (
@@ -80,15 +121,23 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
     <Box ref={backtestResultsRef} sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">Backtest Results</Typography>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={onRefreshDeploymentStatus}
-          startIcon={<Refresh />}
-          sx={{ ml: 2 }}
-        >
-          Refresh Status
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleExportToExcel}
+            disabled={!strategyId}
+          >
+            <Download />
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={onRefreshDeploymentStatus}
+          >
+            <Refresh />
+          </Button>
+        </Box>
       </Box>
       <TableContainer 
         component={Paper}
