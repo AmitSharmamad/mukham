@@ -21,7 +21,6 @@ import { getAvailableIndicators, getIndicatorDefaults } from '../../services/ind
 
 // Price indicators constant values
 const PRICE_INDICATORS = {
-  OPEN: { offset: 0 },
   HIGH: { offset: 0 },
   LOW: { offset: 0 },
   CLOSE: { offset: 0 },
@@ -59,7 +58,6 @@ getAvailableIndicators().forEach(indicator => {
 
 const FIELD_OPTIONS = [
   { value: 'CLOSE', label: 'Close' },
-  { value: 'OPEN', label: 'Open' },
   { value: 'HIGH', label: 'High' },
   { value: 'LOW', label: 'Low' },
   { value: 'VOLUME', label: 'Volume' },
@@ -169,8 +167,8 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
 
     // Handle special cases for indicators not in indicators.json
     if (!indicatorDef) {
-      // For price indicators (OPEN, HIGH, LOW, CLOSE, VOLUME), offset field validation
-      if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(editingIndicator.indicator.name)) {
+      // For price indicators (HIGH, LOW, CLOSE, VOLUME), offset field validation
+      if (['HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(editingIndicator.indicator.name)) {
         // Check if offset field is empty when user has interacted with it
         const offset = modalConfig.offset;
         
@@ -630,7 +628,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
         );
       }
 
-      if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(indicator.name)) {
+      if (['HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(indicator.name)) {
         return (
           <Grid item xs={12}>
             <TextField
