@@ -32,6 +32,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { logout as logoutService, checkAPIServer } from '../services/authService';
+import { PnLDisplay } from './';
 
 interface NavbarProps {
   onToggleTheme?: () => void;
@@ -421,11 +422,12 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
         }}>
           {!loading && (authStatus ? (
             <>
+              <PnLDisplay />
               <IconButton 
                 size="large" 
                 onClick={handleProfileMenu} 
                 color="inherit"
-                sx={{ fontSize: '1.75rem' }}
+                sx={{ fontSize: '1.75rem', ml: 2 }}
               >
                 <AccountCircle />
               </IconButton>
