@@ -16,6 +16,7 @@ export { DocsLayout } from './DocsLayout';
 export { default as Scanner } from './Scanner';
 export { default as ScannerBuilder } from './Scanner/ScannerBuilder';
 export { default as AIChat } from './AIChat';
+export { DeploymentSidebar } from './DeploymentSidebar';
 export { 
   DeploymentCard, 
   DeploymentPositions, 
