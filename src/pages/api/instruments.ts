@@ -6,20 +6,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { exchange, segment, page = 1, pageSize = 20, query } = req.query;
     
     // Construct the API URL with query parameters
-    let url = `http://localhost:8080/api/instruments/masters?`;
+    let url = `http://localhost:8010/api/instrument-master?`;
+    
+    // Add pagination parameters
+    url += `page=${page}&pageSize=${pageSize}`;
     
     // Add exchange parameter if provided
     if (exchange) {
-      url += `exchange=${exchange}&`;
+      url += `&exchange=${exchange}`;
     }
     
     // Add segment parameter if provided
     if (segment) {
-      url += `segment=${segment}&`;
+      url += `&segment=${segment}`;
     }
-    
-    // Add pagination parameters
-    url += `page=${page}&pageSize=${pageSize}`;
     
     // Add search query if provided (assuming the backend API supports it)
     if (query) {
@@ -39,20 +39,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     const data = await response.json();
     
+    // Transform the data to match the frontend interface
+    const transformedData = data.data?.data?.map((item: any) => ({
+      exchange_security_id: item.exchange_security_id,
+      exchange: item.exchange,
+      segment: item.segment,
+      symbol: item.symbol, // This is the actual instrument name like "Tata Elixi", "Suzlon"
+      instrument: item.name || item.symbol, // Use name as instrument, fallback to symbol
+      instrument_id: item.exchange_security_id, // Use exchange_security_id as instrument_id
+      start_date: item.start_date,
+      expiry: item.expiry
+    })) || [];
+    
     // Return the data in the format expected by the frontend
-    // Ensure data format matches what the frontend expects
     res.status(200).json({
       result: true,
-      data: data.data || [],
-      total: data.total || 0,
-      page: data.page || parseInt(page as string),
-      pageSize: data.pageSize || parseInt(pageSize as string)
+      data: transformedData,
+      total: data.data?.totalCount || 0,
+      page: data.data?.page || parseInt(page as string),
+      pageSize: data.data?.pageSize || parseInt(pageSize as string)
     });
   } catch (error) {
-    console.error('Error fetching instruments:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch instruments',
-      message: error instanceof Error ? error.message : 'Unknown error'
+    console.error('Failed to fetch instruments from backend:', error);
+    
+    // Return error response when backend is not available
+    res.status(500).json({
+      result: false,
+      error: 'Failed to fetch instruments from backend',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
     });
   }
 }

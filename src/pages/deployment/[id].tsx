@@ -162,7 +162,7 @@ const DeploymentDetail = () => {
       case 'totalPnL':
         return `${value.toFixed(2)}%`;
       case 'maxDrawdown':
-        return `${value.toFixed(2)}%`;
+        return `${value.toFixed(2)}`;
       case 'winRate':
         return `${(value * 100).toFixed(2)}%`;
       case 'profitFactor':
