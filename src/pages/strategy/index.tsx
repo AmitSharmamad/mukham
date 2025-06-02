@@ -287,11 +287,11 @@ export default function StrategyList() {
                   <Typography variant="h6" component="h2" gutterBottom>
                     {strategy.name}
                   </Typography>
-                  <Chip 
+                  {/* <Chip 
                     label={strategy.is_active ? 'Active' : 'Inactive'} 
                     color={strategy.is_active ? 'success' : 'default'}
                     size="small"
-                  />
+                  /> */}
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {strategy.description || 'No description provided.'}
