@@ -252,9 +252,9 @@ const DeploymentDetail = () => {
             onClick={handleToggleStatus}
             disabled={statusUpdating}
           >
-            {statusUpdating 
+            {/* {statusUpdating 
               ? (deployment.isActive ? 'Pausing...' : 'Activating...') 
-              : (deployment.isActive ? 'Pause Deployment' : 'Activate Deployment')}
+              : (deployment.isActive ? 'Pause Deployment' : 'Activate Deployment')} */}
           </Button>
         </Box>
       </Box>

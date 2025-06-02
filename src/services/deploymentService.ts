@@ -249,7 +249,7 @@ export const getDeploymentMetrics = async (deploymentId: string): Promise<Deploy
 
 export const activateDeployment = async (deploymentId: string): Promise<ApiResponse> => {
   try {
-    const response = await apiClient.post(`/deployment/${deploymentId}/activate`);
+    const response = await apiClient.put(`/deployment/${deploymentId}/activate`);
     return response.data;
   } catch (error) {
     console.error('Error activating deployment:', error);
@@ -259,7 +259,7 @@ export const activateDeployment = async (deploymentId: string): Promise<ApiRespo
 
 export const deactivateDeployment = async (deploymentId: string): Promise<ApiResponse> => {
   try {
-    const response = await apiClient.post(`/deployment/${deploymentId}/deactivate`);
+    const response = await apiClient.put(`/deployment/${deploymentId}/deactivate`);
     return response.data;
   } catch (error) {
     console.error('Error deactivating deployment:', error);

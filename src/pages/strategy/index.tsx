@@ -287,11 +287,11 @@ export default function StrategyList() {
                   <Typography variant="h6" component="h2" gutterBottom>
                     {strategy.name}
                   </Typography>
-                  <Chip 
+                  {/* <Chip 
                     label={strategy.is_active ? 'Active' : 'Inactive'} 
                     color={strategy.is_active ? 'success' : 'default'}
                     size="small"
-                  />
+                  /> */}
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {strategy.description || 'No description provided.'}
@@ -376,13 +376,27 @@ export default function StrategyList() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ 
+      width: '100%', 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      overflow: 'hidden',
+      px: 3
+    }}>
       {/* Page Header */}
       <Box 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="center" 
-        mb={4}
+        sx={{
+          width: '100%',
+          maxWidth: 'lg',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 4,
+          pt: 2
+        }}
       >
         <Typography variant="h4" component="h1">
           Trading Strategies
@@ -397,7 +411,11 @@ export default function StrategyList() {
         </Button>
       </Box>
       
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ 
+        width: '100%', 
+        maxWidth: 'lg',
+        mb: 3 
+      }}>
         <TextField
           fullWidth
           size="small"
@@ -421,84 +439,98 @@ export default function StrategyList() {
       </Box>
 
       {error && (
-        <Box sx={{ mb: 2 }}>
+        <Box sx={{ 
+          width: '100%', 
+          maxWidth: 'lg',
+          mb: 2 
+        }}>
           <Typography color="error">{error}</Typography>
         </Box>
       )}
 
-      {/* User Strategies Section */}
-      <Box mb={6}>
-        <Typography variant="h5" gutterBottom>
-          User Strategies
-        </Typography>
-        <Divider sx={{ mb: 3 }} />
-        
-        {loading ? (
-          <Box display="flex" justifyContent="center" my={4}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center', py: 2 }}>
-            <Alert 
-              severity="error" 
-              sx={{ mb: 3 }}
-              action={
-                <Button 
-                  color="inherit" 
-                  onClick={handleRetry}
-                  disabled={retrying}
-                >
-                  {retrying ? <CircularProgress size={20} /> : 'Retry'}
-                </Button>
-              }
-            >
-              {error}
-            </Alert>
-            <Button variant="contained" onClick={handleCreateStrategy}>
-              Create New Strategy
-            </Button>
-          </Box>
-        ) : (
-          <>
-            {renderStrategyCards(filteredUserStrategies)}
-          </>
-        )}
-      </Box>
+      {/* Content Area */}
+      <Box sx={{ 
+        width: '100%', 
+        maxWidth: 'lg',
+        flex: 1,
+        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {/* User Strategies Section */}
+        <Box mb={6}>
+          <Typography variant="h5" gutterBottom>
+            User Strategies
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
+          
+          {loading ? (
+            <Box display="flex" justifyContent="center" my={4}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center', py: 2 }}>
+              <Alert 
+                severity="error" 
+                sx={{ mb: 3 }}
+                action={
+                  <Button 
+                    color="inherit" 
+                    onClick={handleRetry}
+                    disabled={retrying}
+                  >
+                    {retrying ? <CircularProgress size={20} /> : 'Retry'}
+                  </Button>
+                }
+              >
+                {error}
+              </Alert>
+              <Button variant="contained" onClick={handleCreateStrategy}>
+                Create New Strategy
+              </Button>
+            </Box>
+          ) : (
+            <>
+              {renderStrategyCards(filteredUserStrategies)}
+            </>
+          )}
+        </Box>
 
-      {/* Default Strategies Section */}
-      <Box mt={4}>
-        <Typography variant="h5" gutterBottom>
-          Default Strategies
-        </Typography>
-        <Divider sx={{ mb: 3 }} />
-        
-        {defaultError ? (
-          <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center', py: 2 }}>
-            <Alert 
-              severity="error" 
-              sx={{ mb: 3 }}
-              action={
-                <Button 
-                  color="inherit" 
-                  onClick={handleRetryDefaults}
-                  disabled={retryingDefaults}
-                >
-                  {retryingDefaults ? <CircularProgress size={20} /> : 'Retry'}
-                </Button>
-              }
-            >
-              {defaultError}
-            </Alert>
-          </Box>
-        ) : loadingDefaults ? (
-          <Box display="flex" justifyContent="center" alignItems="center" py={4}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <>
-            {renderStrategyCards(filteredDefaultStrategies, true)}
-          </>
-        )}
+        {/* Default Strategies Section */}
+        <Box mt={4}>
+          <Typography variant="h5" gutterBottom>
+            Default Strategies
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
+          
+          {defaultError ? (
+            <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center', py: 2 }}>
+              <Alert 
+                severity="error" 
+                sx={{ mb: 3 }}
+                action={
+                  <Button 
+                    color="inherit" 
+                    onClick={handleRetryDefaults}
+                    disabled={retryingDefaults}
+                  >
+                    {retryingDefaults ? <CircularProgress size={20} /> : 'Retry'}
+                  </Button>
+                }
+              >
+                {defaultError}
+              </Alert>
+            </Box>
+          ) : loadingDefaults ? (
+            <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              {renderStrategyCards(filteredDefaultStrategies, true)}
+            </>
+          )}
+        </Box>
       </Box>
 
       <Dialog
@@ -531,6 +563,6 @@ export default function StrategyList() {
       </Dialog>
 
       {/* Toast is now provided by ToastContext */}
-    </Container>
+    </Box>
   );
 }
