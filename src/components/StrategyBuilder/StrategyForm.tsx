@@ -37,6 +37,7 @@ import InstrumentSelector from './InstrumentSelector';
 import { IndicatorExpressionBuilder } from './IndicatorExpressionBuilder';
 import { OptionsLegBuilder, OptionLeg } from './OptionsLegBuilder';
 import MetricsSection from './MetricsSection';
+import { BacktestResultsDisplay } from './BacktestResultsDisplay';
 import { PROFIT_LOSS_TYPES, TIMEFRAME_OPTIONS } from '../../constants';
 import {
   Table,
@@ -50,256 +51,33 @@ import {
 } from '@mui/material';
 import { BacktestResult } from '../../types/strategy';
 import { createDeployment, ApiResponse } from '../../services/deploymentService';
+import { convertFormToApiData } from '../../utils/strategyFormUtils';
+import { 
+  validateForm, 
+  isFormValid, 
+  isSectionComplete, 
+  getMissingSectionFields,
+  validateTimeRange,
+  validateDateRange
+} from '../../utils/strategyFormValidation';
 
-export interface Instrument {
-  exchange_security_id: number;
-  exchange: string;
-  segment: string;
-  symbol: string;
-  instrument: string;
-  instrument_id: number;
-  start_date: string;
-  expiry: string;
-}
+// Import types from the dedicated types file
+import {
+  Instrument,
+  FormData,
+  ApiFormData,
+  ValidationErrors,
+  StrategyFormProps,
+  BacktestPosition,
+  BacktestMetric,
+  BacktestRun,
+  BacktestData,
+  getInitialFormData
+} from '../../types/strategyForm';
 
 // Using Indicator and IndicatorExpression interfaces from utils/indicatorExpressionUtils.ts
 
-interface FormData {
-  id?: string;  // Make id optional since it won't exist for new strategies
-  name: string;
-  description: string;
-  instrumentType: 'equity' | 'futures' | 'options';
-  buyOrSell: 'buy' | 'sell';
-  instruments: number[];
-  candlestickType: string;
-  timeframe: string;
-  tradeType: string;
-  maxAllocation: string;
-  maxQuantity: string;
-  entryConditions: any[];
-  exitConditions: any[];
-  // New fields for options legs
-  entryOptionLegs: OptionLeg[];
-  exitOptionLegs: OptionLeg[];
-  expirationStrategy: 'EXPIRE' | 'CLOSE' | 'EXERCISE';
-  stopLoss: string;
-  stopLossType: 'ABSOLUTE' | 'PERCENTAGE';
-  targetProfit: string;
-  targetProfitType: 'ABSOLUTE' | 'PERCENTAGE';
-  trailingStopLoss: string;
-  trailingStopLossType: 'ABSOLUTE' | 'PERCENTAGE';
-  entryStartTime: Dayjs | null;
-  entryEndTime: Dayjs | null;
-  startDate: Dayjs | null;
-  endDate: Dayjs | null;
-  brickSize: string;
-  initialCapital: string;
-}
-
-const initialFormData: FormData = {
-  id: undefined,  // Initialize with undefined
-  name: '',
-  description: '',
-  instrumentType: 'equity',
-  buyOrSell: 'buy',
-  instruments: [],
-  candlestickType: 'CANDLESTICK',
-  timeframe: '1m',
-  tradeType: 'MIS',
-  maxAllocation: '',
-  maxQuantity: '',
-  entryConditions: [],
-  exitConditions: [],
-  entryOptionLegs: [],
-  exitOptionLegs: [],
-  expirationStrategy: 'CLOSE',
-  stopLoss: '',
-  stopLossType: 'PERCENTAGE',
-  targetProfit: '',
-  targetProfitType: 'PERCENTAGE',
-  trailingStopLoss: '',
-  trailingStopLossType: 'PERCENTAGE',
-  entryStartTime: null,
-  entryEndTime: null,
-  startDate: null,
-  endDate: null,
-  brickSize: '',
-  initialCapital: '100000',
-};
-
-export interface ValidationErrors {
-  [key: string]: string | undefined;
-}
-
-const setErrorsWithType = (prev: ValidationErrors) => ({
-  ...prev,
-});
-
-export interface StrategyFormProps {
-  initialData?: any;
-  initialInstruments?: Instrument[];
-  pageTitle?: string;
-}
-
-interface ApiFormData {
-  id?: string; // Make ID optional since it won't exist for new strategies
-  name: string;
-  description: string;
-  instrument_type: 'equity' | 'futures' | 'options';
-  position_type: 'LONG' | 'SHORT';
-  instruments: number[];
-  chart_type: string;
-  chart_timeframe: string;
-  trade_type: string;
-  brick_size?: number;
-  qty: number;
-  max_allocation: number; // Added this property to match the form data
-  entry_expression: string;
-  exit_expression: string;
-  entry_option_legs?: OptionLeg[];
-  exit_option_legs?: OptionLeg[];
-  expiration_strategy?: 'EXPIRE' | 'CLOSE' | 'EXERCISE';
-  target_profit: number;
-  target_profit_type: 'ABSOLUTE' | 'PERCENTAGE';
-  stop_loss: number;
-  stop_loss_type: 'ABSOLUTE' | 'PERCENTAGE';
-  trailing_stop_loss: number;
-  trailing_stop_loss_type: 'ABSOLUTE' | 'PERCENTAGE';
-  capital: number;
-  max_trades: number;
-  entry_start_time: string | null;
-  entry_end_time: string | null;
-  start_date: string | null;
-  end_date: string | null;
-}
-
-interface BacktestPosition {
-  id: string;
-  run_id: string;
-  state: string;
-  direction: string;
-  entry_price_signal: number;
-  entry_time_signal: string;
-  entry_price_order: number;
-  entry_time_order: string;
-  entry_signal: string;
-  exit_price_signal: number;
-  exit_time_signal: number;
-  exit_price_order: number;
-  exit_time_order: string;
-  exit_signal: string;
-  exit_reason: string;
-  profit_loss_absolute: number;
-  profit_loss_percentage: number;
-  transaction_cost: number;
-  entry_fees: number;
-  exit_fees: number;
-  net_profit_loss: number;
-  position_size: number;
-}
-
-interface BacktestMetric {
-  id: string;
-  run_id: string;
-  total_return_pct: number;
-  annualized_return: number;
-  sharpe_ratio: number;
-  sortino_ratio: number;
-  max_drawdown: number;
-  max_drawdown_duration: number;
-  std_deviation: number;
-  total_trades: number;
-  win_rate: number;
-  avg_win_size: number;
-  avg_loss_size: number;
-  avg_trade_duration: number;
-  profit_factor: number;
-  total_commission: number;
-  total_slippage: number;
-  transaction_costs_pct: number;
-  metric_json: string;
-}
-
-interface BacktestRun {
-  instrument_id: string | number;
-  positions: BacktestPosition[] | null;
-  metrics: BacktestMetric;
-  exchange?: string;
-  instrument_master?: {
-    instrument_name: string;
-  };
-}
-
-interface BacktestData {
-  message: string;
-  results: BacktestRun[];
-  strategy_id?: string;
-}
-
-const convertFormToApiData = (formData: FormData): ApiFormData => {
-    
-    // Validate option legs before sending to ensure all required fields are filled
-    const validatedEntryOptionLegs = formData.instrumentType === 'options' 
-      ? formData.entryOptionLegs.filter(leg => 
-          leg.strike !== '' && leg.expiry !== '' && leg.quantity !== '')
-      : [];
-    
-    const validatedExitOptionLegs = formData.instrumentType === 'options'
-      ? formData.exitOptionLegs.filter(leg => 
-          leg.strike !== '' && leg.expiry !== '' && leg.quantity !== '')
-      : [];
-
-    return {
-      id: formData.id, // Include the ID in the API data if it exists
-      name: formData.name,
-      description: formData.description,
-      instrument_type: formData.instrumentType,
-      position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
-      instruments: formData.instruments,
-      chart_type: formData.candlestickType,
-      chart_timeframe: formData.timeframe,
-      trade_type: formData.tradeType,
-      brick_size: formData.candlestickType === 'RENKO' && formData.brickSize ? parseFloat(formData.brickSize) : undefined,
-      qty: parseInt(formData.maxQuantity) || 0,
-      max_allocation: parseInt(formData.maxAllocation) || 0,
-      entry_expression: formData.instrumentType !== 'options' ? stringifyConditions(formData.entryConditions) : '',
-      exit_expression: formData.instrumentType !== 'options' ? stringifyConditions(formData.exitConditions) : '',
-      entry_option_legs: formData.instrumentType === 'options' ? validatedEntryOptionLegs : undefined,
-      exit_option_legs: formData.instrumentType === 'options' ? validatedExitOptionLegs : undefined,
-      expiration_strategy: formData.instrumentType === 'options' ? formData.expirationStrategy : undefined,
-      stop_loss: parseFloat(formData.stopLoss) || 0,
-      stop_loss_type: formData.stopLossType,
-      target_profit: parseFloat(formData.targetProfit) || 0,
-      target_profit_type: formData.targetProfitType,
-      trailing_stop_loss: parseFloat(formData.trailingStopLoss) || 0,
-      trailing_stop_loss_type: formData.trailingStopLossType,
-      entry_start_time: formData.entryStartTime?.isValid() ? formData.entryStartTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-      entry_end_time: formData.entryEndTime?.isValid() ? formData.entryEndTime.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-      start_date: formData.startDate?.isValid() ? formData.startDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-      end_date: formData.endDate?.isValid() ? formData.endDate.format('YYYY-MM-DDTHH:mm:ssZ') : null,
-      capital: parseInt(formData.initialCapital) || 100000,
-      max_trades: 5
-    };
-};
-
 // Using parseExpressions function from utility file
-
-const sampleBacktestResults: BacktestResult = {
-  strategyId: '',
-  results: [],
-  aggregatedMetrics: {
-    instrumentId: 0,
-    instrumentName: 'Total',
-    totalTrades: 0,
-    winningTrades: 0,
-    losingTrades: 0,
-    winRate: 0,
-    profitFactor: 0,
-    totalPnL: 0,
-    maxDrawdown: 0,
-    sharpeRatio: 0
-  }
-};
 
 export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initialInstruments = [], pageTitle }) => {
   const router = useRouter();
@@ -338,7 +116,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isInstrumentSelectorOpen, setInstrumentSelectorOpen] = useState(false);
   const [selectedInstruments, setSelectedInstruments] = useState<Instrument[]>(initialInstruments);
-  const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(sampleBacktestResults);
+  const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(null);
   const [rawBacktestData, setRawBacktestData] = useState<BacktestData | null>(null);
   const [isBacktesting, setIsBacktesting] = useState(false);
   const [deployingInstruments, setDeployingInstruments] = useState<Set<number>>(new Set());
@@ -424,101 +202,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     }
   };
 
-  const isFormValid = () => {
-    const isOptionsType = formData.instrumentType === 'options';
-    const isRenkoType = formData.candlestickType === 'RENKO';
-    
-    // Check each section's mandatory fields
-    const isNameSectionValid = !!formData.name.trim();
-    
-    const isPositionsSectionValid = !!(
-      formData.instrumentType &&
-      formData.buyOrSell &&
-      selectedInstruments.length > 0 &&
-      formData.candlestickType &&
-      formData.timeframe &&
-      formData.tradeType &&
-      formData.maxAllocation &&
-      formData.maxAllocation !== '' &&
-      parseFloat(formData.maxAllocation) > 0 &&
-      formData.maxQuantity &&
-      formData.maxQuantity !== '' &&
-      parseFloat(formData.maxQuantity) > 0
-    );
-    
-    const isEntrySectionValid = isOptionsType 
-      ? (formData.entryOptionLegs.length > 0)
-      : (formData.entryConditions.length > 0);
-    
-    const isExitSectionValid = !!(
-      formData.stopLoss &&
-      formData.targetProfit
-    );
-    
-    const isBacktestSectionValid = !!(
-      formData.startDate &&
-      formData.endDate &&
-      (!formData.entryStartTime || !formData.entryEndTime || validateTimeRange(formData.entryStartTime, formData.entryEndTime)) &&
-      validateDateRange(formData.startDate, formData.endDate)
-    );
-    
-    return isNameSectionValid && 
-           isPositionsSectionValid && 
-           isEntrySectionValid && 
-           isExitSectionValid && 
-           isBacktestSectionValid;
-  };
-
-  const getMissingSectionFields = (sectionId: string): string[] => {
-    const isOptionsType = formData.instrumentType === 'options';
-    const isRenkoType = formData.candlestickType === 'RENKO';
-    const missing: string[] = [];
-    
-    switch (sectionId) {
-      case 'name':
-        if (!formData.name.trim()) missing.push('Strategy Name');
-        if (!formData.description.trim()) missing.push('Description');
-        break;
-      
-      case 'positions':
-        if (!formData.instrumentType) missing.push('Instrument Type');
-        if (!formData.buyOrSell) missing.push('Position type');
-        if (selectedInstruments.length === 0) missing.push('Instruments');
-        if (!formData.candlestickType) missing.push('Candlestick Type');
-        if (isRenkoType && !formData.brickSize) missing.push('Brick Size');
-        if (!formData.timeframe) missing.push('Timeframe');
-        if (!formData.tradeType) missing.push('Trade Type');
-        if (!formData.maxAllocation) missing.push('Max Allocation');
-        if (!formData.maxQuantity) missing.push('Max Quantity');
-        break;
-      
-      case 'entry':
-        if (isOptionsType) {
-          if (formData.entryOptionLegs.length === 0) missing.push('Option Legs');
-        } else {
-          if (formData.entryConditions.length === 0) missing.push('Entry Conditions');
-        }
-        break;
-      
-      case 'exit':
-        if (formData.stopLoss === '') missing.push('Stop Loss');
-        if (formData.targetProfit === '') missing.push('Target Profit');
-        break;
-      
-      case 'backtest':
-        if (!formData.startDate) missing.push('Start Date');
-        if (!formData.endDate) missing.push('End Date');
-        if (formData.startDate && formData.endDate && !validateDateRange(formData.startDate, formData.endDate)) {
-          missing.push('Valid Date Range');
-        }
-        if (formData.entryStartTime && formData.entryEndTime && !validateTimeRange(formData.entryStartTime, formData.entryEndTime)) {
-          missing.push('Valid Time Range');
-        }
-        break;
-    }
-    
-    return missing;
-  };
+  // Using imported validation functions from utils
 
   const handleChange = (field: keyof FormData) => (value: any) => {
     // Log timeframe changes for debugging
@@ -539,123 +223,11 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     }
 
     setHasUnsavedChanges(true);
+
+    // Note: Backtest results are kept during editing and only cleared after successful save
   };
 
-  const validateForm = () => {
-    const newErrors: ValidationErrors = {};
-    const isOptionsType = formData.instrumentType === 'options';
-    const isRenkoType = formData.candlestickType === 'RENKO';
-    
-    // Name section validation
-    if (!formData.name.trim()) {
-      newErrors.name = 'Strategy name is required';
-    }
-    
-    // Positions section validation
-    if (!formData.instrumentType) {
-      newErrors.instrumentType = 'Instrument type is required';
-    }
-    
-    if (!formData.buyOrSell) {
-      newErrors.buyOrSell = 'Position type is required';
-    }
-    
-    if (selectedInstruments.length === 0) {
-      newErrors.instruments = 'At least one instrument must be selected';
-    }
-    
-    if (!formData.candlestickType) {
-      newErrors.candlestickType = 'Candlestick type is required';
-    }
-    
-    if (!formData.maxAllocation || formData.maxAllocation === '' || parseFloat(formData.maxAllocation) <= 0) {
-      newErrors.maxAllocation = 'Max Allocation is required and must be greater than 0';
-    }
-
-    if (!formData.maxQuantity || formData.maxQuantity === '' || parseFloat(formData.maxQuantity) <= 0) {
-      newErrors.maxQuantity = 'Max Quantity is required and must be greater than 0';
-    }
-
-    if (!formData.maxQuantity || formData.maxQuantity === '' || parseFloat(formData.maxQuantity) <= 0) {
-      newErrors.maxQuantity = 'Max Quantity is required and must be greater than 0';
-    }
-
-    if (isRenkoType && (!formData.brickSize || formData.brickSize === '0')) {
-      newErrors.brickSize = 'Brick size is required for Renko charts';
-    }
-    
-    if (!formData.timeframe) {
-      newErrors.timeframe = 'Timeframe is required';
-    }
-    
-    if (!formData.tradeType) {
-      newErrors.tradeType = 'Trade type is required';
-    }
-    
-    // Entry section validation
-    if (isOptionsType) {
-      if (formData.entryOptionLegs.length === 0) {
-        newErrors.entryOptionLegs = 'At least one entry option leg is required';
-      }
-    } else {
-      if (formData.entryConditions.length === 0) {
-        newErrors.entryConditions = 'At least one entry condition is required';
-      }
-    }
-    
-    // Exit section validation
-    if (formData.stopLoss === '') {
-      newErrors.stopLoss = 'Stop loss is required';
-    }
-    
-    if (formData.targetProfit === '') {
-      newErrors.targetProfit = 'Target profit is required';
-    }
-    
-    // Backtest parameters validation
-    if (!formData.startDate) {
-      newErrors.startDate = 'Start date is required';
-    }
-    
-    if (!formData.endDate) {
-      newErrors.endDate = 'End date is required';
-    }
-
-    // Validate date range
-    if (formData.startDate && formData.endDate) {
-      if (!validateDateRange(formData.startDate, formData.endDate)) {
-        newErrors.startDate = 'Start date cannot be after end date';
-        newErrors.endDate = 'End date cannot be before start date';
-      }
-    }
-
-    // Validate time range if both are provided
-    if (formData.entryStartTime && formData.entryEndTime) {
-      if (!validateTimeRange(formData.entryStartTime, formData.entryEndTime)) {
-        newErrors.entryStartTime = 'Start time cannot be after end time';
-        newErrors.entryEndTime = 'End time cannot be before start time';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateTimeRange = (startTime: Dayjs | null, endTime: Dayjs | null) => {
-    if (startTime && endTime && startTime.isAfter(endTime)) {
-      return false;
-    }
-    return true;
-  };
-
-  const validateDateRange = (startDate: Dayjs | null, endDate: Dayjs | null) => {
-    if (startDate && endDate) {
-      const start = startDate.startOf('day');
-      const end = endDate.startOf('day');
-      return !start.isAfter(end);
-    }
-    return true;
-  };
+  // Using imported validation functions from strategyFormValidation.ts
 
   const handleDateChange = (field: 'startDate' | 'endDate') => (value: Dayjs | null) => {
     const otherField = field === 'startDate' ? 'endDate' : 'startDate';
@@ -747,49 +319,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     handleChange('instruments')(instruments.map(i => i.exchange_security_id));
   };
 
-  const isSectionComplete = (sectionId: string): boolean => {
-    const isOptionsType = formData.instrumentType === 'options';
-    
-    switch (sectionId) {
-      case 'name':
-        return !!formData.name.trim();
-      
-      case 'positions':
-        return (
-          !!formData.instrumentType &&
-          !!formData.buyOrSell &&
-          selectedInstruments.length > 0 &&
-          !!formData.candlestickType &&
-          !!formData.timeframe &&
-          !!formData.tradeType &&
-          !!formData.maxAllocation &&
-          formData.maxAllocation !== '' &&
-          parseFloat(formData.maxAllocation) > 0
-        );
-      
-      case 'entry':
-        return isOptionsType
-          ? Array.isArray(formData.entryOptionLegs) && formData.entryOptionLegs.length > 0
-          : Array.isArray(formData.entryConditions) && formData.entryConditions.length > 0;
-      
-      case 'exit':
-        return (
-          formData.stopLoss !== '' &&
-          formData.targetProfit !== ''
-        );
-      
-      case 'backtest':
-        return (
-          !!formData.startDate &&
-          !!formData.endDate &&
-          (!formData.entryStartTime || !formData.entryEndTime || validateTimeRange(formData.entryStartTime, formData.entryEndTime)) &&
-          validateDateRange(formData.startDate, formData.endDate)
-        );
-      
-      default:
-        return false;
-    }
-  };
+  // Using imported isSectionComplete function from utils
 
   const sections = [
     {
@@ -1242,22 +772,23 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   };
 
   const expandFirstIncompleteSection = () => {
-    const firstIncompleteSection = sections.find(section => !isSectionComplete(section.id));
+    const firstIncompleteSection = sections.find(section => !isSectionComplete(section.id, formData, selectedInstruments));
     if (firstIncompleteSection && !expandedSections.includes(firstIncompleteSection.id)) {
       setExpandedSections(prev => [...prev, firstIncompleteSection.id]);
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (clearBacktestResults = true) => {
     setAttemptedSubmit(true);
     
-    if (!isFormValid()) {
+    if (!isFormValid(formData, selectedInstruments)) {
       // If form is not valid, expand the first incomplete section to guide the user
       expandFirstIncompleteSection();
       return;
     }
     
-    if (validateForm()) {
+    const validationErrors = validateForm(formData, selectedInstruments);
+    if (Object.keys(validationErrors).length === 0) {
       try {
         setLoading(true);
 
@@ -1302,6 +833,13 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             showToast('Strategy saved successfully', 'success');
             setHasUnsavedChanges(false); // Reset unsaved changes after successful save
             
+            // Clear backtest results after successful save only if requested
+            if (clearBacktestResults) {
+              setShowBacktestResults(false);
+              setBacktestResults(null); // Clear results completely
+              setRawBacktestData(null);
+            }
+
             // Get the strategy ID - either from the response or from the existing form data
             const strategyId = result.data?.id || formData.id;
             
@@ -1338,13 +876,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
 
   const handleBacktest = async () => {
     setAttemptedSubmit(true);
-    if (!isFormValid()) {
+    if (!isFormValid(formData, selectedInstruments)) {
       // If form is not valid, expand the first incomplete section to guide the user
       expandFirstIncompleteSection();
       return;
     }
     
-    if (validateForm()) {
+    const formErrors = validateForm(formData, selectedInstruments);
+    if (Object.keys(formErrors).length === 0) {
       try {
         setIsBacktesting(true);
         setShowBacktestResults(true);
@@ -1360,8 +899,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         let currentStrategyId = initialData?.id || formData.id || '';
         
         if (!currentStrategyId || hasUnsavedChanges) {
-          // Save the strategy and get the updated ID
-          const saveResponse = await handleSave();
+          // Save the strategy and get the updated ID, but don't clear backtest results
+          const saveResponse = await handleSave(false); // Pass false to prevent clearing backtest results
           if (saveResponse?.id) {
             currentStrategyId = saveResponse.id;
           }
@@ -1489,6 +1028,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                           sharpeRatio: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.sharpe_ratio || 0) / arr.length, 0)
                         }
                       };
+                      
+                      // Console log the transformed results for debugging
+                      console.log('Transformed Backtest Results:', transformedResults);
+                      console.log('Individual Results:', transformedResults.results);
+                      console.log('Aggregated Metrics:', transformedResults.aggregatedMetrics);
+                      
                       setBacktestResults(transformedResults);
                       setShowBacktestResults(true);
                       
@@ -1692,274 +1237,15 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     await checkDeploymentStatus(initialData.id, instrumentIds);
   };
 
-  const renderBacktestResults = () => {
-    // Return loading animation if we're still backtesting
-    if (isBacktesting) {
-      return (
-        <Box 
-          ref={backtestResultsRef}
-          sx={{ 
-            mt: 4, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            py: 8
-          }}
-        >
-          <CircularProgress size={60} sx={{ mb: 3 }} />
-          <Typography variant="h6">Running Backtest...</Typography>
-          <Typography color="text.secondary" sx={{ mt: 1 }}>
-            Please wait while we simulate your strategy on historical data.
-          </Typography>
-        </Box>
-      );
+  // Function to toggle positions display
+  const togglePositions = (instrumentId: number) => {
+    if (expandedInstrument === instrumentId) {
+      setExpandedInstrument(null);
+      setShowingPositions(false);
+    } else {
+      setExpandedInstrument(instrumentId);
+      setShowingPositions(true);
     }
-
-    if (!backtestResults) return null;
-
-    // Function to toggle positions display
-    const togglePositions = (instrumentId: number) => {
-      if (expandedInstrument === instrumentId) {
-        setExpandedInstrument(null);
-        setShowingPositions(false);
-      } else {
-        setExpandedInstrument(instrumentId);
-        setShowingPositions(true);
-      }
-    };
-
-    return (
-      <Box ref={backtestResultsRef} sx={{ mt: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6">Backtest Results</Typography>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={refreshDeploymentStatus}
-            startIcon={<Refresh />}
-            sx={{ ml: 2 }}
-          >
-            Refresh Status
-          </Button>
-        </Box>
-        <TableContainer 
-          component={Paper}
-          sx={{ 
-            animation: 'fadeIn 0.8s ease-in-out',
-            '@keyframes fadeIn': {
-              '0%': {
-                opacity: 0,
-                transform: 'translateY(20px)'
-              },
-              '100%': {
-                opacity: 1,
-                transform: 'translateY(0)'
-              }
-            }
-          }}
-        >
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Instrument</TableCell>
-                <TableCell align="right">Total Trades</TableCell>
-                <TableCell align="right">Win/Loss</TableCell>
-                <TableCell align="right">Win Rate</TableCell>
-                <TableCell align="right">Profit Factor</TableCell>
-                <TableCell align="right">Total P&L</TableCell>
-                <TableCell align="right">Max Drawdown</TableCell>
-                <TableCell align="right">Sharpe Ratio</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow sx={{ bgcolor: 'action.hover' }}>
-                <TableCell><strong>Total</strong></TableCell>
-                <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.totalTrades}</strong></TableCell>
-                <TableCell align="right">
-                  <strong>
-                    {backtestResults.aggregatedMetrics.winningTrades} / {backtestResults.aggregatedMetrics.losingTrades}
-                  </strong>
-                </TableCell>
-                <TableCell align="right"><strong>{(backtestResults.aggregatedMetrics.winRate * 100).toFixed(2)}%</strong></TableCell>
-                <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.profitFactor.toFixed(2)}</strong></TableCell>
-                <TableCell 
-                  align="right"
-                  sx={{ 
-                    color: backtestResults.aggregatedMetrics.totalPnL >= 0 ? 'success.main' : 'error.main',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {backtestResults.aggregatedMetrics.totalPnL.toFixed(2)}
-                </TableCell>
-                <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.maxDrawdown.toFixed(2)}%</strong></TableCell>
-                <TableCell align="right"><strong>{backtestResults.aggregatedMetrics.sharpeRatio.toFixed(2)}</strong></TableCell>
-                <TableCell align="center">
-                  {(() => {
-                    const undeployedCount = backtestResults.results.filter(
-                      result => !deploymentStatuses.get(result.instrumentId)
-                    ).length;
-                    
-                    if (undeployedCount === 0) {
-                      return (
-                        <Chip
-                          label="All Deployed"
-                          color="success"
-                          size="small"
-                          variant="filled"
-                        />
-                      );
-                    }
-                    
-                    return (
-                      <Button
-                        variant="contained"
-                        size="small"
-                        onClick={handleDeployAll}
-                        disabled={deployingInstruments.size > 0}
-                      >
-                        {deployingInstruments.size > 0 ? (
-                          <CircularProgress size={20} />
-                        ) : `Deploy ${undeployedCount === backtestResults.results.length ? 'All' : undeployedCount}`}
-                      </Button>
-                    );
-                  })()}
-                </TableCell>
-              </TableRow>
-              {backtestResults.results.map((result) => (
-                <React.Fragment key={result.instrumentId}>
-                  <TableRow 
-                    hover
-                    onClick={() => togglePositions(result.instrumentId)}
-                    sx={{ cursor: 'pointer' }}
-                  >
-                    <TableCell>{result.instrumentName}</TableCell>
-                    <TableCell align="right">{result.totalTrades}</TableCell>
-                    <TableCell align="right">
-                      {result.winningTrades} / {result.losingTrades}
-                    </TableCell>
-                    <TableCell align="right">{(result.winRate * 100).toFixed(2)}%</TableCell>
-                    <TableCell align="right">{result.profitFactor.toFixed(2)}</TableCell>
-                    <TableCell 
-                      align="right"
-                      sx={{ 
-                        color: result.totalPnL >= 0 ? 'success.main' : 'error.main'
-                      }}
-                    >
-                      {result.totalPnL.toFixed(2)}
-                    </TableCell>
-                    <TableCell align="right">{result.maxDrawdown.toFixed(2)}%</TableCell>
-                    <TableCell align="right">{result.sharpeRatio.toFixed(2)}</TableCell>
-                    <TableCell align="center">
-                      {deploymentStatuses.get(result.instrumentId) ? (
-                        <Chip
-                          label="Deployed"
-                          color="success"
-                          size="small"
-                          variant="filled"
-                        />
-                      ) : (
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent row click
-                            handleDeploy(result.instrumentId);
-                          }}
-                          disabled={deployingInstruments.has(result.instrumentId)}
-                        >
-                          {deployingInstruments.has(result.instrumentId) ? (
-                            <CircularProgress size={20} />
-                          ) : 'Deploy'}
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                </React.Fragment>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        {/* Add Metrics Section below the table */}
-        <MetricsSection
-          backtestResults={backtestResults}
-          rawBacktestData={rawBacktestData}
-          instruments={selectedInstruments}
-        />
-        
-        {/* Performance Charts Section */}
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h6" gutterBottom>Performance Metrics</Typography>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="subtitle1" gutterBottom>Win/Loss Ratio</Typography>
-                <Box sx={{ 
-                  display: 'flex', 
-                  height: 40, 
-                  borderRadius: 1, 
-                  overflow: 'hidden', 
-                  mb: 1
-                }}>
-                  <Box 
-                    sx={{ 
-                      width: `${(backtestResults.aggregatedMetrics.winRate || 0) * 100}%`, 
-                      bgcolor: 'success.main',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white'
-                    }}
-                  >
-                    {backtestResults.aggregatedMetrics.winningTrades || 0}
-                  </Box>
-                  <Box 
-                    sx={{ 
-                      width: `${100 - ((backtestResults.aggregatedMetrics.winRate || 0) * 100)}%`, 
-                      bgcolor: 'error.main',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white'
-                    }}
-                  >
-                    {backtestResults.aggregatedMetrics.losingTrades || 0}
-                  </Box>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Win Rate: {((backtestResults.aggregatedMetrics.winRate || 0) * 100).toFixed(2)}%
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="subtitle1" gutterBottom>Key Statistics</Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Total Trades:</Typography>
-                    <Typography variant="body2">{backtestResults.aggregatedMetrics.totalTrades || 0}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Profit Factor:</Typography>
-                    <Typography variant="body2">{(backtestResults.aggregatedMetrics.profitFactor || 0).toFixed(2)}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Max Drawdown:</Typography>
-                    <Typography variant="body2">{(backtestResults.aggregatedMetrics.maxDrawdown || 0).toFixed(2)}%</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Sharpe Ratio:</Typography>
-                    <Typography variant="body2">{(backtestResults.aggregatedMetrics.sharpeRatio || 0).toFixed(2)}</Typography>
-                  </Box>
-                </Box>
-              </Paper>
-            </Grid>
-          </Grid>
-        </Box>
-      </Box>
-    );
   };
 
   const fetchStrategy = async (id: string) => {
@@ -2104,21 +1390,21 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                 {section.title}
               </Typography>
               {/* Show missing fields if any */}
-              {!isSectionComplete(section.id) && (
+              {!isSectionComplete(section.id, formData, selectedInstruments) && (
                 <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
                   <Typography variant="caption" color="error" sx={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    Missing: {getMissingSectionFields(section.id).join(', ')}
+                    Missing: {getMissingSectionFields(section.id, formData, selectedInstruments).join(', ')}
                   </Typography>
                 </Box>
               )}
               <Tooltip 
-                title={isSectionComplete(section.id) 
+                title={isSectionComplete(section.id, formData, selectedInstruments) 
                   
                   ? "Section is complete" 
-                  : `Section is incomplete. Missing: ${getMissingSectionFields(section.id).join(', ')}`}
+                  : `Section is incomplete. Missing: ${getMissingSectionFields(section.id, formData, selectedInstruments).join(', ')}`}
                 arrow
               >
-                {isSectionComplete(section.id) ? (
+                {isSectionComplete(section.id, formData, selectedInstruments) ? (
                   <CheckCircle color="success" sx={{ fontSize: 20 }} />
                 ) : (
                   <Cancel color="error" sx={{ fontSize: 20 }} />
@@ -2140,23 +1426,26 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       />
       
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
-        <Tooltip title={!isFormValid() ? "Please fill in all required fields to save" : ""} arrow>
+        <Tooltip title={!isFormValid(formData, selectedInstruments) ? "Please fill in all required fields to save" : ""} arrow>
           <span>
             <Button 
               variant="contained" 
-              onClick={handleSave}
-              disabled={loading || (initialData && !hasUnsavedChanges) || !isFormValid()}
+              onClick={() => handleSave()}
+              disabled={loading || (initialData && !hasUnsavedChanges) || !isFormValid(formData, selectedInstruments)}
             >
               {loading ? <CircularProgress size={24} /> : 'Save'}
             </Button>
           </span>
         </Tooltip>
-        <Tooltip title={!isFormValid() ? "Please fill in all required fields to run backtest" : ""} arrow>
+        <Tooltip title={
+          !isFormValid(formData, selectedInstruments) ? "Please fill in all required fields to run backtest" :
+          hasUnsavedChanges ? "Please save your changes before running backtest" : ""
+        } arrow>
           <span>
             <Button 
               variant="contained" 
               onClick={handleBacktest}
-              disabled={isBacktesting || (initialData && hasUnsavedChanges) || !isFormValid()}
+              disabled={isBacktesting || hasUnsavedChanges || !isFormValid(formData, selectedInstruments)}
             >
               {isBacktesting ? <CircularProgress size={24} /> : 'Backtest'}
             </Button>
@@ -2164,7 +1453,25 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         </Tooltip>
       </Box>
 
-      {showBacktestResults && renderBacktestResults()}
+      {showBacktestResults && (
+        <BacktestResultsDisplay
+          backtestResults={backtestResults}
+          rawBacktestData={rawBacktestData}
+          isBacktesting={isBacktesting}
+          selectedInstruments={selectedInstruments}
+          deployingInstruments={deployingInstruments}
+          expandedInstrument={expandedInstrument}
+          showingPositions={showingPositions}
+          deploymentStatuses={deploymentStatuses}
+          timeframe={formData.timeframe}
+          strategyId={initialData?.id || formData.id || backtestResults?.strategyId}
+          onTogglePositions={togglePositions}
+          onDeploy={handleDeploy}
+          onDeployAll={handleDeployAll}
+          onRefreshDeploymentStatus={refreshDeploymentStatus}
+          backtestResultsRef={backtestResultsRef}
+        />
+      )}
     </Box>
   );
 };

@@ -21,7 +21,9 @@ import {
   TextField,
   InputAdornment,
   Button,
-  TableSortLabel
+  TableSortLabel,
+  Pagination,
+  Stack
 } from '@mui/material';
 
 interface BacktestPosition {
@@ -61,9 +63,10 @@ interface TradesTableProps {
   };
   instruments: Instrument[];
   isVisible: boolean;
+  timeframe?: string;
 }
 
-const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, isVisible }) => {
+const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, isVisible, timeframe }) => {
   const theme = useTheme();
   const [selectedInstrument, setSelectedInstrument] = useState<string>('all');
   const [selectedExitReason, setSelectedExitReason] = useState<string>('all');
@@ -74,6 +77,10 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
   // Sorting state
   const [sortBy, setSortBy] = useState<'entryTime' | 'exitTime' | 'profitLoss' | 'positionSize'>('entryTime');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 15;
 
   // Create instrument options for the dropdown
   const instrumentOptions = useMemo(() => {
@@ -210,6 +217,17 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
     return positions;
   }, [selectedInstrument, selectedExitReason, profitLossFilter, minPnL, maxPnL, sortBy, sortOrder, backtestData.results, instruments]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredPositions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPositions = filteredPositions.slice(startIndex, endIndex);
+
+  // Reset page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedInstrument, selectedExitReason, profitLossFilter, minPnL, maxPnL]);
+
   const handleInstrumentChange = (event: SelectChangeEvent<string>) => {
     setSelectedInstrument(event.target.value);
   };
@@ -236,6 +254,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
     setProfitLossFilter('all');
     setMinPnL('');
     setMaxPnL('');
+    setCurrentPage(1); // Reset to first page when clearing filters
   };
 
   const handleSort = (column: 'entryTime' | 'exitTime' | 'profitLoss' | 'positionSize') => {
@@ -247,11 +266,27 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
       setSortBy(column);
       setSortOrder('asc');
     }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
+    setCurrentPage(page);
   };
 
   const formatDateTime = (dateString: string) => {
     try {
       const date = new Date(dateString);
+      
+      // For 1-day timeframe, show only date without time
+      if (timeframe === '1d') {
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit'
+        });
+      }
+      
+      // For other timeframes, show full date and time
       return date.toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -295,10 +330,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
 
         {/* Filter Controls */}
         <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="subtitle1" fontWeight="medium">
-              Filter Trades
-            </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 2 }}>
             {(selectedInstrument !== 'all' || selectedExitReason !== 'all' || profitLossFilter !== 'all' || minPnL !== '' || maxPnL !== '') && (
               <Button 
                 variant="text" 
@@ -453,6 +485,11 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
               <TableRow>
                 <TableCell>
                   <Typography variant="subtitle2" fontWeight="bold">
+                    S. No.
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight="bold">
                     Instrument
                   </Typography>
                 </TableCell>
@@ -518,7 +555,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredPositions.map((position, index) => (
+              {paginatedPositions.map((position, index) => (
                 <TableRow 
                   key={`${position.instrumentId}-${position.id}-${index}`}
                   hover
@@ -528,6 +565,11 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
                     } 
                   }}
                 >
+                  <TableCell>
+                    <Typography variant="body2" fontWeight="medium">
+                      {startIndex + index + 1}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     <Chip
                       label={position.instrumentName}
@@ -588,27 +630,63 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
           </Table>
         </TableContainer>
 
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            Showing {filteredPositions.length} trade{filteredPositions.length !== 1 ? 's' : ''}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Table info and pagination */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="body2" color="text.secondary">
-              Total P&L: 
-              <Typography 
-                component="span" 
-                fontWeight="bold"
-                sx={{ 
-                  ml: 1,
-                  color: getPnLColor(
-                    filteredPositions.reduce((sum, pos) => sum + pos.profit_loss_absolute, 0)
-                  )
-                }}
-              >
-                ₹{formatPnL(filteredPositions.reduce((sum, pos) => sum + pos.profit_loss_absolute, 0))}
-              </Typography>
+              Showing {startIndex + 1}-{Math.min(endIndex, filteredPositions.length)} of {filteredPositions.length} trade{filteredPositions.length !== 1 ? 's' : ''}
             </Typography>
+            <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                Page P&L: 
+                <Typography 
+                  component="span" 
+                  fontWeight="bold"
+                  sx={{ 
+                    ml: 1,
+                    color: getPnLColor(
+                      paginatedPositions.reduce((sum, pos) => sum + pos.profit_loss_absolute, 0)
+                    )
+                  }}
+                >
+                  ₹{formatPnL(paginatedPositions.reduce((sum, pos) => sum + pos.profit_loss_absolute, 0))}
+                </Typography>
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total P&L: 
+                <Typography 
+                  component="span" 
+                  fontWeight="bold"
+                  sx={{ 
+                    ml: 1,
+                    color: getPnLColor(
+                      filteredPositions.reduce((sum, pos) => sum + pos.profit_loss_absolute, 0)
+                    )
+                  }}
+                >
+                  ₹{formatPnL(filteredPositions.reduce((sum, pos) => sum + pos.profit_loss_absolute, 0))}
+                </Typography>
+              </Typography>
+            </Box>
           </Box>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Stack spacing={2}>
+                <Pagination
+                  count={totalPages}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  color="primary"
+                  variant="outlined"
+                  shape="rounded"
+                  showFirstButton
+                  showLastButton
+                />
+              </Stack>
+            </Box>
+          )}
         </Box>
           </>
         )}

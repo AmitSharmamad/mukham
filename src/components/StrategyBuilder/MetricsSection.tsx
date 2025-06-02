@@ -34,12 +34,21 @@ interface MetricsSectionProps {
   backtestResults: BacktestResult;
   rawBacktestData?: BacktestData | null;
   instruments?: Instrument[];
+  timeframe?: string;
 }
 
-const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBacktestData, instruments = [] }) => {
+const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBacktestData, instruments = [], timeframe }) => {
   const theme = useTheme();
   const metrics = backtestResults.aggregatedMetrics;
   const [animate, setAnimate] = useState(false);
+  
+  // Debug logging
+  console.log('MetricsSection Props:', { 
+    backtestResults, 
+    rawBacktestData,
+    capitalProgression: rawBacktestData?.results?.[0]?.metrics?.capital_progression?.length,
+    resultsLength: rawBacktestData?.results?.length
+  });
   
   useEffect(() => {
     // Trigger animation after component mounts
@@ -82,7 +91,7 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
       case 'totalPnL':
         return `${value.toFixed(2)}%`;
       case 'maxDrawdown':
-        return `${value.toFixed(2)}%`;
+        return `${value.toFixed(2)}`;
       case 'winRate':
         return `${(value * 100).toFixed(2)}%`;
       case 'profitFactor':
@@ -187,7 +196,11 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
           transition: 'opacity 0.8s ease-in', 
           transitionDelay: '200ms' 
         }}>
-          <TradeChart backtestResults={backtestResults} />
+          <TradeChart 
+            backtestResults={backtestResults} 
+            rawBacktestData={rawBacktestData}
+            instruments={instruments}
+          />
         </Box>
         
         {/* Trades Table */}
@@ -201,6 +214,7 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
               backtestData={rawBacktestData}
               instruments={instruments}
               isVisible={true}
+              timeframe={timeframe}
             />
           </Box>
         )}
