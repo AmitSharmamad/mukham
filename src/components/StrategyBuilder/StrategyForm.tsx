@@ -1464,6 +1464,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           showingPositions={showingPositions}
           deploymentStatuses={deploymentStatuses}
           timeframe={formData.timeframe}
+          strategyId={initialData?.id || formData.id || backtestResults?.strategyId}
           onTogglePositions={togglePositions}
           onDeploy={handleDeploy}
           onDeployAll={handleDeployAll}
