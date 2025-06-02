@@ -124,17 +124,19 @@ export const MainLayout = ({
         {/* Main Content */}
         <Container 
           component="main" 
+          maxWidth="lg"
           sx={{ 
             flex: 1, 
             py: 4, 
             mt: 8, 
-            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '320px' : 0,
-            transition: theme.transitions.create('margin-left', {
+            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '320px' : 'auto',
+            mr: shouldShowSidebar && sidebarOpen && !isMobile ? 0 : 'auto',
+            transition: theme.transitions.create(['margin-left', 'margin-right'], {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
             }),
-            overflow: 'hidden', // Changed from 'auto' to 'hidden'
-            height: 'calc(100vh - 64px)', // Changed from maxHeight to height for static sizing
+            overflow: 'auto',
+            maxHeight: 'calc(100vh - 64px)',
             display: 'flex',
             flexDirection: 'column',
           }}
