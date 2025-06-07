@@ -190,8 +190,24 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
       });
     }
 
-    // Apply sorting
-    positions.sort((a, b) => {
+    // First sort by exit time in ascending order for cumulative PnL calculation
+    let sortedPositions = [...positions];
+    sortedPositions.sort((a, b) => {
+      return new Date(a.exit_time_order).getTime() - new Date(b.exit_time_order).getTime();
+    });
+
+    // Calculate cumulative PnL
+    let cumulativePnL = 0;
+    sortedPositions = sortedPositions.map(position => {
+      cumulativePnL += position.profit_loss_absolute;
+      return {
+        ...position,
+        cumulativePnL: cumulativePnL
+      };
+    });
+
+    // Apply final sorting based on user selection
+    sortedPositions.sort((a, b) => {
       let comparison = 0;
 
       switch (sortBy) {
@@ -214,7 +230,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
-    return positions;
+    return sortedPositions;
   }, [selectedInstrument, selectedExitReason, profitLossFilter, minPnL, maxPnL, sortBy, sortOrder, backtestData.results, instruments]);
 
   // Pagination logic
@@ -552,6 +568,11 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
                     </Typography>
                   </TableSortLabel>
                 </TableCell>
+                <TableCell align="right">
+                  <Typography variant="subtitle2" fontWeight="bold">
+                    Cumulative PnL
+                  </Typography>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -622,6 +643,15 @@ const TradesTable: React.FC<TradesTableProps> = ({ backtestData, instruments, is
                       sx={{ color: getPnLColor(position.profit_loss_absolute) }}
                     >
                       ₹{formatPnL(position.profit_loss_absolute)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography
+                      variant="body2"
+                      fontWeight="bold"
+                      sx={{ color: getPnLColor(position.cumulativePnL) }}
+                    >
+                      ₹{formatPnL(position.cumulativePnL)}
                     </Typography>
                   </TableCell>
                 </TableRow>
