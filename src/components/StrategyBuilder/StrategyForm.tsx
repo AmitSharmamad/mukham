@@ -104,8 +104,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     targetProfitType: initialData?.targetProfitType || 'PERCENTAGE',
     trailingStopLoss: initialData?.trailingStopLoss || '',
     trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
-    entryStartTime: initialData?.entryStartTime ? dayjs(initialData.entryStartTime, 'HH:mm') : null,
-    entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm') : null,
+    entryStartTime: initialData?.entryStartTime ? dayjs(initialData.entryStartTime, 'HH:mm:ss') : null,
+    entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm:ss') : null,
     startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
     endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
     initialCapital: initialData?.initialCapital || '100000',
@@ -134,7 +134,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     if (initialData) {
       // Make sure to set hasUnsavedChanges to false when initializing with existing data
       setHasUnsavedChanges(false);
-      const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z";
+      const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z" || time === "00:00:00";
       
       setFormData({
         id: initialData?.id, // Ensure ID is properly set if it exists
@@ -160,8 +160,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         targetProfitType: initialData?.targetProfitType || 'PERCENTAGE',
         trailingStopLoss: initialData?.trailingStopLoss || '',
         trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
-        entryStartTime: isNullTime(initialData.entryStartTime) ? null : dayjs(initialData.entryStartTime),
-        entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime),
+        entryStartTime: isNullTime(initialData.entryStartTime) ? null : dayjs(initialData.entryStartTime, 'HH:mm:ss'),
+        entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime, 'HH:mm:ss'),
         startDate: dayjs(initialData.startDate),
         endDate: dayjs(initialData.endDate),
         initialCapital: initialData.initialCapital || '100000',
