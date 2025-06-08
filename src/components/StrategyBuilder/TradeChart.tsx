@@ -171,7 +171,7 @@ const TradeChart: React.FC<TradeChartProps> = ({ backtestResults, rawBacktestDat
     return {
       labels,
       datasets: [{
-        label: 'Portfolio Value',
+        label: 'P/L Value',
         data,
         borderColor: theme.palette.primary.main,
         backgroundColor: theme.palette.primary.main,
