@@ -992,7 +992,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                             losingTrades: totalTrades - winningTrades,
                             winRate,
                             profitFactor: run.metrics.profit_factor || 0,
-                            totalPnL: run.metrics.total_return_pct,
+                            totalPnL: run.metrics.annualized_return || run.metrics.total_return_pct,
                             maxDrawdown: run.metrics.max_drawdown,
                             sharpeRatio: run.metrics.sharpe_ratio
                           };
@@ -1023,7 +1023,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                               return sum;
                             }, 0) / validRuns.length : 0,
                           profitFactor: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.profit_factor || 0) / arr.length, 0),
-                          totalPnL: validRuns.reduce((sum: number, run: BacktestRun) => sum + run.metrics.total_return_pct, 0),
+                          totalPnL: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.annualized_return || run.metrics.total_return_pct) / arr.length, 0),
                           maxDrawdown: validRuns.length > 0 ? Math.max(...validRuns.map((run: BacktestRun) => run.metrics.max_drawdown || 0)) : 0,
                           sharpeRatio: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.sharpe_ratio || 0) / arr.length, 0)
                         }
