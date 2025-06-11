@@ -77,7 +77,7 @@ export const MetricsDetail = ({ metrics, loading = false }: MetricsDetailProps) 
       description: 'Measures the profitability of your trading strategy',
       metrics: [
         {
-          name: 'Total Return',
+          name: 'Annualized Return',
           value: metrics.totalPnL,
           metricKey: 'totalPnL',
         }

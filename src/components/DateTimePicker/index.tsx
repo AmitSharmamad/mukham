@@ -25,8 +25,12 @@ export const DateTimePicker = ({
     
     // For time values, we need to create a valid date with the time
     if (type === 'time') {
-      const [hours, minutes] = val.split(':');
-      return dayjs().hour(Number(hours)).minute(Number(minutes));
+      // Handle both HH:mm and HH:mm:ss formats
+      const timeParts = val.split(':');
+      const hours = Number(timeParts[0]);
+      const minutes = Number(timeParts[1]);
+      const seconds = timeParts[2] ? Number(timeParts[2]) : 0;
+      return dayjs().hour(hours).minute(minutes).second(seconds);
     }
     
     return dayjs(val);
@@ -43,7 +47,7 @@ export const DateTimePicker = ({
     // Format the value based on the type
     const formattedValue = type === 'date' 
       ? newValue.format('YYYY-MM-DD')
-      : newValue.format('HH:mm');
+      : newValue.format('HH:mm:ss');
     
     onChange(formattedValue);
   };

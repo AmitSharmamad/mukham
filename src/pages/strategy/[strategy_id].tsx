@@ -84,7 +84,7 @@ export default function EditStrategy() {
       
       if (data.success) {
         const strategyData = data.data;
-        const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z";
+        const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z" || time === "00:00:00";
         
         const formData: FormattedStrategy = {
           id: strategyData.id,
@@ -104,8 +104,8 @@ export default function EditStrategy() {
           targetProfit: strategyData.target_profit?.toString() || '',
           targetProfitType: strategyData.target_profit_type || 'ABSOLUTE',
           trailingStopLoss: strategyData.trailing_stop_loss?.toString() || '',
-          entryStartTime: isNullTime(strategyData.entry_start_time) ? null : dayjs(strategyData.entry_start_time).format('HH:mm'),
-          entryEndTime: isNullTime(strategyData.entry_end_time) ? null : dayjs(strategyData.entry_end_time).format('HH:mm'),
+          entryStartTime: isNullTime(strategyData.entry_start_time) ? null : strategyData.entry_start_time,
+          entryEndTime: isNullTime(strategyData.entry_end_time) ? null : strategyData.entry_end_time,
           startDate: dayjs(strategyData.start_date).format('YYYY-MM-DD'),
           endDate: dayjs(strategyData.end_date).format('YYYY-MM-DD'),
           brickSize: strategyData.brick_size?.toString() || '',

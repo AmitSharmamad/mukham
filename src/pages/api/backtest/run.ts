@@ -20,6 +20,7 @@ interface BacktestMetrics {
   win_rate: number;
   profit_factor: number;
   total_return_pct: number;
+  annualized_return: number;
   max_drawdown: number;
   sharpe_ratio: number;
   capital_progression: Array<{
@@ -114,6 +115,8 @@ function generateMockBacktestData(strategyId: string): any {
 
     const totalPnL = positions.reduce((sum, pos) => sum + pos.profit_loss_absolute, 0);
     const totalReturnPct = (totalPnL / 100000) * 100; // Percentage return
+    // Calculate annualized return (assuming 1 year period for mock data)
+    const annualizedReturn = totalReturnPct; // For mock data, assume the backtest period is 1 year
 
     const metrics: BacktestMetrics = {
       total_trades: totalTrades,
@@ -123,6 +126,7 @@ function generateMockBacktestData(strategyId: string): any {
       profit_factor: Math.abs(positions.filter(p => p.profit_loss_absolute > 0).reduce((sum, p) => sum + p.profit_loss_absolute, 0)) / 
                      Math.abs(positions.filter(p => p.profit_loss_absolute < 0).reduce((sum, p) => sum + p.profit_loss_absolute, 0)),
       total_return_pct: totalReturnPct,
+      annualized_return: annualizedReturn,
       max_drawdown: -5.2 - Math.random() * 10, // -5% to -15%
       sharpe_ratio: 1.5 + Math.random() * 1.0, // 1.5 to 2.5
       capital_progression: capitalProgression
