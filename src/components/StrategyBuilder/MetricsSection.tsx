@@ -111,7 +111,7 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
       description: 'Measures the profitability of your trading strategy',
       metrics: [
         {
-          name: 'Total Return',
+          name: 'Total PnL',
           value: metrics.totalPnL,
           metricKey: 'totalPnL',
         }

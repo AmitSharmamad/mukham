@@ -104,8 +104,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     targetProfitType: initialData?.targetProfitType || 'PERCENTAGE',
     trailingStopLoss: initialData?.trailingStopLoss || '',
     trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
-    entryStartTime: initialData?.entryStartTime ? dayjs(initialData.entryStartTime, 'HH:mm') : null,
-    entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm') : null,
+    entryStartTime: initialData?.entryStartTime ? dayjs(initialData.entryStartTime, 'HH:mm:ss') : null,
+    entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm:ss') : null,
     startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
     endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
     initialCapital: initialData?.initialCapital || '100000',
@@ -134,7 +134,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     if (initialData) {
       // Make sure to set hasUnsavedChanges to false when initializing with existing data
       setHasUnsavedChanges(false);
-      const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z";
+      const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z" || time === "00:00:00";
       
       setFormData({
         id: initialData?.id, // Ensure ID is properly set if it exists
@@ -160,8 +160,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         targetProfitType: initialData?.targetProfitType || 'PERCENTAGE',
         trailingStopLoss: initialData?.trailingStopLoss || '',
         trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
-        entryStartTime: isNullTime(initialData.entryStartTime) ? null : dayjs(initialData.entryStartTime),
-        entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime),
+        entryStartTime: isNullTime(initialData.entryStartTime) ? null : dayjs(initialData.entryStartTime, 'HH:mm:ss'),
+        entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime, 'HH:mm:ss'),
         startDate: dayjs(initialData.startDate),
         endDate: dayjs(initialData.endDate),
         initialCapital: initialData.initialCapital || '100000',
@@ -992,7 +992,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                             losingTrades: totalTrades - winningTrades,
                             winRate,
                             profitFactor: run.metrics.profit_factor || 0,
-                            totalPnL: run.metrics.total_return_pct,
+                            totalPnL: run.metrics.annualized_return || run.metrics.total_return_pct,
                             maxDrawdown: run.metrics.max_drawdown,
                             sharpeRatio: run.metrics.sharpe_ratio
                           };
@@ -1023,7 +1023,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                               return sum;
                             }, 0) / validRuns.length : 0,
                           profitFactor: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.profit_factor || 0) / arr.length, 0),
-                          totalPnL: validRuns.reduce((sum: number, run: BacktestRun) => sum + run.metrics.total_return_pct, 0),
+                          totalPnL: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.annualized_return || run.metrics.total_return_pct) / arr.length, 0),
                           maxDrawdown: validRuns.length > 0 ? Math.max(...validRuns.map((run: BacktestRun) => run.metrics.max_drawdown || 0)) : 0,
                           sharpeRatio: validRuns.reduce((sum: number, run: BacktestRun, _: number, arr: BacktestRun[]) => sum + (run.metrics.sharpe_ratio || 0) / arr.length, 0)
                         }

@@ -31,8 +31,8 @@ export const convertFormToApiData = (formData: FormData): ApiFormData => {
     trailing_stop_loss_type: formData.trailingStopLossType,
     capital: parseFloat(formData.initialCapital),
     max_trades: 100, // Default value for now
-    entry_start_time: formData.entryStartTime ? formData.entryStartTime.format('HH:mm') : null,
-    entry_end_time: formData.entryEndTime ? formData.entryEndTime.format('HH:mm') : null,
+    entry_start_time: formData.entryStartTime ? formData.entryStartTime.format('HH:mm:ss') : null,
+    entry_end_time: formData.entryEndTime ? formData.entryEndTime.format('HH:mm:ss') : null,
     start_date: formData.startDate ? formData.startDate.startOf('day').format('YYYY-MM-DDTHH:mm:ss') + '+05:30' : null,
     end_date: formData.endDate ? formData.endDate.startOf('day').format('YYYY-MM-DDTHH:mm:ss') + '+05:30' : null,
   };
