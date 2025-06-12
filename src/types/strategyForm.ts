@@ -185,5 +185,5 @@ export const getInitialFormData = (): FormData => ({
   endDate: null,
   brickSize: '',
   brokerage: '20',
-  slippage: '0.1',
+  slippage: '0.5',
 });
