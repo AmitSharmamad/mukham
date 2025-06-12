@@ -41,6 +41,8 @@ interface FormattedStrategy {
   entryEndTime: string | null;
   startDate: string;
   endDate: string;
+  brokerage: string;
+  slippage: string;
 }
 
 export default function EditStrategy() {
@@ -109,6 +111,8 @@ export default function EditStrategy() {
           startDate: dayjs(strategyData.start_date).format('YYYY-MM-DD'),
           endDate: dayjs(strategyData.end_date).format('YYYY-MM-DD'),
           brickSize: strategyData.brick_size?.toString() || '',
+          brokerage: strategyData.brokerage?.toString() || '20',
+          slippage: strategyData.slippage?.toString() || '0.5',
         };
         
         setStrategy(formData);

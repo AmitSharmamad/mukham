@@ -23,6 +23,8 @@ export interface Strategy {
   entry_end_time: string;
   start_date: string;
   end_date: string;
+  brokerage?: number;
+  slippage?: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
