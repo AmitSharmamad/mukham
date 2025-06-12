@@ -112,7 +112,7 @@ export default function EditStrategy() {
           endDate: dayjs(strategyData.end_date).format('YYYY-MM-DD'),
           brickSize: strategyData.brick_size?.toString() || '',
           brokerage: strategyData.brokerage?.toString() || '20',
-          slippage: strategyData.slippage?.toString() || '0.1',
+          slippage: strategyData.slippage?.toString() || '0.5',
         };
         
         setStrategy(formData);

@@ -109,7 +109,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
     endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
     brokerage: initialData?.brokerage || '20',
-    slippage: initialData?.slippage || '0.1',
+    slippage: initialData?.slippage || '0.5',
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [expandedSections, setExpandedSections] = useState<string[]>(['name']);
@@ -166,7 +166,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         startDate: dayjs(initialData.startDate),
         endDate: dayjs(initialData.endDate),
         brokerage: initialData.brokerage || '20',
-        slippage: initialData.slippage || '0.1',
+        slippage: initialData.slippage || '0.5',
       });
     }
   }, [initialData]);
@@ -756,7 +756,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                 label="Brokerage (Rs.)"
                 type="number"
                 value={formData.brokerage}
-                onChange={handleChange('brokerage')}
+                onChange={(e) => handleChange('brokerage')(e.target.value)}
                 error={!!errors.brokerage}
                 helperText={errors.brokerage || 'Brokerage cost per trade in rupees'}
                 inputProps={{ min: 0, step: 1 }}
@@ -768,7 +768,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                 label="Slippage"
                 type="number"
                 value={formData.slippage}
-                onChange={handleChange('slippage')}
+                onChange={(e) => handleChange('slippage')(e.target.value)}
                 error={!!errors.slippage}
                 helperText={errors.slippage || 'Slippage as decimal (e.g., 0.1 for 0.1%)'}
                 inputProps={{ min: 0, step: 0.01 }}
@@ -1328,7 +1328,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           endDate: strategyData.end_date ? dayjs(strategyData.end_date) : null,
           brickSize: strategyData.brick_size?.toString() || '',
           brokerage: strategyData.brokerage?.toString() || '20',
-          slippage: strategyData.slippage?.toString() || '0.1',
+          slippage: strategyData.slippage?.toString() || '0.5',
         };
         
         setFormData(formData);
