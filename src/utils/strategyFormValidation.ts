@@ -118,6 +118,15 @@ export const validateForm = (formData: FormData, selectedInstruments: Instrument
     }
   }
 
+  // Validate brokerage and slippage
+  if (formData.brokerage !== '' && (isNaN(parseInt(formData.brokerage)) || parseInt(formData.brokerage) < 0)) {
+    newErrors.brokerage = 'Brokerage must be a positive integer';
+  }
+  
+  if (formData.slippage !== '' && (isNaN(parseFloat(formData.slippage)) || parseFloat(formData.slippage) < 0)) {
+    newErrors.slippage = 'Slippage must be a positive number';
+  }
+
   return newErrors;
 };
 
@@ -207,7 +216,9 @@ export const isSectionComplete = (sectionId: string, formData: FormData, selecte
         !!formData.startDate &&
         !!formData.endDate &&
         (!formData.entryStartTime || !formData.entryEndTime || validateTimeRange(formData.entryStartTime, formData.entryEndTime)) &&
-        validateDateRange(formData.startDate, formData.endDate)
+        validateDateRange(formData.startDate, formData.endDate) &&
+        (formData.brokerage === '' || (!isNaN(parseInt(formData.brokerage)) && parseInt(formData.brokerage) >= 0)) &&
+        (formData.slippage === '' || (!isNaN(parseFloat(formData.slippage)) && parseFloat(formData.slippage) >= 0))
       );
     
     default:

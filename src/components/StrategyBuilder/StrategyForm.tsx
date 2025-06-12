@@ -108,7 +108,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm:ss') : null,
     startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
     endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
-    initialCapital: initialData?.initialCapital || '100000',
+    brokerage: initialData?.brokerage || '20',
+    slippage: initialData?.slippage || '0.1',
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [expandedSections, setExpandedSections] = useState<string[]>(['name']);
@@ -164,7 +165,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime, 'HH:mm:ss'),
         startDate: dayjs(initialData.startDate),
         endDate: dayjs(initialData.endDate),
-        initialCapital: initialData.initialCapital || '100000',
+        brokerage: initialData.brokerage || '20',
+        slippage: initialData.slippage || '0.1',
       });
     }
   }, [initialData]);
@@ -748,6 +750,30 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                 }}
               />
             </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Brokerage (Rs.)"
+                type="number"
+                value={formData.brokerage}
+                onChange={handleChange('brokerage')}
+                error={!!errors.brokerage}
+                helperText={errors.brokerage || 'Brokerage cost per trade in rupees'}
+                inputProps={{ min: 0, step: 1 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Slippage"
+                type="number"
+                value={formData.slippage}
+                onChange={handleChange('slippage')}
+                error={!!errors.slippage}
+                helperText={errors.slippage || 'Slippage as decimal (e.g., 0.1 for 0.1%)'}
+                inputProps={{ min: 0, step: 0.01 }}
+              />
+            </Grid>
           </Grid>
         </LocalizationProvider>
       ),
@@ -1301,7 +1327,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           startDate: strategyData.start_date ? dayjs(strategyData.start_date) : null,
           endDate: strategyData.end_date ? dayjs(strategyData.end_date) : null,
           brickSize: strategyData.brick_size?.toString() || '',
-          initialCapital: strategyData.capital?.toString() || '100000',
+          brokerage: strategyData.brokerage?.toString() || '20',
+          slippage: strategyData.slippage?.toString() || '0.1',
         };
         
         setFormData(formData);
