@@ -29,7 +29,9 @@ export const convertFormToApiData = (formData: FormData): ApiFormData => {
     stop_loss_type: formData.stopLossType,
     trailing_stop_loss: parseFloat(formData.trailingStopLoss),
     trailing_stop_loss_type: formData.trailingStopLossType,
-    capital: parseFloat(formData.initialCapital),
+    capital: 100000, // Default capital value since it's removed from form
+    brokerage: formData.brokerage && formData.brokerage.trim() !== '' ? parseInt(formData.brokerage) : undefined,
+    slippage: formData.slippage && formData.slippage.trim() !== '' ? parseFloat(formData.slippage) : undefined,
     max_trades: 100, // Default value for now
     entry_start_time: formData.entryStartTime ? formData.entryStartTime.format('HH:mm:ss') : null,
     entry_end_time: formData.entryEndTime ? formData.entryEndTime.format('HH:mm:ss') : null,

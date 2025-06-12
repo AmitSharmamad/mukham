@@ -44,7 +44,8 @@ export interface FormData {
   startDate: Dayjs | null;
   endDate: Dayjs | null;
   brickSize: string;
-  initialCapital: string;
+  brokerage: string;
+  slippage: string;
 }
 
 export interface ApiFormData {
@@ -73,6 +74,8 @@ export interface ApiFormData {
   trailing_stop_loss_type: 'ABSOLUTE' | 'PERCENTAGE';
   capital: number;
   max_trades: number;
+  brokerage?: number;
+  slippage?: number;
   entry_start_time: string | null;
   entry_end_time: string | null;
   start_date: string | null;
@@ -181,5 +184,6 @@ export const getInitialFormData = (): FormData => ({
   startDate: null,
   endDate: null,
   brickSize: '',
-  initialCapital: '100000',
+  brokerage: '20',
+  slippage: '0.5',
 });
