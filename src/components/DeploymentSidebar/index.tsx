@@ -15,7 +15,8 @@ import {
   Collapse,
   useTheme,
   alpha,
-  Tooltip
+  Tooltip,
+  Badge
 } from '@mui/material';
 import {
   PlayArrow as PlayArrowIcon,
@@ -24,10 +25,14 @@ import {
   ExpandMore,
   TrendingUp,
   TrendingDown,
-  ShowChart
+  ShowChart,
+  Wifi,
+  WifiOff,
+  Error as ErrorIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { getDeployments, Deployment } from '../../services/deploymentService';
+import { useDeploymentEvents } from '../../hooks/useDeploymentEvents';
 
 interface DeploymentSidebarProps {
   open: boolean;
@@ -38,6 +43,11 @@ interface DeploymentSidebarProps {
 
 const DRAWER_WIDTH = 320;
 
+/**
+ * DeploymentSidebar component that shows active deployments with real-time WebSocket data.
+ * The WebSocket connection to ws://localhost:9099/ws/api/deployment/events/ws is established
+ * when the sidebar is opened and disconnected when closed to optimize resource usage.
+ */
 export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
   open,
   onClose,
@@ -49,12 +59,27 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
+  
+  // Use WebSocket events for real-time updates
+  const { 
+    events, 
+    connectionStatus, 
+    deploymentMetrics, 
+    getDeploymentMetrics,
+    connect,
+    disconnect
+  } = useDeploymentEvents();
 
   useEffect(() => {
     if (open) {
       fetchDeployments();
+      // Establish WebSocket connection when sidebar is opened
+      connect();
+    } else {
+      // Disconnect when sidebar is closed to save resources
+      disconnect();
     }
-  }, [open]);
+  }, [open, connect, disconnect]);
 
   const fetchDeployments = async () => {
     try {
@@ -82,7 +107,17 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
   };
 
   const formatPnL = (deployment: Deployment) => {
-    // Mock PnL calculation - in real app this would come from metrics
+    // Use real-time metrics if available, otherwise fall back to mock data
+    const metrics = getDeploymentMetrics(deployment.id);
+    
+    if (metrics) {
+      const totalPnL = metrics.pnl + metrics.unrealizedPnl;
+      return totalPnL >= 0 
+        ? `+₹${totalPnL.toFixed(2)}` 
+        : `-₹${Math.abs(totalPnL).toFixed(2)}`;
+    }
+    
+    // Mock PnL calculation for deployments without WebSocket data
     const mockPnL = Math.random() > 0.5 ? 
       `+₹${(Math.random() * 1000).toFixed(2)}` : 
       `-₹${(Math.random() * 500).toFixed(2)}`;
@@ -91,6 +126,39 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
 
   const getPnLColor = (pnl: string) => {
     return pnl.startsWith('+') ? theme.palette.success.main : theme.palette.error.main;
+  };
+
+  const getDeploymentStatus = (deployment: Deployment) => {
+    const metrics = getDeploymentMetrics(deployment.id);
+    
+    if (metrics?.status === 'error') {
+      return 'error';
+    }
+    
+    return deployment.isActive ? 'active' : 'inactive';
+  };
+
+  const getConnectionStatusIcon = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return <Wifi sx={{ fontSize: 16, color: theme.palette.success.main }} />;
+      case 'connecting':
+        return <CircularProgress size={16} />;
+      case 'error':
+        return <WifiOff sx={{ fontSize: 16, color: theme.palette.error.main }} />;
+      default:
+        return <WifiOff sx={{ fontSize: 16, color: theme.palette.text.secondary }} />;
+    }
+  };
+
+  const getRecentEventCount = (deploymentId: string) => {
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    
+    return events.filter(event => 
+      event.deployment_id === deploymentId && 
+      new Date(event.timestamp) > fiveMinutesAgo
+    ).length;
   };
 
   const drawerContent = (
@@ -114,9 +182,14 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
           backgroundColor: alpha(theme.palette.primary.main, 0.05)
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-          Active Deployments
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
+            Active Deployments
+          </Typography>
+          <Tooltip title={`WebSocket: ${connectionStatus}`}>
+            {getConnectionStatusIcon()}
+          </Tooltip>
+        </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Chip 
             label={deployments.length} 
@@ -184,6 +257,9 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
               {deployments.map((deployment, index) => {
                 const pnl = formatPnL(deployment);
                 const pnlColor = getPnLColor(pnl);
+                const deploymentStatus = getDeploymentStatus(deployment);
+                const metrics = getDeploymentMetrics(deployment.id);
+                const recentEventCount = getRecentEventCount(deployment.id);
                 
                 return (
                   <React.Fragment key={deployment.id}>
@@ -205,7 +281,10 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                         color: 'inherit',
                         flexDirection: 'column',
                         alignItems: 'flex-start',
-                        py: 1.5
+                        py: 1.5,
+                        border: deploymentStatus === 'error' 
+                          ? `1px solid ${theme.palette.error.main}` 
+                          : 'none'
                       }}
                     >
                       <Box sx={{ 
@@ -217,12 +296,28 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                       }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
                           <ListItemIcon sx={{ minWidth: 32 }}>
-                            <PlayArrowIcon 
-                              sx={{ 
-                                color: theme.palette.success.main,
-                                fontSize: 20
-                              }} 
-                            />
+                            {deploymentStatus === 'error' ? (
+                              <ErrorIcon 
+                                sx={{ 
+                                  color: theme.palette.error.main,
+                                  fontSize: 20
+                                }} 
+                              />
+                            ) : deployment.isActive ? (
+                              <PlayArrowIcon 
+                                sx={{ 
+                                  color: theme.palette.success.main,
+                                  fontSize: 20
+                                }} 
+                              />
+                            ) : (
+                              <PauseIcon 
+                                sx={{ 
+                                  color: theme.palette.warning.main,
+                                  fontSize: 20
+                                }} 
+                              />
+                            )}
                           </ListItemIcon>
                           <ListItemText
                             primary={
@@ -242,13 +337,36 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                             sx={{ margin: 0 }}
                           />
                         </Box>
-                        <Chip
-                          label="Active"
-                          size="small"
-                          color="success"
-                          variant="outlined"
-                          sx={{ fontSize: '0.7rem', height: 20 }}
-                        />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {recentEventCount > 0 && (
+                            <Badge 
+                              badgeContent={recentEventCount} 
+                              color="primary" 
+                              sx={{ 
+                                '& .MuiBadge-badge': { 
+                                  fontSize: '0.6rem',
+                                  minWidth: 16,
+                                  height: 16
+                                }
+                              }}
+                            >
+                              <Chip
+                                label="Live"
+                                size="small"
+                                color="success"
+                                variant="outlined"
+                                sx={{ fontSize: '0.6rem', height: 18 }}
+                              />
+                            </Badge>
+                          )}
+                          <Chip
+                            label={deploymentStatus === 'error' ? 'Error' : deployment.isActive ? 'Active' : 'Paused'}
+                            size="small"
+                            color={deploymentStatus === 'error' ? 'error' : deployment.isActive ? 'success' : 'warning'}
+                            variant="outlined"
+                            sx={{ fontSize: '0.7rem', height: 20 }}
+                          />
+                        </Box>
                       </Box>
                       
                       {/* PnL and Stats */}
@@ -274,11 +392,27 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                           >
                             {pnl}
                           </Typography>
+                          {metrics && (
+                            <Typography 
+                              variant="caption" 
+                              color="text.secondary"
+                              sx={{ ml: 1 }}
+                            >
+                              ({metrics.openPositions} open)
+                            </Typography>
+                          )}
                         </Box>
                         
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(deployment.createdAt).toLocaleDateString()}
-                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(deployment.createdAt).toLocaleDateString()}
+                          </Typography>
+                          {metrics && (
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+                              {metrics.totalTrades} trades
+                            </Typography>
+                          )}
+                        </Box>
                       </Box>
                       
                       {/* Description if available */}
@@ -307,32 +441,54 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
       </Collapse>
 
       {/* Footer */}
-      {isExpanded && deployments.length > 0 && (
+      {isExpanded && (
         <Box sx={{ 
           p: 2, 
           borderTop: `1px solid ${theme.palette.divider}`,
           backgroundColor: alpha(theme.palette.background.default, 0.5)
         }}>
-          <Box 
-            component={Link}
-            href="/deployment"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              color: theme.palette.primary.main,
-              py: 1,
-              borderRadius: 1,
-              transition: 'all 0.2s ease-in-out',
-              '&:hover': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.08)
-              }
-            }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-              View All Deployments
-            </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {/* Connection Status */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="caption" color="text.secondary">
+                Live Data: {connectionStatus}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {events.length} events
+              </Typography>
+            </Box>
+            
+            {/* Recent Activity */}
+            {events.length > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                Last: {events[0].event_type} • {new Date(events[0].timestamp).toLocaleTimeString()}
+              </Typography>
+            )}
+            
+            {/* View All Deployments Link */}
+            {deployments.length > 0 && (
+              <Box 
+                component={Link}
+                href="/deployment"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textDecoration: 'none',
+                  color: theme.palette.primary.main,
+                  py: 1,
+                  borderRadius: 1,
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.08)
+                  }
+                }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  View All Deployments
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Box>
       )}

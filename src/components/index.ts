@@ -17,6 +17,8 @@ export { default as Scanner } from './Scanner';
 export { default as ScannerBuilder } from './Scanner/ScannerBuilder';
 export { default as AIChat } from './AIChat';
 export { DeploymentSidebar } from './DeploymentSidebar';
+export { DeploymentEventHandler } from './DeploymentEventHandler';
+export { default as DeploymentEventsDashboard } from './DeploymentEventsDashboard';
 export { 
   DeploymentCard, 
   DeploymentPositions, 
