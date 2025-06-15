@@ -18,6 +18,7 @@ import { useTheme } from '@mui/material/styles';
 import { Deployment, getDeployments, deleteDeployment, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments } from '../services/deploymentService';
 import { useToastContext } from '../context/ToastContext';
 import { DeploymentCard } from '../components';
+import { useDeploymentEvents } from '../hooks/useDeploymentEvents';
 
 const DeploymentPage = () => {
   const theme = useTheme();
@@ -30,9 +31,19 @@ const DeploymentPage = () => {
   const [stoppingAll, setStoppingAll] = useState<boolean>(false);
   const [startingAll, setStartingAll] = useState<boolean>(false);
 
+  // Initialize WebSocket connection for real-time updates
+  const { connect, disconnect, connectionStatus } = useDeploymentEvents();
+
   useEffect(() => {
     fetchDeployments();
-  }, []);
+    // Connect to WebSocket for real-time updates
+    connect();
+    
+    // Cleanup on unmount
+    return () => {
+      disconnect();
+    };
+  }, [connect, disconnect]);
 
   const fetchDeployments = async () => {
     try {
@@ -160,9 +171,14 @@ const DeploymentPage = () => {
         alignItems="center" 
         mb={3}
       >
-        <Typography variant="h4" component="h1">
-          Deployments
-        </Typography>
+        <Box>
+          <Typography variant="h4" component="h1">
+            Deployments
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Live data: {connectionStatus === 'connected' ? '🟢 Connected' : connectionStatus === 'connecting' ? '🟡 Connecting...' : '🔴 Disconnected'}
+          </Typography>
+        </Box>
         <Box display="flex" gap={2}>
           <Button
             variant="contained"
