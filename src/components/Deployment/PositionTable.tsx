@@ -51,7 +51,7 @@ interface PositionTableProps {
 }
 
 type Order = 'asc' | 'desc';
-type OrderBy = 'id' | 'entry_price' | 'quantity' | 'pnl' | 'entry_time' | 'status';
+type OrderBy = 'id' | 'entry_price' | 'quantity' | 'pnl' | 'entry_time' | 'exit_price' | 'exit_time' | 'status';
 
 interface HeadCell {
   id: OrderBy;
@@ -66,6 +66,8 @@ const headCells: HeadCell[] = [
   { id: 'quantity', numeric: true, label: 'Quantity', width: '100px' },
   { id: 'pnl', numeric: true, label: 'P&L', width: '120px' },
   { id: 'entry_time', numeric: false, label: 'Entry Time', width: '150px' },
+  { id: 'exit_price', numeric: true, label: 'Exit Price', width: '120px' },
+  { id: 'exit_time', numeric: false, label: 'Exit Time', width: '150px' },
   { id: 'status', numeric: false, label: 'Status', width: '100px' },
 ];
 
@@ -94,12 +96,12 @@ const PositionTable: React.FC<PositionTableProps> = ({
       let aValue: any = a[orderBy];
       let bValue: any = b[orderBy];
 
-      if (orderBy === 'entry_time') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+      if (orderBy === 'entry_time' || orderBy === 'exit_time') {
+        aValue = aValue ? new Date(aValue).getTime() : 0;
+        bValue = bValue ? new Date(bValue).getTime() : 0;
       }
 
-      if (orderBy === 'pnl') {
+      if (orderBy === 'pnl' || orderBy === 'exit_price') {
         aValue = aValue || 0;
         bValue = bValue || 0;
       }
@@ -231,15 +233,17 @@ const PositionTable: React.FC<PositionTableProps> = ({
   const handleExportSelected = () => {
     const selectedData = positions.filter(p => selectedPositions.includes(p.id));
     const csvContent = [
-      ['Position ID', 'Instrument ID', 'Quantity', 'Entry Price', 'P&L', 'Status', 'Entry Time'].join(','),
+      ['Position ID', 'Instrument ID', 'Quantity', 'Entry Price', 'Exit Price', 'P&L', 'Status', 'Entry Time', 'Exit Time'].join(','),
       ...selectedData.map(p => [
         p.id,
         p.instrument_id,
         p.quantity,
         p.entry_price,
+        p.exit_price || '',
         p.pnl || 0,
         p.status,
-        p.entry_time
+        p.entry_time,
+        p.exit_time || ''
       ].join(','))
     ].join('\n');
 
@@ -314,6 +318,13 @@ const PositionTable: React.FC<PositionTableProps> = ({
                 <Typography variant="body2">Entry: ₹{position.entry_price.toFixed(2)}</Typography>
               </Box>
               
+              {position.exit_price && (
+                <Box display="flex" justifyContent="space-between" mb={1}>
+                  <Typography variant="body2">Exit Price:</Typography>
+                  <Typography variant="body2">₹{position.exit_price.toFixed(2)}</Typography>
+                </Box>
+              )}
+              
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Typography
                   variant="body1"
@@ -335,8 +346,13 @@ const PositionTable: React.FC<PositionTableProps> = ({
               </Box>
               
               <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-                {new Date(position.entry_time).toLocaleString()}
+                Entry: {new Date(position.entry_time).toLocaleString()}
               </Typography>
+              {position.exit_time && (
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Exit: {new Date(position.exit_time).toLocaleString()}
+                </Typography>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -459,6 +475,19 @@ const PositionTable: React.FC<PositionTableProps> = ({
                         {new Date(position.entry_time).toLocaleDateString()} {new Date(position.entry_time).toLocaleTimeString()}
                       </Typography>
                     </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2">
+                        {position.exit_price ? `₹${position.exit_price.toFixed(2)}` : '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {position.exit_time ? 
+                          `${new Date(position.exit_time).toLocaleDateString()} ${new Date(position.exit_time).toLocaleTimeString()}` 
+                          : '-'
+                        }
+                      </Typography>
+                    </TableCell>
                     <TableCell>
                       <Chip
                         label={position.status}
@@ -496,7 +525,7 @@ const PositionTable: React.FC<PositionTableProps> = ({
                   
                   {/* Expandable Row Details */}
                   <TableRow>
-                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
                       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                         <Box sx={{ margin: 2 }}>
                           <Typography variant="subtitle2" gutterBottom>
@@ -527,16 +556,6 @@ const PositionTable: React.FC<PositionTableProps> = ({
                                 {new Date(position.updated_at).toLocaleString()}
                               </Typography>
                             </Box>
-                            {position.exit_price && (
-                              <Box>
-                                <Typography variant="caption" color="text.secondary">
-                                  Exit Price
-                                </Typography>
-                                <Typography variant="body2">
-                                  ₹{position.exit_price.toFixed(2)}
-                                </Typography>
-                              </Box>
-                            )}
                           </Stack>
                           {position.metadata && Object.keys(position.metadata).length > 0 && (
                             <Box>

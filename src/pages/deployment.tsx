@@ -462,26 +462,26 @@ const DeploymentPage = () => {
                     <Typography 
                       variant="body2" 
                       sx={{ 
-                        color: deployment.latest_metrics && deployment.latest_metrics.total_pnl >= 0 
+                        color: deployment.metrics && deployment.metrics.total_pnl >= 0 
                           ? 'success.main' 
                           : 'error.main',
                         fontWeight: 500
                       }}
                     >
-                      {deployment.latest_metrics 
-                        ? `₹${deployment.latest_metrics.total_pnl.toFixed(2)}`
+                      {deployment.metrics 
+                        ? `₹${deployment.metrics.total_pnl.toFixed(2)}`
                         : 'N/A'
                       }
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="success.main" sx={{ fontWeight: 500 }}>
-                      {deployment.latest_metrics?.win_trades || 0}
+                      {deployment.metrics?.win_trades || 0}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
-                      {deployment.latest_metrics?.loss_trades || 0}
+                      {deployment.metrics?.loss_trades || 0}
                     </Typography>
                   </TableCell>
                   <TableCell>

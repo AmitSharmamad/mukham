@@ -1,7 +1,7 @@
 import apiClient from '../utils/api';
 
 // Types
-export interface LatestMetrics {
+export interface DeploymentMetricsData {
   id: string;
   deployment_id: string;
   metric_date: string;
@@ -10,12 +10,29 @@ export interface LatestMetrics {
   loss_trades: number;
   total_pnl: number;
   max_drawdown: number;
-  sharpe_ratio: number;
-  sortino_ratio: number;
+  win_rate: number;
+  avg_win: number;
+  avg_loss: number;
+  metadata: {
+    avg_win: number;
+    avg_loss: number;
+    win_rate: number;
+    avg_win_size: number;
+    max_drawdown: number;
+    sharpe_ratio: number;
+    total_trades: number;
+    avg_loss_size: number;
+    profit_factor: number;
+    total_commission: number;
+    total_return_pct: number;
+  };
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Deployment {
   id: string;
+  user_id?: string; // Optional for creation as it's typically set by the backend
   strategy_id: string;
   instrument_id: number;
   name: string;
@@ -24,7 +41,7 @@ export interface Deployment {
   status?: 'waiting' | 'entered'; // Position status from the API
   createdAt: string; // Note: This is mapped from created_at in the API
   lastUpdatedAt?: string; // Note: This is mapped from updated_at in the API
-  latest_metrics?: LatestMetrics;
+  metrics?: DeploymentMetricsData;
 }
 
 export interface Position {
@@ -114,6 +131,7 @@ export const getDeployments = async (filters?: {
       // Map API response to our Deployment interface
       return response.data.data.map((item: any) => ({
         id: item.id,
+        user_id: item.user_id,
         strategy_id: item.strategy_id,
         instrument_id: item.instrument_id,
         name: item.name,
@@ -122,7 +140,7 @@ export const getDeployments = async (filters?: {
         status: item.status,
         createdAt: item.created_at,
         lastUpdatedAt: item.updated_at,
-        latest_metrics: item.latest_metrics
+        metrics: item.metrics
       }));
     }
     return [];
@@ -159,6 +177,7 @@ export const getDeploymentsSearch = async (filters: {
       // Map API response to our Deployment interface
       return response.data.data.map((item: any) => ({
         id: item.id,
+        user_id: item.user_id,
         strategy_id: item.strategy_id,
         instrument_id: item.instrument_id,
         name: item.name,
@@ -167,7 +186,7 @@ export const getDeploymentsSearch = async (filters: {
         status: item.status,
         createdAt: item.created_at,
         lastUpdatedAt: item.updated_at,
-        latest_metrics: item.latest_metrics
+        metrics: item.metrics
       }));
     }
     return [];
@@ -184,6 +203,7 @@ export const getDeployment = async (id: string): Promise<Deployment | null> => {
       const item = response.data.data;
       return {
         id: item.id,
+        user_id: item.user_id,
         strategy_id: item.strategy_id,
         instrument_id: item.instrument_id,
         name: item.name,
@@ -192,7 +212,7 @@ export const getDeployment = async (id: string): Promise<Deployment | null> => {
         status: item.status,
         createdAt: item.created_at,
         lastUpdatedAt: item.updated_at,
-        latest_metrics: item.latest_metrics
+        metrics: item.metrics
       };
     }
     
