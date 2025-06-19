@@ -59,9 +59,195 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
     return () => clearTimeout(timer);
   }, []);
   
-  // Helper function to determine chip color based on metric value
-  const getMetricColor = (metricName: string, value: number): 'success' | 'error' | 'warning' | 'default' | 'primary' | 'secondary' | 'info' => {
+  // Helper function to calculate advanced metrics from raw data
+  const calculateAdvancedMetrics = () => {
+    if (!rawBacktestData?.results) {
+      return {
+        avgPnL: 0,
+        avgWinningTrade: 0,
+        avgLosingTrade: 0,
+        avgWinLossRatio: 0,
+        largestWinningTrade: 0,
+        largestLosingTrade: 0,
+        sharpeRatio: 0,
+        riskRewardRatio: 0,
+        totalOpenTrades: 0,
+        winningStreak: 0,
+        losingStreak: 0
+      };
+    }
+
+    // Get all positions from all instruments
+    const allPositions = rawBacktestData.results
+      .filter(run => run.positions && run.positions.length > 0)
+      .flatMap(run => run.positions!);
+
+    if (allPositions.length === 0) {
+      return {
+        avgPnL: 0,
+        avgWinningTrade: 0,
+        avgLosingTrade: 0,
+        avgWinLossRatio: 0,
+        largestWinningTrade: 0,
+        largestLosingTrade: 0,
+        sharpeRatio: metrics.sharpeRatio || 0,
+        riskRewardRatio: 0,
+        totalOpenTrades: 0,
+        winningStreak: 0,
+        losingStreak: 0
+      };
+    }
+
+    // Separate winning and losing trades
+    const winningTrades = allPositions.filter(pos => pos.profit_loss_absolute > 0);
+    const losingTrades = allPositions.filter(pos => pos.profit_loss_absolute < 0);
+
+    // Calculate basic metrics
+    const totalPnL = allPositions.reduce((sum, pos) => sum + pos.profit_loss_absolute, 0);
+    const avgPnL = totalPnL / allPositions.length;
+
+    const avgWinningTrade = winningTrades.length > 0 
+      ? winningTrades.reduce((sum, pos) => sum + pos.profit_loss_absolute, 0) / winningTrades.length 
+      : 0;
+
+    const avgLosingTrade = losingTrades.length > 0 
+      ? Math.abs(losingTrades.reduce((sum, pos) => sum + pos.profit_loss_absolute, 0) / losingTrades.length)
+      : 0;
+
+    const avgWinLossRatio = avgLosingTrade > 0 ? avgWinningTrade / avgLosingTrade : 0;
+
+    // Find largest trades
+    const largestWinningTrade = winningTrades.length > 0 
+      ? Math.max(...winningTrades.map(pos => pos.profit_loss_absolute)) 
+      : 0;
+
+    const largestLosingTrade = losingTrades.length > 0 
+      ? Math.abs(Math.min(...losingTrades.map(pos => pos.profit_loss_absolute)))
+      : 0;
+
+    // Calculate risk-reward ratio (inverse of win-loss ratio)
+    const riskRewardRatio = avgWinningTrade > 0 ? avgLosingTrade / avgWinningTrade : 0;
+
+    // Calculate Sharpe Ratio using proper formula
+    // Sharpe Ratio = (Average Return - Risk-Free Rate) ÷ Standard Deviation of Returns
+    let sharpeRatio = 0;
+    if (allPositions.length >= 2) { // Need at least 2 data points for std deviation
+      const returns = allPositions.map(pos => pos.profit_loss_absolute);
+      const avgReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
+      const riskFreeRate = 5.5; // Assuming 0% for simplicity (should be actual T-bill rate)
+
+      // Calculate standard deviation
+      const squaredDeviations = returns.map(ret => Math.pow(ret - avgReturn, 2));
+      const variance = squaredDeviations.reduce((sum, sq) => sum + sq, 0) / returns.length;
+      const standardDeviation = Math.sqrt(variance);
+
+      // Calculate Sharpe Ratio
+      if (standardDeviation > 0) {
+        sharpeRatio = (avgReturn - riskFreeRate) / standardDeviation;
+      }
+    }
+
+    // Calculate consecutive wins/losses (streaks)
+    const sortedPositions = [...allPositions].sort((a, b) => 
+      new Date(a.exit_time_order || a.entry_time_order).getTime() - 
+      new Date(b.exit_time_order || b.entry_time_order).getTime()
+    );
+
+    let currentWinStreak = 0;
+    let currentLossStreak = 0;
+    let maxWinStreak = 0;
+    let maxLossStreak = 0;
+
+    sortedPositions.forEach(pos => {
+      if (pos.profit_loss_absolute > 0) {
+        currentWinStreak++;
+        currentLossStreak = 0;
+        maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+      } else {
+        currentLossStreak++;
+        currentWinStreak = 0;
+        maxLossStreak = Math.max(maxLossStreak, currentLossStreak);
+      }
+    });
+
+    return {
+      avgPnL,
+      avgWinningTrade,
+      avgLosingTrade,
+      avgWinLossRatio,
+      largestWinningTrade,
+      largestLosingTrade,
+      sharpeRatio,
+      riskRewardRatio,
+      totalOpenTrades: 0, // This would need live data
+      winningStreak: maxWinStreak,
+      losingStreak: maxLossStreak
+    };
+  };
+
+  const advancedMetrics = calculateAdvancedMetrics();
+  
+  // Get custom colors for specific metrics using simplified 3-color scheme
+  const getCustomMetricColor = (metricName: string, value?: number): string | null => {
     switch (metricName) {
+      // Return Metrics
+      case 'avgPnL': return '#4CAF50'; // soft green (positive)
+      case 'avgWinningTrade': return '#4CAF50'; // soft green (positive)
+      case 'avgLosingTrade': return '#D32F2F'; // deep red (negative)
+      case 'avgWinLossRatio': return '#4CAF50'; // soft green (positive)
+      case 'largestWinningTrade': return '#4CAF50'; // soft green (positive)
+      case 'largestLosingTrade': return '#D32F2F'; // deep red (negative)
+      
+      // Risk Metrics
+      case 'sharpeRatio': 
+        // Dynamic color based on value: >= 1 is good (green), < 1 is bad (red)
+        return value !== undefined && value >= 1 ? '#4CAF50' : '#D32F2F';
+      case 'riskRewardRatio': 
+        // Dynamic color based on value: >= 1 is good (green), < 1 is bad (red)
+        return value !== undefined && value >= 1 ? '#4CAF50' : '#D32F2F';
+      
+      // Trade Statistics
+      case 'totalTrades': return '#9E9E9E'; // gray (neutral)
+      case 'winningTrades': return '#4CAF50'; // soft green (positive)
+      case 'losingTrades': return '#D32F2F'; // deep red (negative)
+      case 'winningStreak': return '#4CAF50'; // soft green (positive)
+      case 'losingStreak': return '#D32F2F'; // deep red (negative)
+      
+      default: return null; // Use theme colors
+    }
+  };
+  
+  const getMetricColor = (metricName: string, value: number): 'success' | 'error' | 'warning' | 'default' | 'primary' | 'secondary' | 'info' => {
+    // Use fixed colors for specific metrics regardless of value
+    switch (metricName) {
+      case 'avgPnL':
+        return 'success'; // #4CAF50 (soft green)
+      case 'avgWinningTrade':
+        return 'success'; // #8BC34A (light green) - will need custom styling
+      case 'avgLosingTrade':
+        return 'warning'; // #FF9800 (warm orange)
+      case 'avgWinLossRatio':
+        return 'warning'; // #FF5722 (vibrant orange) - will need custom styling
+      case 'largestWinningTrade':
+        return 'success'; // #388E3C (deep green) - will need custom styling
+      case 'largestLosingTrade':
+        return 'error'; // #D32F2F (deep red)
+      case 'sharpeRatio':
+        return 'info'; // #2196F3 (bright blue)
+      case 'riskRewardRatio':
+        return 'warning'; // #FFCA28 (soft yellow) - will need custom styling
+      case 'totalTrades':
+        return 'default'; // #9E9E9E (gray)
+      case 'winningTrades':
+        return 'success'; // #4CAF50 (soft green)
+      case 'losingTrades':
+        return 'error'; // #F44336 (bright red)
+      case 'winningStreak':
+        return 'success'; // #8BC34A (light green) - will need custom styling
+      case 'losingStreak':
+        return 'error'; // #D32F2F (deep red)
+      
+      // Fallback for other metrics with dynamic logic
       case 'totalPnL':
         return value >= 0 ? 'success' : 'error';
       case 'maxDrawdown':
@@ -76,10 +262,6 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
         if (value >= 2) return 'success';
         if (value >= 1) return 'warning';
         return 'error';
-      case 'sharpeRatio':
-        if (value >= 2) return 'success';
-        if (value >= 1) return 'warning';
-        return 'error';
       default:
         return 'default';
     }
@@ -90,14 +272,25 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
     switch (metricName) {
       case 'totalPnL':
         return `${value.toFixed(2)}%`;
+      case 'avgPnL':
+      case 'avgWinningTrade':
+      case 'avgLosingTrade':
+      case 'largestWinningTrade':
+      case 'largestLosingTrade':
+        return `₹${Math.abs(value).toFixed(2)}`;
       case 'maxDrawdown':
         return `${value.toFixed(2)}`;
       case 'winRate':
         return `${(value * 100).toFixed(2)}%`;
       case 'profitFactor':
-        return value.toFixed(2);
+      case 'avgWinLossRatio':
+      case 'riskRewardRatio':
       case 'sharpeRatio':
         return value.toFixed(2);
+      case 'winningStreak':
+      case 'losingStreak':
+      case 'totalOpenTrades':
+        return value.toString();
       default:
         return value.toString();
     }
@@ -111,9 +304,34 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
       description: 'Measures the profitability of your trading strategy',
       metrics: [
         {
-          name: 'Total PnL',
-          value: metrics.totalPnL,
-          metricKey: 'totalPnL',
+          name: 'Avg P&L',
+          value: advancedMetrics.avgPnL,
+          metricKey: 'avgPnL',
+        },
+        {
+          name: 'Avg Winning Trade',
+          value: advancedMetrics.avgWinningTrade,
+          metricKey: 'avgWinningTrade',
+        },
+        {
+          name: 'Avg Losing Trade',
+          value: advancedMetrics.avgLosingTrade,
+          metricKey: 'avgLosingTrade',
+        },
+        {
+          name: 'Avg Win-Loss Ratio',
+          value: advancedMetrics.avgWinLossRatio,
+          metricKey: 'avgWinLossRatio',
+        },
+        {
+          name: 'Largest Winning Trade',
+          value: advancedMetrics.largestWinningTrade,
+          metricKey: 'largestWinningTrade',
+        },
+        {
+          name: 'Largest Losing Trade',
+          value: advancedMetrics.largestLosingTrade,
+          metricKey: 'largestLosingTrade',
         }
       ]
     },
@@ -123,21 +341,14 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
       description: 'Measures the volatility and downside exposure of your strategy',
       metrics: [
         {
-          name: 'Max Drawdown',
-          value: metrics.maxDrawdown,
-          metricKey: 'maxDrawdown',
-        }
-      ]
-    },
-    {
-      title: 'Risk-Adjusted Return',
-      icon: <Timeline />,
-      description: 'Provides a view of performance considering both returns and risk',
-      metrics: [
-        {
           name: 'Sharpe Ratio',
-          value: metrics.sharpeRatio,
+          value: advancedMetrics.sharpeRatio,
           metricKey: 'sharpeRatio',
+        },
+        {
+          name: 'Risk-Reward Ratio',
+          value: advancedMetrics.riskRewardRatio,
+          metricKey: 'riskRewardRatio',
         }
       ]
     },
@@ -157,19 +368,19 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
           metricKey: 'winningTrades',
         },
         {
+          name: 'Winning Streak',
+          value: advancedMetrics.winningStreak,
+          metricKey: 'winningStreak',
+        },
+        {
           name: 'Losing Trades',
           value: metrics.losingTrades,
           metricKey: 'losingTrades',
         },
         {
-          name: 'Win Rate',
-          value: metrics.winRate,
-          metricKey: 'winRate',
-        },
-        {
-          name: 'Profit Factor',
-          value: metrics.profitFactor,
-          metricKey: 'profitFactor',
+          name: 'Losing Streak',
+          value: advancedMetrics.losingStreak,
+          metricKey: 'losingStreak',
         }
       ]
     }
@@ -225,7 +436,7 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
               item 
               xs={12} 
               sm={6} 
-              lg={3} 
+              lg={4}
               key={category.title}
               sx={{
                 opacity: animate ? 1 : 0,
@@ -267,25 +478,55 @@ const MetricsSection: React.FC<MetricsSectionProps> = ({ backtestResults, rawBac
                 </Typography>
                 <Box sx={{ 
                   display: 'flex', 
-                  flexWrap: 'wrap', 
+                  flexDirection: 'column',
                   gap: 1.5,
-                  flexGrow: 1,
-                  alignContent: 'flex-start'
+                  flexGrow: 1
                 }}>
-                  {category.metrics.map((metric) => (
-                    <Chip
-                      key={metric.metricKey}
-                      label={`${metric.name}: ${formatMetricValue(metric.metricKey, metric.value)}`}
-                      color={getMetricColor(metric.metricKey, metric.value)}
-                      size="small"
-                      sx={{
-                        fontWeight: 500,
-                        '& .MuiChip-label': {
-                          px: 1.5
-                        }
-                      }}
-                    />
-                  ))}
+                  {category.metrics.map((metric) => {
+                    const customColor = getCustomMetricColor(metric.metricKey, metric.value);
+                    return (
+                      <Box
+                        key={metric.metricKey}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          p: 1,
+                          borderRadius: 1,
+                          backgroundColor: customColor ? alpha(customColor, 0.1) : alpha(theme.palette.grey[500], 0.05),
+                          border: `1px solid ${customColor ? alpha(customColor, 0.2) : alpha(theme.palette.grey[500], 0.1)}`,
+                          '&:hover': {
+                            backgroundColor: customColor ? alpha(customColor, 0.15) : alpha(theme.palette.grey[500], 0.08),
+                          }
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                          {metric.name}
+                        </Typography>
+                        <Chip
+                          label={formatMetricValue(metric.metricKey, metric.value)}
+                          size="small"
+                          sx={{
+                            fontWeight: 600,
+                            minWidth: 'auto',
+                            '& .MuiChip-label': {
+                              px: 1
+                            },
+                            ...(customColor && {
+                              backgroundColor: alpha(customColor, 0.2),
+                              color: customColor,
+                              border: `1px solid ${alpha(customColor, 0.3)}`,
+                              '&:hover': {
+                                backgroundColor: alpha(customColor, 0.3),
+                                borderColor: alpha(customColor, 0.5)
+                              }
+                            })
+                          }}
+                          color={customColor ? 'default' : getMetricColor(metric.metricKey, metric.value)}
+                        />
+                      </Box>
+                    );
+                  })}
                 </Box>
               </Paper>
             </Grid>
