@@ -29,7 +29,9 @@ import {
   Wifi,
   WifiOff,
   Error as ErrorIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  Menu as MenuIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { getDeployments, Deployment } from '../../services/deploymentService';
@@ -39,11 +41,12 @@ import { useDeploymentUpdater } from '../../hooks/useDeploymentUpdater';
 interface DeploymentSidebarProps {
   open: boolean;
   onClose: () => void;
+  onToggle?: () => void;
   variant?: 'persistent' | 'temporary';
   anchor?: 'left' | 'right';
 }
 
-const DRAWER_WIDTH = 320;
+const DRAWER_WIDTH = 340;
 
 /**
  * DeploymentSidebar component that shows active deployments with real-time WebSocket data.
@@ -53,6 +56,7 @@ const DRAWER_WIDTH = 320;
 export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
   open,
   onClose,
+  onToggle,
   variant = 'persistent',
   anchor = 'left'
 }) => {
