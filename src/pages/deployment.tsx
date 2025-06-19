@@ -67,7 +67,7 @@ const DeploymentPage = () => {
   // State management
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('active');
   const [positionFilter, setPositionFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<string>('');
   
@@ -111,14 +111,11 @@ const DeploymentPage = () => {
         filters.status = positionFilter as 'waiting' | 'entered';
       }
       
-      // Set is_active filter if status filter is specified
-      if (statusFilter !== 'all') {
-        filters.is_active = statusFilter === 'active';
-      }
+      // Always set is_active filter since we removed the "all" option
+      filters.is_active = statusFilter === 'active';
       
-      // Use search endpoint if we have filters, otherwise use the basic endpoint
-      const hasFilters = Object.keys(filters).length > 0;
-      const data = hasFilters ? await getDeploymentsSearch(filters) : await getDeployments();
+      // Use search endpoint since we always have filters now
+      const data = await getDeploymentsSearch(filters);
       
       setDeployments(data);
     } catch (err: any) {
@@ -371,7 +368,7 @@ const DeploymentPage = () => {
 
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={4} alignItems="center">
+        <Grid container spacing={4} alignItems="center" justifyContent="center">
           <Grid item>
             <FormControl component="fieldset">
               <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1 }}>Status</FormLabel>
@@ -380,7 +377,6 @@ const DeploymentPage = () => {
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
               >
-                <FormControlLabel value="all" control={<Radio />} label="All" />
                 <FormControlLabel value="active" control={<Radio />} label="Active" />
                 <FormControlLabel value="inactive" control={<Radio />} label="Inactive" />
               </RadioGroup>

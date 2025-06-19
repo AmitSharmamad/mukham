@@ -269,12 +269,11 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
         }}>
           {!loading && (authStatus ? (
             <>
-              <PnLDisplay />
               <IconButton 
                 size="large" 
                 onClick={handleProfileMenu} 
                 color="inherit"
-                sx={{ fontSize: '1.75rem', ml: 2 }}
+                sx={{ fontSize: '1.75rem' }}
               >
                 <AccountCircle />
               </IconButton>
