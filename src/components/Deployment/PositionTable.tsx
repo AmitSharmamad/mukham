@@ -10,10 +10,8 @@ import {
   TableSortLabel,
   Paper,
   Checkbox,
-  IconButton,
   Chip,
   Typography,
-  Tooltip,
   useTheme,
   alpha,
   Collapse,
@@ -30,12 +28,8 @@ import {
   Divider
 } from '@mui/material';
 import {
-  Close as CloseIcon,
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  TrendingUp,
-  TrendingDown,
-  ContentCopy as CopyIcon
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 import { Position } from '../../services/deploymentService';
 import { useToastContext } from '../../context/ToastContext';
@@ -61,14 +55,13 @@ interface HeadCell {
 }
 
 const headCells: HeadCell[] = [
-  { id: 'id', numeric: true, label: 'Position ID', width: '100px' },
   { id: 'entry_price', numeric: true, label: 'Entry Price', width: '120px' },
   { id: 'quantity', numeric: true, label: 'Quantity', width: '100px' },
-  { id: 'pnl', numeric: true, label: 'P&L', width: '120px' },
   { id: 'entry_time', numeric: false, label: 'Entry Time', width: '150px' },
   { id: 'exit_price', numeric: true, label: 'Exit Price', width: '120px' },
   { id: 'exit_time', numeric: false, label: 'Exit Time', width: '150px' },
   { id: 'status', numeric: false, label: 'Status', width: '100px' },
+  { id: 'pnl', numeric: true, label: 'P&L', width: '120px' },
 ];
 
 const PositionTable: React.FC<PositionTableProps> = ({
@@ -169,15 +162,9 @@ const PositionTable: React.FC<PositionTableProps> = ({
     }
   };
 
-  const handleCopyPositionId = (id: number) => {
-    navigator.clipboard.writeText(id.toString());
-    toast.showSuccess('Position ID copied to clipboard');
-  };
-
   const formatPnL = (pnl: number | undefined) => {
     if (pnl === undefined) return 'N/A';
-    const isPositive = pnl >= 0;
-    return `${isPositive ? '+' : ''}₹${pnl.toFixed(2)}`;
+    return `₹${pnl.toFixed(2)}`;
   };
 
   const getPnLColor = (pnl: number | undefined) => {
@@ -296,10 +283,10 @@ const PositionTable: React.FC<PositionTableProps> = ({
               <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
                 <Box>
                   <Typography variant="subtitle1" fontWeight="bold">
-                    Position #{position.id}
+                    Instrument: {position.instrument_id}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Instrument: {position.instrument_id}
+                    Status: {position.status}
                   </Typography>
                 </Box>
                 <Box textAlign="right">
@@ -395,15 +382,6 @@ const PositionTable: React.FC<PositionTableProps> = ({
                   </TableSortLabel>
                 </TableCell>
               ))}
-              <TableCell 
-                align="center" 
-                sx={{ 
-                  fontWeight: 600,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.05)
-                }}
-              >
-                Actions
-              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -435,40 +413,10 @@ const PositionTable: React.FC<PositionTableProps> = ({
                       align="right"
                       onClick={() => handleExpandRow(position.id)}
                     >
-                      <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
-                        <Typography variant="body2">#{position.id}</Typography>
-                        <Tooltip title="Copy Position ID">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopyPositionId(position.id);
-                            }}
-                          >
-                            <CopyIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">
                       ₹{position.entry_price.toFixed(2)}
                     </TableCell>
                     <TableCell align="right">
                       {position.quantity}
-                    </TableCell>
-                    <TableCell align="right">
-                      <Box display="flex" alignItems="center" justifyContent="flex-end" gap={0.5}>
-                        {position.pnl !== undefined && (
-                          position.pnl >= 0 ? <TrendingUp fontSize="small" color="success" /> : <TrendingDown fontSize="small" color="error" />
-                        )}
-                        <Typography
-                          variant="body2"
-                          fontWeight="medium"
-                          color={getPnLColor(position.pnl)}
-                        >
-                          {formatPnL(position.pnl)}
-                        </Typography>
-                      </Box>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
@@ -495,37 +443,20 @@ const PositionTable: React.FC<PositionTableProps> = ({
                         size="small"
                       />
                     </TableCell>
-                    <TableCell align="center">
-                      <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
-                        {position.status === 'OPEN' && onClosePosition && (
-                          <Tooltip title="Close Position">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setConfirmDialog({ open: true, position });
-                              }}
-                            >
-                              <CloseIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        <Tooltip title={isExpanded ? "Collapse" : "Expand Details"}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleExpandRow(position.id)}
-                          >
-                            {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
+                    <TableCell align="right">
+                      <Typography
+                        variant="body2"
+                        fontWeight="medium"
+                        color={getPnLColor(position.pnl)}
+                      >
+                        {formatPnL(position.pnl)}
+                      </Typography>
                     </TableCell>
                   </TableRow>
                   
                   {/* Expandable Row Details */}
                   <TableRow>
-                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
                       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                         <Box sx={{ margin: 2 }}>
                           <Typography variant="subtitle2" gutterBottom>

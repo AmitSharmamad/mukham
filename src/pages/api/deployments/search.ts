@@ -6,10 +6,10 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   try {
-    const { status, is_active } = req.query;
+    const { status } = req.query;
     
     // TODO: Replace with actual database search call
-    // Example: const deployments = await searchDeploymentsInDatabase({ status, is_active });
+    // Example: const deployments = await searchDeploymentsInDatabase({ status });
     
     // For now, return empty array since hardcoded data is removed
     const searchResults: any[] = [];

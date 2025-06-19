@@ -105,8 +105,7 @@ export interface DeploymentPositionLog {
 
 // Service functions
 export const getDeployments = async (filters?: { 
-  status?: 'waiting' | 'entered'; 
-  is_active?: boolean 
+  status?: 'waiting' | 'entered'
 }): Promise<Deployment[]> => {
   try {
     let url = '/deployment';
@@ -114,10 +113,6 @@ export const getDeployments = async (filters?: {
     
     if (filters?.status) {
       queryParams.append('status', filters.status);
-    }
-    
-    if (filters?.is_active !== undefined) {
-      queryParams.append('is_active', filters.is_active.toString());
     }
     
     if (queryParams.toString()) {
@@ -151,8 +146,7 @@ export const getDeployments = async (filters?: {
 };
 
 export const getDeploymentsSearch = async (filters: { 
-  status?: 'waiting' | 'entered'; 
-  is_active?: boolean 
+  status?: 'waiting' | 'entered'
 }): Promise<Deployment[]> => {
   try {
     let url = '/deployment/search';
@@ -160,10 +154,6 @@ export const getDeploymentsSearch = async (filters: {
     
     if (filters.status) {
       queryParams.append('status', filters.status);
-    }
-    
-    if (filters.is_active !== undefined) {
-      queryParams.append('is_active', filters.is_active.toString());
     }
     
     if (queryParams.toString()) {

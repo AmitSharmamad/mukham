@@ -88,7 +88,6 @@ const DeploymentPage = () => {
   // State management
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [statusFilter, setStatusFilter] = useState<string>('active');
   const [positionFilter, setPositionFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<string>('');
   
@@ -291,7 +290,7 @@ const DeploymentPage = () => {
 
   useEffect(() => {
     fetchDeployments();
-  }, [statusFilter, positionFilter]);
+  }, [positionFilter]);
 
   // Periodic refresh for deployment list (every 5 minutes) to ensure data consistency
   useEffect(() => {
@@ -310,18 +309,15 @@ const DeploymentPage = () => {
     try {
       setLoading(true);
       
-      // Build filter object based on current filter values
-      const filters: { status?: 'waiting' | 'entered'; is_active?: boolean } = {};
+      // Build filter object based on current filter values (only position filter now)
+      const filters: { status?: 'waiting' | 'entered' } = {};
       
       // Set status filter if position filter is specified
       if (positionFilter !== 'all') {
         filters.status = positionFilter as 'waiting' | 'entered';
       }
       
-      // Always set is_active filter since we removed the "all" option
-      filters.is_active = statusFilter === 'active';
-      
-      // Use search endpoint since we always have filters now
+      // Use search endpoint with only status filter (no is_active filter)
       const data = await getDeploymentsSearch(filters);
       
       setDeployments(data);
@@ -331,10 +327,6 @@ const DeploymentPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleStatusFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setStatusFilter(event.target.value);
   };
 
   const handlePositionFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -543,19 +535,6 @@ const DeploymentPage = () => {
         {/* Action Buttons */}
         <Box display="flex" gap={2}>
           <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<RefreshIcon />}
-            onClick={() => {
-              fetchDeployments();
-              toast.showInfo('Refreshing deployment data...');
-            }}
-            disabled={loading}
-            size="small"
-          >
-            {loading ? <CircularProgress size={16} /> : 'Refresh'}
-          </Button>
-          <Button
             variant="contained"
             color="success"
             startIcon={<PlayArrowIcon />}
@@ -590,25 +569,12 @@ const DeploymentPage = () => {
         <Grid container spacing={4} alignItems="center" justifyContent="center">
           <Grid item>
             <FormControl component="fieldset">
-              <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1 }}>Status</FormLabel>
-              <RadioGroup
-                row
-                value={statusFilter}
-                onChange={handleStatusFilterChange}
-              >
-                <FormControlLabel value="active" control={<Radio />} label="Active" />
-                <FormControlLabel value="inactive" control={<Radio />} label="Inactive" />
-              </RadioGroup>
-            </FormControl>
-          </Grid>
-
-          <Grid item>
-            <FormControl component="fieldset">
-              <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1 }}>Position Status</FormLabel>
+              <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1, textAlign: 'center', display: 'block' }}>Position Status</FormLabel>
               <RadioGroup
                 row
                 value={positionFilter}
                 onChange={handlePositionFilterChange}
+                sx={{ gap: 3 }}
               >
                 <FormControlLabel value="all" control={<Radio />} label="All" />
                 <FormControlLabel value="waiting" control={<Radio />} label="Waiting" />
@@ -638,6 +604,19 @@ const DeploymentPage = () => {
               Active Deployments ({updatedDeployments.length})
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<RefreshIcon />}
+                onClick={() => {
+                  fetchDeployments();
+                  toast.showInfo('Refreshing deployment data...');
+                }}
+                disabled={loading}
+                size="small"
+              >
+                {loading ? <CircularProgress size={16} /> : 'Refresh'}
+              </Button>
               {hasDeploymentUpdates && (
                 <Chip
                   size="small"
@@ -668,11 +647,9 @@ const DeploymentPage = () => {
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Total P&L</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Win Trades</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Loss Trades</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Created At</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Last Updated</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Total P&L</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -687,14 +664,6 @@ const DeploymentPage = () => {
                 const totalPnl = realtimeMetrics 
                   ? (realtimeMetrics.pnl + (realtimeMetrics.unrealizedPnl || 0))
                   : deployment.metrics?.total_pnl || 0;
-                
-                const winTrades = realtimeMetrics?.totalTrades 
-                  ? Math.floor(realtimeMetrics.totalTrades * 0.6) 
-                  : deployment.metrics?.win_trades || 0;
-                  
-                const lossTrades = realtimeMetrics?.totalTrades 
-                  ? Math.ceil(realtimeMetrics.totalTrades * 0.4) 
-                  : deployment.metrics?.loss_trades || 0;
                 
                 return (
                 <TableRow 
@@ -732,6 +701,16 @@ const DeploymentPage = () => {
                     {getStatusChip(deployment)}
                   </TableCell>
                   <TableCell>
+                    <Typography variant="body2">
+                      {new Date(deployment.createdAt).toLocaleDateString()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {deployment.lastUpdatedAt ? new Date(deployment.lastUpdatedAt).toLocaleDateString() : 'Never'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       <Typography 
                         variant="body2" 
@@ -755,26 +734,6 @@ const DeploymentPage = () => {
                         />
                       )}
                     </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="success.main" sx={{ fontWeight: 500 }}>
-                      {winTrades}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
-                      {lossTrades}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {new Date(deployment.createdAt).toLocaleDateString()}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {deployment.lastUpdatedAt ? new Date(deployment.lastUpdatedAt).toLocaleDateString() : 'Never'}
-                    </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Box display="flex" gap={1} justifyContent="center">
