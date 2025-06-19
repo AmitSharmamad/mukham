@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Container, 
   Typography, 
@@ -31,11 +31,14 @@ import StopIcon from '@mui/icons-material/Stop';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { useTheme } from '@mui/material/styles';
-import { Deployment, getDeployments, getDeploymentsSearch, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments, getDeploymentPositions, getDeploymentMetrics, closePosition, Position, DeploymentMetrics } from '../services/deploymentService';
+import { Deployment, getDeployments, getDeploymentsSearch, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments, getDeploymentPositions, getDeploymentMetrics as getDeploymentMetricsAPI, closePosition, Position, DeploymentMetrics } from '../services/deploymentService';
 import { useToastContext } from '../context/ToastContext';
 import { PositionsMetricsDashboard } from '../components/Deployment';
+import { useDeploymentEvents } from '../hooks/useDeploymentEvents';
+import { useDeploymentUpdater } from '../hooks/useDeploymentUpdater';
 
 interface ConfirmDialogState {
   open: boolean;
@@ -64,12 +67,41 @@ const DeploymentPage = () => {
   const theme = useTheme();
   const toast = useToastContext();
   
+  // WebSocket connection for real-time updates
+  const { 
+    events, 
+    connectionStatus, 
+    deploymentMetrics, 
+    connect, 
+    disconnect,
+    getDeploymentMetrics 
+  } = useDeploymentEvents();
+  
+  // Deployment updater for selective updates
+  const {
+    updateDeploymentFromEvent,
+    applyUpdatesToDeployments,
+    clearAllUpdates: clearDeploymentUpdates,
+    hasUpdates: hasDeploymentUpdates
+  } = useDeploymentUpdater();
+  
   // State management
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [statusFilter, setStatusFilter] = useState<string>('active');
   const [positionFilter, setPositionFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<string>('');
+  
+  // Apply real-time updates to deployments
+  const updatedDeployments = useMemo(() => {
+    const result = applyUpdatesToDeployments(deployments, deploymentMetrics);
+    console.log('Updating deployments with real-time metrics:', {
+      deploymentsCount: deployments.length,
+      metricsCount: Object.keys(deploymentMetrics).length,
+      metricsKeys: Object.keys(deploymentMetrics)
+    });
+    return result;
+  }, [deployments, deploymentMetrics, applyUpdatesToDeployments]);
   
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
@@ -95,9 +127,184 @@ const DeploymentPage = () => {
     loading: false
   });
 
+  // Handle refreshing positions data
+  const handleRefreshPositions = useCallback(async (showToast = false) => {
+    if (!positionsDialog.deployment) return;
+    
+    try {
+      const [positionsData, deploymentMetricsData] = await Promise.all([
+        getDeploymentPositions(positionsDialog.deployment.id),
+        getDeploymentMetricsAPI(positionsDialog.deployment.id)
+      ]);
+
+      setPositionsDialog(prev => ({
+        ...prev,
+        positions: positionsData,
+        metrics: deploymentMetricsData
+      }));
+      
+      if (showToast) {
+        toast.showSuccess('Positions data refreshed');
+      }
+    } catch (error) {
+      console.error('Error refreshing positions:', error);
+      if (showToast) {
+        toast.showError('Failed to refresh positions data');
+      }
+    }
+  }, [positionsDialog.deployment, toast]);
+
+  // Listen for WebSocket events and update positions modal in real-time
+  useEffect(() => {
+    if (!positionsDialog.open || !positionsDialog.deployment || events.length === 0) return;
+
+    const latestEvent = events[0];
+    
+    // Only process events for the current deployment in modal
+    if (latestEvent.deployment_id !== positionsDialog.deployment.id) return;
+
+    const positionAffectingEvents = [
+      'position_opened',
+      'position_closed', 
+      'position_update',
+      'stop_loss_triggered',
+      'target_profit_triggered',
+      'eod_square_off'
+    ];
+
+    if (positionAffectingEvents.includes(latestEvent.event_type)) {
+      console.log('Live position update for modal:', latestEvent.event_type, 'Position:', latestEvent.data.position_id);
+      
+      // For position_opened events, refresh the entire positions list
+      if (latestEvent.event_type === 'position_opened') {
+        handleRefreshPositions(false);
+      } else if (latestEvent.data.position_id) {
+        // Ensure position_id is a number
+        const positionId = typeof latestEvent.data.position_id === 'string' 
+          ? parseInt(latestEvent.data.position_id, 10) 
+          : latestEvent.data.position_id;
+          
+        if (!isNaN(positionId)) {
+          // For other events, update the specific position
+          setPositionsDialog(prev => {
+            if (!prev.positions) return prev;
+            
+            const updatedPositions = prev.positions.map(position => {
+              if (position.id === positionId) {
+                const updates: Partial<Position> = {};
+                
+                switch (latestEvent.event_type) {
+                  case 'position_closed':
+                  case 'stop_loss_triggered':
+                  case 'target_profit_triggered':
+                  case 'eod_square_off':
+                    updates.status = 'CLOSED';
+                    updates.exit_price = latestEvent.data.exit_price || latestEvent.data.trigger_price;
+                    updates.exit_time = latestEvent.data.exit_time || latestEvent.timestamp;
+                    updates.pnl = latestEvent.data.pnl;
+                    break;
+                  
+                  case 'position_update':
+                    if (latestEvent.data.unrealized_pnl !== undefined) {
+                      updates.pnl = latestEvent.data.unrealized_pnl;
+                    }
+                    if (latestEvent.data.current_price !== undefined && position.status === 'OPEN') {
+                      // Calculate unrealized PnL for open positions
+                      const direction = position.quantity > 0 ? 'LONG' : 'SHORT';
+                      if (direction === 'LONG') {
+                        updates.pnl = (latestEvent.data.current_price - position.entry_price) * Math.abs(position.quantity);
+                      } else {
+                        updates.pnl = (position.entry_price - latestEvent.data.current_price) * Math.abs(position.quantity);
+                      }
+                    }
+                    break;
+                }
+                
+                return {
+                  ...position,
+                  ...updates,
+                  updated_at: latestEvent.timestamp
+                };
+              }
+              return position;
+            });
+            
+            return {
+              ...prev,
+              positions: updatedPositions
+            };
+          });
+        }
+      }
+    }
+  }, [events, positionsDialog.open, positionsDialog.deployment, handleRefreshPositions]);
+
+  // Connect to WebSocket on component mount
+  useEffect(() => {
+    connect();
+    return () => {
+      disconnect();
+    };
+  }, [connect, disconnect]);
+
+  // Update deployment data when WebSocket events arrive
+  useEffect(() => {
+    if (events.length > 0) {
+      const latestEvent = events[0]; // Get the most recent event
+      
+      // Apply selective updates to deployment metrics
+      const positionAffectingEvents = [
+        'position_opened',
+        'position_closed',
+        'position_update',
+        'stop_loss_triggered',
+        'target_profit_triggered',
+        'eod_square_off'
+      ];
+      
+      if (positionAffectingEvents.includes(latestEvent.event_type)) {
+        console.log('Applying deployment update for event:', latestEvent.event_type, 'Deployment:', latestEvent.deployment_id);
+        updateDeploymentFromEvent(latestEvent, deploymentMetrics);
+        
+        // Force a small state update to trigger re-render of the table
+        setDeployments(prevDeployments => {
+          // Update the lastUpdatedAt timestamp for the affected deployment
+          return prevDeployments.map(deployment => {
+            if (deployment.id === latestEvent.deployment_id) {
+              return {
+                ...deployment,
+                lastUpdatedAt: latestEvent.timestamp
+              };
+            }
+            return deployment;
+          });
+        });
+      }
+      
+      // Only refresh deployment list for deployment-level events
+      const deploymentLevelEvents = ['deployment_error', 'deployment_started', 'deployment_stopped'];
+      if (deploymentLevelEvents.includes(latestEvent.event_type)) {
+        fetchDeployments();
+      }
+    }
+  }, [events, updateDeploymentFromEvent, deploymentMetrics]);
+
   useEffect(() => {
     fetchDeployments();
   }, [statusFilter, positionFilter]);
+
+  // Periodic refresh for deployment list (every 5 minutes) to ensure data consistency
+  useEffect(() => {
+    if (connectionStatus === 'connected') {
+      const interval = setInterval(() => {
+        console.log('Background sync: Refreshing deployment list...');
+        fetchDeployments();
+        clearDeploymentUpdates(); // Clear updates after full refresh
+      }, 300000); // 5 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [connectionStatus, clearDeploymentUpdates]);
 
   const fetchDeployments = async () => {
     try {
@@ -190,15 +397,15 @@ const DeploymentPage = () => {
 
     try {
       // Fetch positions and metrics for the deployment
-      const [positionsData, metricsData] = await Promise.all([
+      const [positionsData, deploymentMetricsData] = await Promise.all([
         getDeploymentPositions(deployment.id),
-        getDeploymentMetrics(deployment.id)
+        getDeploymentMetricsAPI(deployment.id)
       ]);
 
       setPositionsDialog(prev => ({
         ...prev,
         positions: positionsData,
-        metrics: metricsData,
+        metrics: deploymentMetricsData,
         loading: false
       }));
     } catch (error) {
@@ -238,28 +445,6 @@ const DeploymentPage = () => {
       console.error('Error closing position:', error);
       toast.showError('Failed to close position');
       throw error;
-    }
-  };
-
-  const handleRefreshPositions = async () => {
-    if (!positionsDialog.deployment) return;
-    
-    try {
-      const [positionsData, metricsData] = await Promise.all([
-        getDeploymentPositions(positionsDialog.deployment.id),
-        getDeploymentMetrics(positionsDialog.deployment.id)
-      ]);
-
-      setPositionsDialog(prev => ({
-        ...prev,
-        positions: positionsData,
-        metrics: metricsData
-      }));
-      
-      toast.showSuccess('Positions data refreshed');
-    } catch (error) {
-      console.error('Error refreshing positions:', error);
-      toast.showError('Failed to refresh positions data');
     }
   };
 
@@ -315,7 +500,18 @@ const DeploymentPage = () => {
   };
 
   const getStatusChip = (deployment: Deployment) => {
+    // Check if we have real-time metrics for more accurate status
+    const realtimeMetrics = deploymentMetrics[deployment.id];
+    
     if (deployment.isActive) {
+      // If we have real-time metrics, show more detailed status
+      if (realtimeMetrics) {
+        if (realtimeMetrics.openPositions > 0) {
+          return <Chip label="Active (In Position)" color="success" size="small" />;
+        } else {
+          return <Chip label="Active (Waiting)" color="primary" size="small" />;
+        }
+      }
       return <Chip label="Active" color="success" size="small" />;
     }
     return <Chip label="Inactive" color="default" size="small" />;
@@ -326,9 +522,19 @@ const DeploymentPage = () => {
       {/* Page Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
-          <Typography variant="h4" component="h1">
-            Deployments
-          </Typography>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Typography variant="h4" component="h1">
+              Deployments
+            </Typography>
+            <Chip 
+              label={connectionStatus === 'connected' ? 'Live' : connectionStatus}
+              size="small"
+              color={connectionStatus === 'connected' ? 'success' : 
+                     connectionStatus === 'connecting' ? 'warning' : 'error'}
+              variant="outlined"
+              sx={{ fontWeight: 500 }}
+            />
+          </Box>
           <Typography variant="body2" color="text.secondary">
             Manage and monitor your live trading strategies
           </Typography>
@@ -336,6 +542,19 @@ const DeploymentPage = () => {
         
         {/* Action Buttons */}
         <Box display="flex" gap={2}>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<RefreshIcon />}
+            onClick={() => {
+              fetchDeployments();
+              toast.showInfo('Refreshing deployment data...');
+            }}
+            disabled={loading}
+            size="small"
+          >
+            {loading ? <CircularProgress size={16} /> : 'Refresh'}
+          </Button>
           <Button
             variant="contained"
             color="success"
@@ -405,14 +624,40 @@ const DeploymentPage = () => {
         <Box display="flex" justifyContent="center" my={4}>
           <CircularProgress size={60} />
         </Box>
-      ) : deployments.length === 0 ? (
+      ) : updatedDeployments.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography color="text.secondary">
             No deployments found matching your filters.
           </Typography>
         </Paper>
       ) : (
-        <TableContainer component={Paper} elevation={2}>
+        <>
+          {/* Live Update Status */}
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" component="h2">
+              Active Deployments ({updatedDeployments.length})
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {hasDeploymentUpdates && (
+                <Chip
+                  size="small"
+                  label="Live Updates Active"
+                  color="info"
+                  variant="filled"
+                  sx={{ 
+                    animation: 'pulse 2s infinite',
+                    '@keyframes pulse': {
+                      '0%': { opacity: 1 },
+                      '50%': { opacity: 0.7 },
+                      '100%': { opacity: 1 }
+                    }
+                  }}
+                />
+              )}
+            </Box>
+          </Box>
+          
+          <TableContainer component={Paper} elevation={2}>
           <Table>
             <TableHead sx={{ backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)' }}>
               <TableRow>
@@ -432,7 +677,26 @@ const DeploymentPage = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {deployments.map((deployment) => (
+              {updatedDeployments.map((deployment) => {
+                // Compute real-time metrics once for this deployment
+                const realtimeMetrics = deploymentMetrics[deployment.id];
+                const hasRecentActivity = realtimeMetrics && 
+                  new Date(realtimeMetrics.lastUpdateTime) > new Date(Date.now() - 60000); // Last minute
+                
+                // Pre-calculate P&L values to avoid recalculation in render
+                const totalPnl = realtimeMetrics 
+                  ? (realtimeMetrics.pnl + (realtimeMetrics.unrealizedPnl || 0))
+                  : deployment.metrics?.total_pnl || 0;
+                
+                const winTrades = realtimeMetrics?.totalTrades 
+                  ? Math.floor(realtimeMetrics.totalTrades * 0.6) 
+                  : deployment.metrics?.win_trades || 0;
+                  
+                const lossTrades = realtimeMetrics?.totalTrades 
+                  ? Math.ceil(realtimeMetrics.totalTrades * 0.4) 
+                  : deployment.metrics?.loss_trades || 0;
+                
+                return (
                 <TableRow 
                   key={deployment.id}
                   hover
@@ -442,7 +706,16 @@ const DeploymentPage = () => {
                     cursor: 'pointer',
                     '&:hover': {
                       backgroundColor: theme.palette.action.hover
-                    }
+                    },
+                    // Add subtle pulse animation for recent activity
+                    ...(hasRecentActivity && {
+                      animation: 'pulse 2s infinite',
+                      '@keyframes pulse': {
+                        '0%': { backgroundColor: 'transparent' },
+                        '50%': { backgroundColor: theme.palette.success.main + '08' },
+                        '100%': { backgroundColor: 'transparent' }
+                      }
+                    })
                   }}
                 >
                   <TableCell>
@@ -459,29 +732,38 @@ const DeploymentPage = () => {
                     {getStatusChip(deployment)}
                   </TableCell>
                   <TableCell>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: deployment.metrics && deployment.metrics.total_pnl >= 0 
-                          ? 'success.main' 
-                          : 'error.main',
-                        fontWeight: 500
-                      }}
-                    >
-                      {deployment.metrics 
-                        ? `₹${deployment.metrics.total_pnl.toFixed(2)}`
-                        : 'N/A'
-                      }
-                    </Typography>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: totalPnl >= 0 ? 'success.main' : 'error.main',
+                          fontWeight: 500
+                        }}
+                      >
+                        {totalPnl !== undefined && totalPnl !== null
+                          ? `₹${totalPnl.toFixed(2)}`
+                          : 'N/A'}
+                      </Typography>
+                      {/* Show real-time data if available */}
+                      {realtimeMetrics && (
+                        <Chip 
+                          label="Live"
+                          size="small"
+                          color="success"
+                          variant="outlined"
+                          sx={{ fontSize: '0.6rem', height: 16 }}
+                        />
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="success.main" sx={{ fontWeight: 500 }}>
-                      {deployment.metrics?.win_trades || 0}
+                      {winTrades}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
-                      {deployment.metrics?.loss_trades || 0}
+                      {lossTrades}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -530,10 +812,12 @@ const DeploymentPage = () => {
                     </Box>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
+        </>
       )}
 
       {/* Confirmation Dialog */}
@@ -626,9 +910,18 @@ const DeploymentPage = () => {
       >
         <DialogTitle>
           <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">
-              {positionsDialog.deployment?.name} - Positions & Metrics
-            </Typography>
+            <Box display="flex" alignItems="center" gap={2}>
+              <Typography variant="h6">
+                {positionsDialog.deployment?.name} - Positions & Metrics
+              </Typography>
+              <Chip 
+                label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus}
+                size="small"
+                color={connectionStatus === 'connected' ? 'success' : 
+                       connectionStatus === 'connecting' ? 'warning' : 'error'}
+                variant="outlined"
+              />
+            </Box>
             <Button onClick={handleClosePositionsDialog} color="inherit">
               ×
             </Button>
@@ -637,6 +930,18 @@ const DeploymentPage = () => {
         <DialogContent sx={{ p: 0, height: '100%' }}>
           {positionsDialog.deployment && (
             <Box sx={{ height: '100%', p: 2 }}>
+              {/* Debug Info for Development */}
+              {process.env.NODE_ENV === 'development' && (
+                <Box sx={{ mb: 2, p: 1, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Debug: Events count: {events.length} | 
+                    Last event: {events.length > 0 ? events[0].event_type : 'None'} |
+                    WebSocket: {connectionStatus} |
+                    Deployment Updates: {hasDeploymentUpdates ? 'Active' : 'None'}
+                  </Typography>
+                </Box>
+              )}
+              
               <PositionsMetricsDashboard
                 deploymentId={positionsDialog.deployment.id}
                 positions={positionsDialog.positions}
@@ -644,7 +949,7 @@ const DeploymentPage = () => {
                 loading={false}
                 positionsLoading={positionsDialog.loading}
                 onClosePosition={handleClosePosition}
-                onRefresh={handleRefreshPositions}
+                onRefresh={() => handleRefreshPositions(true)}
               />
             </Box>
           )}

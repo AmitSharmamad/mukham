@@ -176,7 +176,7 @@ The dashboard integrates with existing deployment APIs:
 - `GET /deployment/:id/positions` - Position data
 - `GET /deployment/:id/metrics` - Performance metrics
 - `PUT /deployment/:id/positions/:positionId/close` - Close position
-- WebSocket `ws://localhost:9099/ws/api/deployment/events/ws` - Real-time updates
+- WebSocket `ws://localhost:9099/ws/api/deployment/ws` - Real-time updates
 
 ## Component Dependencies
 

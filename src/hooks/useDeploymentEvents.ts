@@ -113,6 +113,12 @@ export const useDeploymentEvents = () => {
   const updateDeploymentMetrics = useCallback((event: DeploymentEvent) => {
     const { event_type, deployment_id, data, metadata } = event;
     
+    console.log('Updating deployment metrics for event:', {
+      event_type,
+      deployment_id,
+      data
+    });
+    
     setDeploymentMetrics(prev => {
       const current = prev[deployment_id] || {
         pnl: 0,
@@ -176,10 +182,18 @@ export const useDeploymentEvents = () => {
           break;
       }
 
-      return {
+      const newMetrics = {
         ...prev,
         [deployment_id]: updated
       };
+      
+      console.log('Updated deployment metrics:', {
+        deployment_id,
+        updated,
+        totalMetrics: Object.keys(newMetrics).length
+      });
+      
+      return newMetrics;
     });
   }, []);
 
