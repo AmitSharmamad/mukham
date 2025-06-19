@@ -548,6 +548,48 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               required
             />
           )}
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <Grid container spacing={3} sx={{ mt: 2 }}>
+              <Grid item xs={12} md={6}>
+                <TimePicker
+                  label="Entry Start Time"
+                  value={formData.entryStartTime}
+                  onChange={handleTimeChange('entryStartTime')}
+                  sx={{ width: '100%' }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      error: !!errors.entryStartTime,
+                      helperText: errors.entryStartTime,
+                    },
+                    field: {
+                      clearable: true,
+                      onClear: handleClearTime('entryStartTime'),
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TimePicker
+                  label="Entry End Time"
+                  value={formData.entryEndTime}
+                  onChange={handleTimeChange('entryEndTime')}
+                  sx={{ width: '100%' }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      error: !!errors.entryEndTime,
+                      helperText: errors.entryEndTime,
+                    },
+                    field: {
+                      clearable: true,
+                      onClear: handleClearTime('entryEndTime'),
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </LocalizationProvider>
         </Box>
       ),
     },
@@ -678,44 +720,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       component: (
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <TimePicker
-                label="Entry Start Time"
-                value={formData.entryStartTime}
-                onChange={handleTimeChange('entryStartTime')}
-                sx={{ width: '100%' }}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    error: !!errors.entryStartTime,
-                    helperText: errors.entryStartTime,
-                  },
-                  field: {
-                    clearable: true,
-                    onClear: handleClearTime('entryStartTime'),
-                  }
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TimePicker
-                label="Entry End Time"
-                value={formData.entryEndTime}
-                onChange={handleTimeChange('entryEndTime')}
-                sx={{ width: '100%' }}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    error: !!errors.entryEndTime,
-                    helperText: errors.entryEndTime,
-                  },
-                  field: {
-                    clearable: true,
-                    onClear: handleClearTime('entryEndTime'),
-                  }
-                }}
-              />
-            </Grid>
             <Grid item xs={12} md={6}>
               <DatePicker
                 label="Start Date"
