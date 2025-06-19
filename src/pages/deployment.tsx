@@ -343,6 +343,25 @@ const DeploymentPage = () => {
     }
   };
 
+  const handleStopDeployment = async (deployment: Deployment) => {
+    if (!deployment.isActive) {
+      toast.showWarning('Deployment is already inactive');
+      return;
+    }
+
+    setActionLoading(`stop_${deployment.id}`);
+    try {
+      await deactivateDeployment(deployment.id);
+      toast.showSuccess(`${deployment.name} stopped successfully`);
+      await fetchDeployments();
+    } catch (err: any) {
+      console.error('Error stopping deployment:', err);
+      toast.showError(`Failed to stop deployment: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setActionLoading('');
+    }
+  };
+
   const handleExitDeployment = async (deployment: Deployment) => {
     setExitConfirmDialog({
       open: true,
@@ -780,6 +799,23 @@ const DeploymentPage = () => {
                             <PauseIcon fontSize="small" />
                           ) : (
                             <PlayArrowIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Stop Deployment">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStopDeployment(deployment);
+                          }}
+                          disabled={actionLoading === `stop_${deployment.id}` || !deployment.isActive}
+                          color="error"
+                        >
+                          {actionLoading === `stop_${deployment.id}` ? (
+                            <CircularProgress size={16} />
+                          ) : (
+                            <StopIcon fontSize="small" />
                           )}
                         </IconButton>
                       </Tooltip>
