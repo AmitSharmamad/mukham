@@ -33,6 +33,7 @@ import {
   closePosition
 } from '../../services/deploymentService';
 import { useToastContext } from '../../context/ToastContext';
+import { useDeploymentEvents } from '../../hooks/useDeploymentEvents';
 import DeploymentPositions from '../../components/Deployment/DeploymentPositions';
 import TradeChart from '../../components/Deployment/TradeChart';
 import CandlestickChart from '../../components/Deployment/CandlestickChart';
@@ -53,12 +54,28 @@ const DeploymentDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
 
+  // Use WebSocket events for real-time updates
+  const { 
+    connect, 
+    disconnect, 
+    connectionStatus, 
+    getDeploymentMetrics: getRealtimeMetrics,
+    getEventsByDeployment 
+  } = useDeploymentEvents();
+
   // Fetch deployment data
   useEffect(() => {
     if (id) {
       fetchDeploymentData();
+      // Connect to WebSocket for real-time updates
+      connect();
     }
-  }, [id]);
+    
+    // Cleanup on unmount
+    return () => {
+      disconnect();
+    };
+  }, [id, connect, disconnect]);
 
   const fetchDeploymentData = async () => {
     if (!id) return;
@@ -252,9 +269,9 @@ const DeploymentDetail = () => {
             onClick={handleToggleStatus}
             disabled={statusUpdating}
           >
-            {/* {statusUpdating 
+            {statusUpdating 
               ? (deployment.isActive ? 'Pausing...' : 'Activating...') 
-              : (deployment.isActive ? 'Pause Deployment' : 'Activate Deployment')} */}
+              : (deployment.isActive ? 'Pause Deployment' : 'Activate Deployment')}
           </Button>
         </Box>
       </Box>
@@ -265,11 +282,26 @@ const DeploymentDetail = () => {
           <Typography variant="h4" component="h1">
             {deployment.name}
           </Typography>
-          <Chip 
-            label={deployment.isActive ? 'Active' : 'Inactive'} 
-            color={deployment.isActive ? 'success' : 'default'} 
-            size="medium"
-          />
+          <Box display="flex" alignItems="center" gap={1}>
+            <Chip 
+              label={deployment.isActive ? 'Active' : 'Inactive'} 
+              color={deployment.isActive ? 'success' : 'default'} 
+              size="medium"
+            />
+            <Chip 
+              label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus} 
+              size="small" 
+              color={connectionStatus === 'connected' ? 'success' : connectionStatus === 'error' ? 'error' : 'default'}
+              sx={{ 
+                animation: connectionStatus === 'connected' ? 'pulse 2s infinite' : 'none',
+                '@keyframes pulse': {
+                  '0%': { opacity: 1 },
+                  '50%': { opacity: 0.7 },
+                  '100%': { opacity: 1 }
+                }
+              }}
+            />
+          </Box>
         </Box>
         
         {deployment.description && (
@@ -301,6 +333,12 @@ const DeploymentDetail = () => {
       {/* Key Metrics */}
       <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
         Deployment Metrics
+        <Chip 
+          label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus} 
+          size="small" 
+          color={connectionStatus === 'connected' ? 'success' : 'default'}
+          sx={{ ml: 2 }}
+        />
       </Typography>
 
       {metricsLoading ? (
@@ -309,65 +347,102 @@ const DeploymentDetail = () => {
         </Box>
       ) : metrics ? (
         <>
-          {/* Metrics Cards */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    Total Return
-                  </Typography>
-                  <Typography variant="h4" component="div" sx={{ 
-                    color: metrics.totalPnL >= 0 ? 'success.main' : 'error.main' 
-                  }}>
-                    {formatMetricValue('totalPnL', metrics.totalPnL)}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    Win Rate
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {formatMetricValue('winRate', metrics.winRate)}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    Total Trades
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {metrics.totalTrades}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    Max Drawdown
-                  </Typography>
-                  <Typography variant="h4" component="div" sx={{
-                    color: getMetricColor('maxDrawdown', metrics.maxDrawdown) === 'success' 
-                      ? 'success.main' 
-                      : getMetricColor('maxDrawdown', metrics.maxDrawdown) === 'warning'
-                        ? 'warning.main'
-                        : 'error.main'
-                  }}>
-                    {formatMetricValue('maxDrawdown', metrics.maxDrawdown)}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+          {(() => {
+            // Get real-time metrics if available
+            const realtimeMetrics = id ? getRealtimeMetrics(id as string) : null;
+            
+            return (
+              <>
+                {/* Metrics Cards */}
+                <Grid container spacing={3} sx={{ mb: 4 }}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                          Total P&L {realtimeMetrics && '(Live)'}
+                        </Typography>
+                        <Typography variant="h4" component="div" sx={{ 
+                          color: realtimeMetrics 
+                            ? (realtimeMetrics.pnl + realtimeMetrics.unrealizedPnl) >= 0 ? 'success.main' : 'error.main'
+                            : metrics.totalPnL >= 0 ? 'success.main' : 'error.main' 
+                        }}>
+                          {realtimeMetrics 
+                            ? `₹${(realtimeMetrics.pnl + realtimeMetrics.unrealizedPnl).toFixed(2)}`
+                            : formatMetricValue('totalPnL', metrics.totalPnL)
+                          }
+                        </Typography>
+                        {realtimeMetrics && (
+                          <Typography variant="caption" color="text.secondary">
+                            Realized: ₹{realtimeMetrics.pnl.toFixed(2)} | Unrealized: ₹{realtimeMetrics.unrealizedPnl.toFixed(2)}
+                          </Typography>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                          Open Positions {realtimeMetrics && '(Live)'}
+                        </Typography>
+                        <Typography variant="h4" component="div">
+                          {realtimeMetrics ? realtimeMetrics.openPositions : positions.filter(p => p.status === 'OPEN').length}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                          Total Trades {realtimeMetrics && '(Live)'}
+                        </Typography>
+                        <Typography variant="h4" component="div">
+                          {realtimeMetrics ? realtimeMetrics.totalTrades : metrics.totalTrades}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                          Win Rate
+                        </Typography>
+                        <Typography variant="h4" component="div" sx={{
+                          color: getMetricColor('winRate', metrics.winRate) === 'success' 
+                            ? 'success.main' 
+                            : getMetricColor('winRate', metrics.winRate) === 'warning'
+                              ? 'warning.main'
+                              : 'error.main'
+                        }}>
+                          {formatMetricValue('winRate', metrics.winRate)}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                          Max Drawdown
+                        </Typography>
+                        <Typography variant="h4" component="div" sx={{
+                          color: getMetricColor('maxDrawdown', metrics.maxDrawdown) === 'success' 
+                            ? 'success.main' 
+                            : getMetricColor('maxDrawdown', metrics.maxDrawdown) === 'warning'
+                              ? 'warning.main'
+                              : 'error.main'
+                        }}>
+                          {formatMetricValue('maxDrawdown', metrics.maxDrawdown)}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </>
+            );
+          })()}
 
           {/* Performance Chart */}
           <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
@@ -406,6 +481,84 @@ const DeploymentDetail = () => {
               )}
             </Box>
           </Paper>
+
+          {/* Recent Events */}
+          {(() => {
+            const recentEvents = id ? getEventsByDeployment(id as string).slice(0, 10) : [];
+            if (recentEvents.length > 0) {
+              return (
+                <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+                  <Typography variant="h6" component="h3" sx={{ mb: 2 }}>
+                    Recent Events
+                    <Chip 
+                      label={`${recentEvents.length} events`}
+                      size="small" 
+                      color="primary"
+                      sx={{ ml: 2 }}
+                    />
+                  </Typography>
+                  <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+                    {recentEvents.map((event, index) => (
+                      <Box 
+                        key={index} 
+                        sx={{ 
+                          p: 2, 
+                          mb: 1, 
+                          bgcolor: theme.palette.mode === 'dark' 
+                            ? 'rgba(255, 255, 255, 0.05)' 
+                            : 'rgba(0, 0, 0, 0.03)',
+                          borderRadius: 1,
+                          borderLeft: `4px solid ${
+                            event.event_type === 'position_opened' ? theme.palette.success.main :
+                            event.event_type === 'position_closed' ? theme.palette.info.main :
+                            event.event_type === 'deployment_error' ? theme.palette.error.main :
+                            event.event_type === 'stop_loss_triggered' ? theme.palette.warning.main :
+                            event.event_type === 'target_profit_triggered' ? theme.palette.success.main :
+                            theme.palette.grey[400]
+                          }`
+                        }}
+                      >
+                        <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                          <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                              {event.event_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </Typography>
+                            {event.metadata.instrument_symbol && (
+                              <Typography variant="body2" color="text.secondary">
+                                {event.metadata.instrument_symbol}
+                                {event.metadata.market_price && ` at ₹${event.metadata.market_price}`}
+                                {event.data.quantity && ` (${event.data.quantity} qty)`}
+                              </Typography>
+                            )}
+                            {event.data.pnl && (
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  color: event.data.pnl >= 0 ? 'success.main' : 'error.main',
+                                  fontWeight: 500 
+                                }}
+                              >
+                                P&L: ₹{event.data.pnl.toFixed(2)}
+                              </Typography>
+                            )}
+                            {event.data.message && event.event_type === 'deployment_error' && (
+                              <Typography variant="body2" color="error.main">
+                                {event.data.message}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(event.timestamp).toLocaleTimeString()}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                </Paper>
+              );
+            }
+            return null;
+          })()}
         </>
       ) : (
         <Alert severity="info" sx={{ mb: 4 }}>

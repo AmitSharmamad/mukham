@@ -8,6 +8,7 @@ import { Footer } from '../Footer';
 import Navbar from '../Navbar';
 import { PWAInstallPrompt } from '../PWAInstallPrompt';
 import { DeploymentSidebar } from '../DeploymentSidebar';
+import { DeploymentEventHandler } from '../DeploymentEventHandler';
 import { ThemeColor, themes } from '../../theme';
 
 interface MainLayoutProps {
@@ -189,6 +190,9 @@ export const MainLayout = ({
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
+      
+      {/* Deployment Event Handler for real-time notifications */}
+      <DeploymentEventHandler />
     </Box>
   );
 };
