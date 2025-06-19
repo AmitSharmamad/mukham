@@ -279,9 +279,16 @@ const DeploymentDetail = () => {
       {/* Deployment Info Header */}
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h4" component="h1">
-            {deployment.name}
-          </Typography>
+          <Box>
+            <Typography variant="h4" component="h1">
+              {deployment.name}
+            </Typography>
+            {deployment.instrument_master?.symbol && (
+              <Typography variant="h6" color="primary.main" sx={{ fontWeight: 500, mt: 0.5 }}>
+                {deployment.instrument_master.symbol}
+              </Typography>
+            )}
+          </Box>
           <Box display="flex" alignItems="center" gap={1}>
             <Chip 
               label={deployment.isActive ? 'Active' : 'Inactive'} 
@@ -318,6 +325,16 @@ const DeploymentDetail = () => {
             <Typography variant="body2" color="text.secondary">
               <strong>Last Updated:</strong> {new Date(deployment.lastUpdatedAt).toLocaleString()}
             </Typography>
+          )}
+          {deployment.instrument_master && (
+            <>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Exchange:</strong> {deployment.instrument_master.exchange}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Segment:</strong> {deployment.instrument_master.segment}
+              </Typography>
+            </>
           )}
         </Box>
       </Paper>

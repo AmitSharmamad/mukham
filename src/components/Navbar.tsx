@@ -273,10 +273,9 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
               <Typography
                 variant="body2"
                 sx={{
-                  color: 'inherit',
                   opacity: 0.8,
                   fontWeight: 'bold',
-                  fontStyle: 'italic',
+                  fontStyle: 'normal',
                   mr: 4,
                   ml: -3,
                   fontSize: '0.95rem',
@@ -285,10 +284,11 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                   borderRadius: 1,
                   backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
-                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+                  color: 'green'
                 }}
               >
-                ⚙️ Options - Coming Soon
+                Coming Soon - Options
               </Typography>
               
               <IconButton 
