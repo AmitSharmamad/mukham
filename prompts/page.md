@@ -4,7 +4,7 @@
 
 page to show deployments the latest active position with live updates - MVP
 
-add "Stop All" button to stop all the deployments at once - MVP
+add "Pause All" button to pause all the deployments at once - MVP
 
 add "Hide" button to hide all the numbers in the widgets - MVP
 

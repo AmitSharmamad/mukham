@@ -1,6 +1,19 @@
 import apiClient from '../utils/api';
 
 // Types
+export interface LatestMetrics {
+  id: string;
+  deployment_id: string;
+  metric_date: string;
+  total_trades: number;
+  win_trades: number;
+  loss_trades: number;
+  total_pnl: number;
+  max_drawdown: number;
+  sharpe_ratio: number;
+  sortino_ratio: number;
+}
+
 export interface Deployment {
   id: string;
   strategy_id: string;
@@ -11,6 +24,7 @@ export interface Deployment {
   status?: 'waiting' | 'entered'; // Position status from the API
   createdAt: string; // Note: This is mapped from created_at in the API
   lastUpdatedAt?: string; // Note: This is mapped from updated_at in the API
+  latest_metrics?: LatestMetrics;
 }
 
 export interface Position {
@@ -107,7 +121,8 @@ export const getDeployments = async (filters?: {
         isActive: item.is_active,
         status: item.status,
         createdAt: item.created_at,
-        lastUpdatedAt: item.updated_at
+        lastUpdatedAt: item.updated_at,
+        latest_metrics: item.latest_metrics
       }));
     }
     return [];
@@ -151,7 +166,8 @@ export const getDeploymentsSearch = async (filters: {
         isActive: item.is_active,
         status: item.status,
         createdAt: item.created_at,
-        lastUpdatedAt: item.updated_at
+        lastUpdatedAt: item.updated_at,
+        latest_metrics: item.latest_metrics
       }));
     }
     return [];
@@ -175,7 +191,8 @@ export const getDeployment = async (id: string): Promise<Deployment | null> => {
         isActive: item.is_active,
         status: item.status,
         createdAt: item.created_at,
-        lastUpdatedAt: item.updated_at
+        lastUpdatedAt: item.updated_at,
+        latest_metrics: item.latest_metrics
       };
     }
     

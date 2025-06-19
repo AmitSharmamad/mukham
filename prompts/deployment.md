@@ -10,5 +10,12 @@ revamp the `/deployment` page with the following changes
 8. When `View Logs` button is clicked, open a modal
 
 
-Add `Start All`, `Stop All`, `Exit All` buttons on the top right corner.
+Add `Start All`, `Pause All`, `Exit All` buttons on the top right corner.
 Add confirmation modal for each action.
+
+update the lifetime of deployment now()-created_at()
+center status and position status above the table
+
+                                        Positions page
+
+Strategy name      Position description     Qty        Entry Avg        P&L       Actions

@@ -168,7 +168,7 @@ const DeploymentPage = () => {
   const handleBulkAction = (type: 'start_all' | 'stop_all' | 'exit_all') => {
     const titles = {
       start_all: 'Start All Deployments',
-      stop_all: 'Stop All Deployments', 
+      stop_all: 'Pause All Deployments', 
       exit_all: 'Exit All Deployments'
     };
 
@@ -254,7 +254,7 @@ const DeploymentPage = () => {
             onClick={() => handleBulkAction('stop_all')}
             disabled={actionLoading !== ''}
           >
-            {actionLoading === 'stop_all' ? <CircularProgress size={20} /> : 'Stop All'}
+            {actionLoading === 'stop_all' ? <CircularProgress size={20} /> : 'Pause All'}
           </Button>
           <Button
             variant="contained"
@@ -321,6 +321,9 @@ const DeploymentPage = () => {
               <TableRow>
                 <TableCell sx={{ fontWeight: 600 }}>Strategy Name</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Total P&L</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Win Trades</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Loss Trades</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Created At</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Last Updated</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
@@ -345,6 +348,32 @@ const DeploymentPage = () => {
                   </TableCell>
                   <TableCell>
                     {getStatusChip(deployment)}
+                  </TableCell>
+                  <TableCell>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: deployment.latest_metrics && deployment.latest_metrics.total_pnl >= 0 
+                          ? 'success.main' 
+                          : 'error.main',
+                        fontWeight: 500
+                      }}
+                    >
+                      {deployment.latest_metrics 
+                        ? `₹${deployment.latest_metrics.total_pnl.toFixed(2)}`
+                        : 'N/A'
+                      }
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="success.main" sx={{ fontWeight: 500 }}>
+                      {deployment.latest_metrics?.win_trades || 0}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
+                      {deployment.latest_metrics?.loss_trades || 0}
+                    </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
