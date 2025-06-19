@@ -1,5 +1,5 @@
 // filepath: /Users/amit/workspace/mukham/src/components/MainLayout/index.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Container, IconButton, useMediaQuery, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Menu as MenuIcon } from '@mui/icons-material';
@@ -26,10 +26,16 @@ export const MainLayout = ({
   onChangeThemeColor,
   currentTheme 
 }: MainLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Changed to true to keep it open by default
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Effect to handle initial sidebar state based on screen size
+  useEffect(() => {
+    // Keep sidebar open by default on all screen sizes
+    setSidebarOpen(true);
+  }, [isMobile]);
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);
@@ -69,18 +75,19 @@ export const MainLayout = ({
           <DeploymentSidebar
             open={sidebarOpen}
             onClose={handleSidebarClose}
+            onToggle={handleSidebarToggle}
             variant={isMobile ? 'temporary' : 'persistent'}
             anchor="left"
           />
         )}
 
-        {/* Burger Menu Button */}
+        {/* Floating Burger Menu - positioned just outside the left nav */}
         {shouldShowSidebar && (
           <Box
             sx={{
               position: 'fixed',
               top: 76,
-              left: sidebarOpen && !isMobile ? 332 : 16, // Adjust position based on sidebar state
+              left: sidebarOpen && !isMobile ? 352 : 16, // Position just outside the sidebar (340px + 12px margin)
               zIndex: theme.zIndex.drawer + 2,
               transition: theme.transitions.create('left', {
                 easing: theme.transitions.easing.sharp,
@@ -116,7 +123,7 @@ export const MainLayout = ({
             flex: 1, 
             py: 4, 
             mt: 8, 
-            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '320px' : 'auto',
+            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '170px' : 'auto',
             mr: shouldShowSidebar && sidebarOpen && !isMobile ? 0 : 'auto',
             transition: theme.transitions.create(['margin-left', 'margin-right'], {
               easing: theme.transitions.easing.sharp,
@@ -126,6 +133,7 @@ export const MainLayout = ({
             maxHeight: 'calc(100vh - 64px)',
             display: 'flex',
             flexDirection: 'column',
+            width: shouldShowSidebar && sidebarOpen && !isMobile ? 'calc(100% - 170px)' : '100%', // Adjust width when sidebar is open
           }}
         >
           {children}
