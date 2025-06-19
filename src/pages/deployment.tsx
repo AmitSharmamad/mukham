@@ -647,8 +647,8 @@ const DeploymentPage = () => {
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Created At</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Last Updated</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Run Time</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>MTM</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Total P&L</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
@@ -660,10 +660,32 @@ const DeploymentPage = () => {
                 const hasRecentActivity = realtimeMetrics && 
                   new Date(realtimeMetrics.lastUpdateTime) > new Date(Date.now() - 60000); // Last minute
                 
-                // Pre-calculate P&L values to avoid recalculation in render
+                // Pre-calculate values to avoid recalculation in render
                 const totalPnl = realtimeMetrics 
                   ? (realtimeMetrics.pnl + (realtimeMetrics.unrealizedPnl || 0))
                   : deployment.metrics?.total_pnl || 0;
+                
+                // Calculate run time (time since creation)
+                const runTime = (() => {
+                  const createdTime = new Date(deployment.createdAt);
+                  const currentTime = new Date();
+                  const diffInMs = currentTime.getTime() - createdTime.getTime();
+                  
+                  const days = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+                  const hours = Math.floor((diffInMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  const minutes = Math.floor((diffInMs % (1000 * 60 * 60)) / (1000 * 60));
+                  
+                  if (days > 0) {
+                    return `${days}d ${hours}h`;
+                  } else if (hours > 0) {
+                    return `${hours}h ${minutes}m`;
+                  } else {
+                    return `${minutes}m`;
+                  }
+                })();
+                
+                // MTM (Mark to Market) - current unrealized P&L
+                const mtm = realtimeMetrics?.unrealizedPnl || 0;
                 
                 return (
                 <TableRow 
@@ -702,12 +724,20 @@ const DeploymentPage = () => {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {new Date(deployment.createdAt).toLocaleDateString()}
+                      {runTime}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">
-                      {deployment.lastUpdatedAt ? new Date(deployment.lastUpdatedAt).toLocaleDateString() : 'Never'}
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: mtm >= 0 ? 'success.main' : 'error.main',
+                        fontWeight: 500
+                      }}
+                    >
+                      {mtm !== undefined && mtm !== null
+                        ? `₹${mtm.toFixed(2)}`
+                        : 'N/A'}
                     </Typography>
                   </TableCell>
                   <TableCell>

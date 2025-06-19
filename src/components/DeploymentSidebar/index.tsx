@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Drawer,
@@ -28,11 +28,13 @@ import {
   ShowChart,
   Wifi,
   WifiOff,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { getDeployments, Deployment } from '../../services/deploymentService';
 import { useDeploymentEvents } from '../../hooks/useDeploymentEvents';
+import { useDeploymentUpdater } from '../../hooks/useDeploymentUpdater';
 
 interface DeploymentSidebarProps {
   open: boolean;
@@ -45,7 +47,7 @@ const DRAWER_WIDTH = 320;
 
 /**
  * DeploymentSidebar component that shows active deployments with real-time WebSocket data.
- * The WebSocket connection to ws://localhost:9099/ws/api/deployment/ws is established
+ * The WebSocket connection to ws://localhost:9099/ws/api/deployment/events/ws is established
  * when the sidebar is opened and disconnected when closed to optimize resource usage.
  */
 export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
@@ -60,26 +62,103 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
   
-  // Use WebSocket events for real-time updates
+  // Use WebSocket events for real-time updates - same as deployment page
   const { 
     events, 
     connectionStatus, 
     deploymentMetrics, 
-    getDeploymentMetrics,
     connect,
-    disconnect
+    disconnect,
+    getDeploymentMetrics
   } = useDeploymentEvents();
 
+  // Deployment updater for selective updates - same as deployment page
+  const {
+    updateDeploymentFromEvent,
+    applyUpdatesToDeployments,
+    clearAllUpdates: clearDeploymentUpdates,
+    hasUpdates: hasDeploymentUpdates
+  } = useDeploymentUpdater();
+
+  // Apply real-time updates to deployments - same logic as deployment page
+  const updatedDeployments = useMemo(() => {
+    const result = applyUpdatesToDeployments(deployments, deploymentMetrics);
+    console.log('Sidebar: Updating deployments with real-time metrics:', {
+      deploymentsCount: deployments.length,
+      metricsCount: Object.keys(deploymentMetrics).length,
+      metricsKeys: Object.keys(deploymentMetrics),
+      resultCount: result.length,
+      sampleResult: result.length > 0 ? {
+        id: result[0].id,
+        name: result[0].name,
+        metrics: result[0].metrics,
+        lastUpdated: result[0].lastUpdatedAt
+      } : null
+    });
+    return result;
+  }, [deployments, deploymentMetrics, applyUpdatesToDeployments]);
+
   useEffect(() => {
+    console.log('Sidebar: open state changed:', open);
     if (open) {
       fetchDeployments();
       // Establish WebSocket connection when sidebar is opened
+      console.log('Sidebar: Connecting to WebSocket...');
       connect();
     } else {
       // Disconnect when sidebar is closed to save resources
+      console.log('Sidebar: Disconnecting from WebSocket...');
       disconnect();
     }
   }, [open, connect, disconnect]);
+
+  // Debug WebSocket connection status changes
+  useEffect(() => {
+    console.log('Sidebar: WebSocket connection status changed:', connectionStatus);
+  }, [connectionStatus]);
+
+  // Debug deployment metrics changes
+  useEffect(() => {
+    console.log('Sidebar: Deployment metrics updated:', {
+      metricKeys: Object.keys(deploymentMetrics),
+      metricsCount: Object.keys(deploymentMetrics).length,
+      deploymentMetrics: deploymentMetrics
+    });
+  }, [deploymentMetrics]);
+
+  // Periodically refresh deployments to catch status changes
+  useEffect(() => {
+    if (!open || connectionStatus !== 'connected') return;
+
+    const interval = setInterval(() => {
+      console.log('Sidebar: Periodic deployment refresh...');
+      fetchDeployments();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [open, connectionStatus]);
+
+  // Listen for WebSocket events and apply real-time updates
+  useEffect(() => {
+    if (events.length === 0) return;
+
+    const latestEvent = events[0];
+    console.log('Sidebar: Processing WebSocket event:', {
+      event_type: latestEvent.event_type,
+      deployment_id: latestEvent.deployment_id,
+      timestamp: latestEvent.timestamp,
+      connectionStatus,
+      currentMetrics: Object.keys(deploymentMetrics),
+      deploymentsCount: deployments.length
+    });
+    
+    // Update deployments using the same logic as deployment page
+    updateDeploymentFromEvent(latestEvent, deploymentMetrics);
+    
+    // Force a re-render to ensure UI updates with new metrics
+    setDeployments(prev => [...prev]);
+    
+  }, [events, updateDeploymentFromEvent, deploymentMetrics, connectionStatus, deployments.length]);
 
   const fetchDeployments = async () => {
     try {
@@ -87,14 +166,24 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
       setError(null);
       const data = await getDeployments();
       
+      console.log('Sidebar: Fetched deployments:', {
+        totalDeployments: Array.isArray(data) ? data.length : 0,
+        data: data
+      });
+      
       // Filter only active deployments and ensure it's an array
       const activeDeployments = Array.isArray(data) 
         ? data.filter(deployment => deployment.isActive) 
         : [];
       
+      console.log('Sidebar: Active deployments:', {
+        activeCount: activeDeployments.length,
+        deploymentIds: activeDeployments.map(d => d.id)
+      });
+      
       setDeployments(activeDeployments);
     } catch (err: any) {
-      console.error('Error fetching deployments:', err);
+      console.error('Sidebar: Error fetching deployments:', err);
       setError('Failed to load deployments');
       setDeployments([]);
     } finally {
@@ -107,29 +196,61 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
   };
 
   const formatPnL = (deployment: Deployment) => {
-    // Use real-time metrics if available, otherwise fall back to mock data
+    // Use real-time metrics if available, same as deployment page
     const metrics = getDeploymentMetrics(deployment.id);
     
+    console.log('Sidebar: Formatting P&L for deployment:', {
+      deploymentId: deployment.id,
+      deploymentName: deployment.name,
+      realtimeMetrics: metrics,
+      deploymentMetrics: deployment.metrics
+    });
+    
     if (metrics) {
-      const totalPnL = metrics.pnl + metrics.unrealizedPnl;
-      return totalPnL >= 0 
+      const totalPnL = metrics.pnl + (metrics.unrealizedPnl || 0);
+      const formatted = totalPnL >= 0 
         ? `+₹${totalPnL.toFixed(2)}` 
-        : `-₹${Math.abs(totalPnL).toFixed(2)}`;
+        : `₹${totalPnL.toFixed(2)}`;
+      console.log('Sidebar: Using real-time metrics, formatted P&L:', formatted);
+      return formatted;
     }
     
-    // Mock PnL calculation for deployments without WebSocket data
-    const mockPnL = Math.random() > 0.5 ? 
-      `+₹${(Math.random() * 1000).toFixed(2)}` : 
-      `-₹${(Math.random() * 500).toFixed(2)}`;
-    return mockPnL;
+    // Use deployment's metrics if available from real-time updates
+    if (deployment.metrics?.total_pnl !== undefined) {
+      const totalPnL = deployment.metrics.total_pnl;
+      const formatted = totalPnL >= 0 
+        ? `+₹${totalPnL.toFixed(2)}` 
+        : `₹${totalPnL.toFixed(2)}`;
+      console.log('Sidebar: Using deployment metrics, formatted P&L:', formatted);
+      return formatted;
+    }
+    
+    // Return 0 if no data available instead of mock data
+    console.log('Sidebar: No metrics available, returning default');
+    return '₹0.00';
   };
 
-  const getPnLColor = (pnl: string) => {
-    return pnl.startsWith('+') ? theme.palette.success.main : theme.palette.error.main;
+  const getPnLColor = (pnl: string, deployment: Deployment) => {
+    // Get real-time metrics to determine color more accurately
+    const metrics = getDeploymentMetrics(deployment.id);
+    if (metrics) {
+      const totalPnL = metrics.pnl + (metrics.unrealizedPnl || 0);
+      return totalPnL >= 0 ? theme.palette.success.main : theme.palette.error.main;
+    }
+    
+    // Fallback to string-based determination
+    return pnl.startsWith('+') || pnl === '₹0.00' ? theme.palette.success.main : theme.palette.error.main;
   };
 
   const getDeploymentStatus = (deployment: Deployment) => {
     const metrics = getDeploymentMetrics(deployment.id);
+    
+    console.log('Sidebar: Getting status for deployment:', {
+      deploymentId: deployment.id,
+      deploymentActive: deployment.isActive,
+      metrics: metrics,
+      metricsStatus: metrics?.status
+    });
     
     if (metrics?.status === 'error') {
       return 'error';
@@ -161,15 +282,26 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
     ).length;
   };
 
+  // Check if deployment has recent activity for visual indicators
+  const hasRecentActivity = (deploymentId: string) => {
+    const now = new Date();
+    const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+    
+    return events.some(event => 
+      event.deployment_id === deploymentId && 
+      new Date(event.timestamp) > oneMinuteAgo
+    );
+  };
+
   const drawerContent = (
     <Box sx={{ 
       width: DRAWER_WIDTH, 
-      height: '100vh', // Changed from '100%' to '100vh' for static height
+      height: '100vh',
       display: 'flex',
       flexDirection: 'column',
       backgroundColor: theme.palette.background.paper,
       borderRight: `1px solid ${theme.palette.divider}`,
-      overflow: 'hidden' // Prevent any overflow scrolling
+      overflow: 'hidden'
     }}>
       {/* Header */}
       <Box
@@ -184,7 +316,7 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-            Active Deployments
+            Live Deployments
           </Typography>
           <Tooltip title={`WebSocket: ${connectionStatus}`}>
             {getConnectionStatusIcon()}
@@ -192,11 +324,23 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Chip 
-            label={deployments.length} 
+            label={updatedDeployments.length} 
             size="small" 
             color="primary"
             variant="outlined"
           />
+          <Tooltip title="Refresh Deployments">
+            <IconButton 
+              size="small" 
+              onClick={() => {
+                console.log('Sidebar: Manual refresh triggered');
+                fetchDeployments();
+              }}
+              sx={{ color: theme.palette.primary.main }}
+            >
+              <RefreshIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
           <Tooltip title={isExpanded ? "Collapse" : "Expand"}>
             <IconButton 
               size="small" 
@@ -213,8 +357,8 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
       <Collapse in={isExpanded} timeout="auto">
         <Box sx={{ 
           flex: 1, 
-          overflow: 'hidden', // Changed from 'auto' to 'hidden'
-          height: 'calc(100vh - 200px)', // Fixed height to prevent scrolling
+          overflow: 'hidden',
+          height: 'calc(100vh - 200px)',
           display: 'flex',
           flexDirection: 'column'
         }}>
@@ -228,7 +372,7 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                 {error}
               </Alert>
             </Box>
-          ) : deployments.length === 0 ? (
+          ) : updatedDeployments.length === 0 ? (
             <Box sx={{ 
               p: 3, 
               display: 'flex', 
@@ -249,24 +393,25 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
           ) : (
             <List sx={{ 
               p: 1,
-              overflow: 'hidden', // Prevent scrolling
+              overflow: 'auto',
               flex: 1,
               display: 'flex',
               flexDirection: 'column'
             }}>
-              {deployments.map((deployment, index) => {
+              {updatedDeployments.map((deployment, index) => {
                 const pnl = formatPnL(deployment);
-                const pnlColor = getPnLColor(pnl);
+                const pnlColor = getPnLColor(pnl, deployment);
                 const deploymentStatus = getDeploymentStatus(deployment);
                 const metrics = getDeploymentMetrics(deployment.id);
                 const recentEventCount = getRecentEventCount(deployment.id);
+                const isActive = hasRecentActivity(deployment.id);
                 
                 return (
                   <React.Fragment key={deployment.id}>
                     {index > 0 && <Divider sx={{ my: 0.5 }} />}
                     <ListItem
                       component={Link}
-                      href={`/deployment/${deployment.id}`}
+                      href={`/deployment`}
                       sx={{
                         borderRadius: 1,
                         mb: 0.5,
@@ -284,7 +429,22 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                         py: 1.5,
                         border: deploymentStatus === 'error' 
                           ? `1px solid ${theme.palette.error.main}` 
-                          : 'none'
+                          : isActive 
+                          ? `1px solid ${alpha(theme.palette.success.main, 0.3)}`
+                          : 'none',
+                        // Add pulsing animation for recent activity
+                        animation: isActive ? 'pulse 2s infinite' : 'none',
+                        '@keyframes pulse': {
+                          '0%': {
+                            boxShadow: `0 0 0 0 ${alpha(theme.palette.success.main, 0.7)}`,
+                          },
+                          '70%': {
+                            boxShadow: `0 0 0 10px ${alpha(theme.palette.success.main, 0)}`,
+                          },
+                          '100%': {
+                            boxShadow: `0 0 0 0 ${alpha(theme.palette.success.main, 0)}`,
+                          },
+                        }
                       }}
                     >
                       <Box sx={{ 
@@ -360,7 +520,12 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                             </Badge>
                           )}
                           <Chip
-                            label={deploymentStatus === 'error' ? 'Error' : deployment.isActive ? 'Active' : 'Paused'}
+                            label={
+                              deploymentStatus === 'error' ? 'Error' : 
+                              deployment.isActive ? 
+                                (metrics?.openPositions > 0 ? `Active (${metrics.openPositions} pos)` : 'Active (Waiting)') : 
+                                'Paused'
+                            }
                             size="small"
                             color={deploymentStatus === 'error' ? 'error' : deployment.isActive ? 'success' : 'warning'}
                             variant="outlined"
@@ -398,7 +563,7 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                               color="text.secondary"
                               sx={{ ml: 1 }}
                             >
-                              ({metrics.openPositions} open)
+                              ({metrics?.openPositions || 0} open)
                             </Typography>
                           )}
                         </Box>
@@ -407,9 +572,9 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                           <Typography variant="caption" color="text.secondary">
                             {new Date(deployment.createdAt).toLocaleDateString()}
                           </Typography>
-                          {metrics && (
+                          {(metrics || deployment.metrics) && (
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
-                              {metrics.totalTrades} trades
+                              {metrics?.totalTrades || deployment.metrics?.total_trades || 0} trades
                             </Typography>
                           )}
                         </Box>
@@ -458,6 +623,21 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
               </Typography>
             </Box>
             
+            {/* Debug Info */}
+            {process.env.NODE_ENV === 'development' && (
+              <Box sx={{ 
+                p: 1, 
+                bgcolor: 'rgba(0,0,0,0.05)', 
+                borderRadius: 1, 
+                mb: 1,
+                fontSize: '0.6rem'
+              }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+                  Debug: Metrics: {Object.keys(deploymentMetrics).length} | Events: {events.length} | Status: {connectionStatus}
+                </Typography>
+              </Box>
+            )}
+            
             {/* Recent Activity */}
             {events.length > 0 && (
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
@@ -466,7 +646,7 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
             )}
             
             {/* View All Deployments Link */}
-            {deployments.length > 0 && (
+            {updatedDeployments.length > 0 && (
               <Box 
                 component={Link}
                 href="/deployment"
