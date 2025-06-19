@@ -1,15 +1,15 @@
 // filepath: /Users/amit/workspace/mukham/src/components/MainLayout/index.tsx
-import { useState } from 'react';
-import { Box, Container, IconButton, Menu, MenuItem, useMediaQuery, Tooltip } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Box, Container, IconButton, useMediaQuery, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Palette, Menu as MenuIcon } from '@mui/icons-material';
+import { Menu as MenuIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { Footer } from '../Footer';
 import Navbar from '../Navbar';
 import { PWAInstallPrompt } from '../PWAInstallPrompt';
 import { DeploymentSidebar } from '../DeploymentSidebar';
 import { DeploymentEventHandler } from '../DeploymentEventHandler';
-import { ThemeColor, themes } from '../../theme';
+import { ThemeColor } from '../../theme';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -26,24 +26,16 @@ export const MainLayout = ({
   onChangeThemeColor,
   currentTheme 
 }: MainLayoutProps) => {
-  const [themeAnchorEl, setThemeAnchorEl] = useState<null | HTMLElement>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Changed to true to keep it open by default
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const handleThemeMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setThemeAnchorEl(event.currentTarget);
-  };
-
-  const handleThemeMenuClose = () => {
-    setThemeAnchorEl(null);
-  };
-
-  const handleThemeSelect = (theme: ThemeColor) => {
-    onChangeThemeColor(theme);
-    handleThemeMenuClose();
-  };
+  // Effect to handle initial sidebar state based on screen size
+  useEffect(() => {
+    // Keep sidebar open by default on all screen sizes
+    setSidebarOpen(true);
+  }, [isMobile]);
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);
@@ -83,18 +75,19 @@ export const MainLayout = ({
           <DeploymentSidebar
             open={sidebarOpen}
             onClose={handleSidebarClose}
+            onToggle={handleSidebarToggle}
             variant={isMobile ? 'temporary' : 'persistent'}
             anchor="left"
           />
         )}
 
-        {/* Burger Menu Button */}
+        {/* Floating Burger Menu - positioned just outside the left nav */}
         {shouldShowSidebar && (
           <Box
             sx={{
               position: 'fixed',
               top: 76,
-              left: sidebarOpen && !isMobile ? 332 : 16, // Adjust position based on sidebar state
+              left: sidebarOpen && !isMobile ? 352 : 16, // Position just outside the sidebar (340px + 12px margin)
               zIndex: theme.zIndex.drawer + 2,
               transition: theme.transitions.create('left', {
                 easing: theme.transitions.easing.sharp,
@@ -130,7 +123,7 @@ export const MainLayout = ({
             flex: 1, 
             py: 4, 
             mt: 8, 
-            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '320px' : 'auto',
+            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '170px' : 'auto',
             mr: shouldShowSidebar && sidebarOpen && !isMobile ? 0 : 'auto',
             transition: theme.transitions.create(['margin-left', 'margin-right'], {
               easing: theme.transitions.easing.sharp,
@@ -140,54 +133,13 @@ export const MainLayout = ({
             maxHeight: 'calc(100vh - 64px)',
             display: 'flex',
             flexDirection: 'column',
+            width: shouldShowSidebar && sidebarOpen && !isMobile ? 'calc(100% - 170px)' : '100%', // Adjust width when sidebar is open
           }}
         >
           {children}
         </Container>
       </Box>
       
-      {/* Theme menu */}
-      <Box 
-        sx={{ 
-          position: 'fixed', 
-          top: '64px', 
-          right: '20px', 
-          zIndex: theme.zIndex.drawer + 1 
-        }}
-      >
-        <Tooltip title="Change theme color">
-          <IconButton
-            onClick={handleThemeMenuOpen}
-            color="inherit"
-            sx={{ 
-              backgroundColor: theme.palette.background.paper,
-              boxShadow: theme.shadows[3],
-              '&:hover': {
-                backgroundColor: theme.palette.action.hover,
-              }
-            }}
-          >
-            <Palette />
-          </IconButton>
-        </Tooltip>
-
-        <Menu
-          anchorEl={themeAnchorEl}
-          open={Boolean(themeAnchorEl)}
-          onClose={handleThemeMenuClose}
-        >
-          {themes.map((theme) => (
-            <MenuItem
-              key={theme}
-              onClick={() => handleThemeSelect(theme)}
-              selected={theme === currentTheme}
-            >
-              {theme.charAt(0).toUpperCase() + theme.slice(1)}
-            </MenuItem>
-          ))}
-        </Menu>
-      </Box>
-
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
       
