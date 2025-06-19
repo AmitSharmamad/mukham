@@ -322,30 +322,30 @@ const DeploymentDetail = () => {
         </Box>
       </Paper>
       
+      {/* Unified Positions & Metrics Dashboard */}
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+          Positions & Performance Dashboard
+          <Chip 
+            label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus} 
+            size="small" 
+            color={connectionStatus === 'connected' ? 'success' : 'default'}
+            sx={{ ml: 2 }}
+          />
+        </Typography>
         <DeploymentPositions 
-          positions={positions.filter(p => p.status === 'OPEN')} 
+          positions={positions}
           loading={positionsLoading} 
           onClosePosition={handleClosePosition}
+          deploymentId={deployment.id}
+          metrics={metrics}
+          onRefresh={handleRefresh}
+          useNewDashboard={true}
         />
       </Paper>
 
-      {/* Key Metrics */}
-      <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-        Deployment Metrics
-        <Chip 
-          label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus} 
-          size="small" 
-          color={connectionStatus === 'connected' ? 'success' : 'default'}
-          sx={{ ml: 2 }}
-        />
-      </Typography>
-
-      {metricsLoading ? (
-        <Box display="flex" justifyContent="center" my={3}>
-          <CircularProgress size={30} />
-        </Box>
-      ) : metrics ? (
+      {/* Charts and Additional Information */}
+      {metrics && (
         <>
           {(() => {
             // Get real-time metrics if available
@@ -560,10 +560,6 @@ const DeploymentDetail = () => {
             return null;
           })()}
         </>
-      ) : (
-        <Alert severity="info" sx={{ mb: 4 }}>
-          No metrics available for this deployment yet.
-        </Alert>
       )}
     </Container>
   );

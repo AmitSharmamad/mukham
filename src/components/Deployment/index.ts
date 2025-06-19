@@ -4,6 +4,10 @@ import TradeChart from './TradeChart';
 import CandlestickChart from './CandlestickChart';
 import InstrumentCandlestickChart from './InstrumentCandlestickChart';
 import NewInstrumentCandlestickChart from './NewInstrumentCandlestickChart';
+import PositionsMetricsDashboard from './PositionsMetricsDashboard';
+import PositionTable from './PositionTable';
+import MetricsTiles from './MetricsTiles';
+import QuickActions from './QuickActions';
 
 export {
   DeploymentCard,
@@ -11,5 +15,9 @@ export {
   TradeChart,
   CandlestickChart,
   InstrumentCandlestickChart,
-  NewInstrumentCandlestickChart
+  NewInstrumentCandlestickChart,
+  PositionsMetricsDashboard,
+  PositionTable,
+  MetricsTiles,
+  QuickActions
 };
