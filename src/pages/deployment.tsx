@@ -30,11 +30,10 @@ import {
 import StopIcon from '@mui/icons-material/Stop';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { useTheme } from '@mui/material/styles';
-import { Deployment, getDeployments, getDeploymentsSearch, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments, getDeploymentPositions, getDeploymentMetrics as getDeploymentMetricsAPI, closePosition, Position, DeploymentMetrics } from '../services/deploymentService';
+import { Deployment, getDeployments, getDeploymentsSearch, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments, getDeploymentPositions, getDeploymentMetrics as getDeploymentMetricsAPI, closePosition, exitDeployment, Position, DeploymentMetrics } from '../services/deploymentService';
 import { useToastContext } from '../context/ToastContext';
 import { PositionsMetricsDashboard } from '../components/Deployment';
 import { useDeploymentEvents } from '../hooks/useDeploymentEvents';
@@ -45,14 +44,6 @@ interface ConfirmDialogState {
   type: 'start_all' | 'stop_all' | 'exit_all' | null;
   title: string;
   message: string;
-}
-
-interface LogsDialogState {
-  open: boolean;
-  deploymentId: string | null;
-  deploymentName: string;
-  logs: string[];
-  loading: boolean;
 }
 
 interface PositionsDialogState {
@@ -110,14 +101,14 @@ const DeploymentPage = () => {
     message: ''
   });
   
-  const [logsDialog, setLogsDialog] = useState<LogsDialogState>({
+  const [exitConfirmDialog, setExitConfirmDialog] = useState<{
+    open: boolean;
+    deployment: Deployment | null;
+  }>({
     open: false,
-    deploymentId: null,
-    deploymentName: '',
-    logs: [],
-    loading: false
+    deployment: null
   });
-
+  
   const [positionsDialog, setPositionsDialog] = useState<PositionsDialogState>({
     open: false,
     deployment: null,
@@ -352,30 +343,30 @@ const DeploymentPage = () => {
     }
   };
 
-  const handleViewLogs = async (deployment: Deployment) => {
-    setLogsDialog({
+  const handleExitDeployment = async (deployment: Deployment) => {
+    setExitConfirmDialog({
       open: true,
-      deploymentId: deployment.id,
-      deploymentName: deployment.name,
-      logs: [],
-      loading: true
+      deployment
     });
+  };
 
-    // Simulate loading logs (replace with actual API call)
-    setTimeout(() => {
-      const mockLogs = [
-        `[${new Date().toISOString()}] INFO: Deployment ${deployment.name} started`,
-        `[${new Date().toISOString()}] INFO: Monitoring market conditions`,
-        `[${new Date().toISOString()}] SUCCESS: Entry signal detected`,
-        `[${new Date().toISOString()}] INFO: Position opened successfully`
-      ];
-      
-      setLogsDialog(prev => ({
-        ...prev,
-        logs: mockLogs,
-        loading: false
-      }));
-    }, 1000);
+  const confirmExitDeployment = async () => {
+    if (!exitConfirmDialog.deployment) return;
+    
+    const deployment = exitConfirmDialog.deployment;
+    setActionLoading(`exit_${deployment.id}`);
+    setExitConfirmDialog({ open: false, deployment: null });
+    
+    try {
+      const result = await exitDeployment(deployment.id);
+      toast.showSuccess(result.message || `${deployment.name} exited successfully`);
+      await fetchDeployments();
+    } catch (err: any) {
+      console.error('Error exiting deployment:', err);
+      toast.showError(`Failed to exit deployment: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setActionLoading('');
+    }
   };
 
   const handleViewPositions = async (deployment: Deployment) => {
@@ -792,16 +783,21 @@ const DeploymentPage = () => {
                           )}
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="View Logs">
+                      <Tooltip title="Exit Deployment">
                         <IconButton
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleViewLogs(deployment);
+                            setExitConfirmDialog({ open: true, deployment });
                           }}
-                          color="primary"
+                          disabled={actionLoading === `exit_${deployment.id}`}
+                          color="error"
                         >
-                          <VisibilityIcon fontSize="small" />
+                          {actionLoading === `exit_${deployment.id}` ? (
+                            <CircularProgress size={16} />
+                          ) : (
+                            <ExitToAppIcon fontSize="small" />
+                          )}
                         </IconButton>
                       </Tooltip>
                     </Box>
@@ -844,51 +840,33 @@ const DeploymentPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Logs Dialog */}
+      {/* Exit Confirmation Dialog */}
       <Dialog
-        open={logsDialog.open}
-        onClose={() => setLogsDialog({ open: false, deploymentId: null, deploymentName: '', logs: [], loading: false })}
-        maxWidth="md"
+        open={exitConfirmDialog.open}
+        onClose={() => setExitConfirmDialog({ open: false, deployment: null })}
+        maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { height: '70vh' } }}
       >
-        <DialogTitle>
-          Deployment Logs - {logsDialog.deploymentName}
-        </DialogTitle>
-        <DialogContent dividers>
-          {logsDialog.loading ? (
-            <Box display="flex" justifyContent="center" py={3}>
-              <CircularProgress />
-            </Box>
-          ) : logsDialog.logs.length === 0 ? (
-            <Typography color="text.secondary" textAlign="center" py={3}>
-              No logs available for this deployment.
-            </Typography>
-          ) : (
-            <Box>
-              {logsDialog.logs.map((log, index) => (
-                <Typography 
-                  key={index} 
-                  variant="body2" 
-                  sx={{ 
-                    fontFamily: 'monospace', 
-                    mb: 1,
-                    p: 1,
-                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-                    borderRadius: 1
-                  }}
-                >
-                  {log}
-                </Typography>
-              ))}
-            </Box>
-          )}
+        <DialogTitle>Exit Deployment</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to exit the deployment "{exitConfirmDialog.deployment?.name}"? This will stop the strategy and close any open positions.
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button 
-            onClick={() => setLogsDialog({ open: false, deploymentId: null, deploymentName: '', logs: [], loading: false })}
+            onClick={() => setExitConfirmDialog({ open: false, deployment: null })}
+            disabled={actionLoading !== ''}
           >
-            Close
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmExitDeployment}
+            color="error"
+            variant="contained"
+            disabled={actionLoading !== ''}
+          >
+            {actionLoading === `exit_${exitConfirmDialog.deployment?.id}` ? <CircularProgress size={20} /> : 'Confirm Exit'}
           </Button>
         </DialogActions>
       </Dialog>
