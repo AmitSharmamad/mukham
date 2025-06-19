@@ -45,7 +45,7 @@ const DRAWER_WIDTH = 320;
 
 /**
  * DeploymentSidebar component that shows active deployments with real-time WebSocket data.
- * The WebSocket connection to ws://localhost:9099/ws/api/deployment/events/ws is established
+ * The WebSocket connection to ws://localhost:9099/ws/api/deployment/ws is established
  * when the sidebar is opened and disconnected when closed to optimize resource usage.
  */
 export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({

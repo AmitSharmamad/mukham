@@ -111,7 +111,7 @@ const DeploymentEventsDashboard = () => {
                 />
               </Box>
               <Typography variant="body2" color="text.secondary">
-                WebSocket endpoint: ws://localhost:9099/ws/api/deployment/events/ws
+                WebSocket endpoint: ws://localhost:9099/ws/api/deployment/ws
               </Typography>
             </CardContent>
           </Card>

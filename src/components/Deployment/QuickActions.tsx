@@ -6,33 +6,19 @@ import {
   Typography,
   Button,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
-  Alert,
   Stack,
-  Tooltip,
-  Badge,
   useTheme,
   alpha
 } from '@mui/material';
 import {
   Close as CloseIcon,
   Refresh as RefreshIcon,
-  FilterList as FilterListIcon,
-  GetApp as ExportIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon
+  GetApp as ExportIcon
 } from '@mui/icons-material';
 import { Position } from '../../services/deploymentService';
 import { useToastContext } from '../../context/ToastContext';
@@ -227,57 +213,8 @@ const QuickActions: React.FC<QuickActionsProps> = ({
     document.body.removeChild(a);
   };
 
-  const getConnectionStatusInfo = () => {
-    switch (connectionStatus) {
-      case 'connected':
-        return {
-          icon: <CheckCircleIcon fontSize="small" color="success" />,
-          text: 'Real-time data active',
-          color: 'success'
-        };
-      case 'connecting':
-        return {
-          icon: <InfoIcon fontSize="small" color="info" />,
-          text: 'Connecting to live data...',
-          color: 'info'
-        };
-      case 'disconnected':
-        return {
-          icon: <ErrorIcon fontSize="small" color="error" />,
-          text: 'Real-time data disconnected',
-          color: 'error'
-        };
-      default:
-        return {
-          icon: <WarningIcon fontSize="small" color="warning" />,
-          text: 'Connection status unknown',
-          color: 'warning'
-        };
-    }
-  };
-
-  const connectionInfo = getConnectionStatusInfo();
-
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-      {/* Connection Status */}
-      <Card>
-        <CardContent sx={{ py: 2 }}>
-          <Box display="flex" alignItems="center" gap={1} mb={1}>
-            {connectionInfo.icon}
-            <Typography variant="subtitle2">
-              Live Data Status
-            </Typography>
-          </Box>
-          <Chip
-            label={connectionInfo.text}
-            color={connectionInfo.color as any}
-            size="small"
-            variant="outlined"
-          />
-        </CardContent>
-      </Card>
-
       {/* Selection Summary */}
       {selectedPositions.length > 0 && (
         <Card>
@@ -315,103 +252,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({
                 </Typography>
               </Box>
             </Stack>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick Actions */}
-      <Card sx={{ flex: 1 }}>
-        <CardContent>
-          <Typography variant="subtitle2" gutterBottom>
-            Quick Actions
-          </Typography>
-          
-          <Stack spacing={1}>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<CloseIcon />}
-              onClick={() => handleBulkAction('close')}
-              disabled={!canClosePositions}
-              fullWidth
-              size={compact ? 'small' : 'medium'}
-            >
-              Close Selected ({openPositions.length})
-            </Button>
-
-            <Button
-              variant="outlined"
-              startIcon={<ExportIcon />}
-              onClick={() => handleBulkAction('export')}
-              disabled={selectedPositions.length === 0}
-              fullWidth
-              size={compact ? 'small' : 'medium'}
-            >
-              Export Selected
-            </Button>
-
-            <Divider />
-
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={onRefresh}
-              fullWidth
-              size={compact ? 'small' : 'medium'}
-            >
-              Refresh Data
-            </Button>
-          </Stack>
-
-          {!compact && (
-            <>
-              <Divider sx={{ my: 2 }} />
-              
-              <Typography variant="subtitle2" gutterBottom>
-                Keyboard Shortcuts
-              </Typography>
-              
-              <List dense>
-                <ListItem sx={{ py: 0.5 }}>
-                  <ListItemText
-                    primary="Ctrl+A"
-                    secondary="Select all positions"
-                    primaryTypographyProps={{ variant: 'caption' }}
-                    secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                  />
-                </ListItem>
-                <ListItem sx={{ py: 0.5 }}>
-                  <ListItemText
-                    primary="Delete"
-                    secondary="Close selected positions"
-                    primaryTypographyProps={{ variant: 'caption' }}
-                    secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                  />
-                </ListItem>
-                <ListItem sx={{ py: 0.5 }}>
-                  <ListItemText
-                    primary="Ctrl+E"
-                    secondary="Export selected positions"
-                    primaryTypographyProps={{ variant: 'caption' }}
-                    secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                  />
-                </ListItem>
-              </List>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent Activity (if space allows) */}
-      {!compact && connectionStatus === 'connected' && (
-        <Card>
-          <CardContent sx={{ py: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Recent Activity
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Real-time position updates will appear here
-            </Typography>
           </CardContent>
         </Card>
       )}
