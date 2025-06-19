@@ -273,9 +273,9 @@ curl -X PUT "http://localhost:8080/api/deployment/a7f12e54-6b9d-4b8e-9a2c-89d4c1
 }
 ```
 
-### Stop All Deployments
+### Pause All Deployments
 
-Stops all active deployments for the current user.
+Pauses all active deployments for the current user.
 
 **Endpoint**: `POST /deployment/stop-all`
 

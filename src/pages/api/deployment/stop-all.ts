@@ -1,52 +1,37 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-// Use the same mock data as in index.ts
-// In a real app, this would be in a database
-// Mock deployments data (same as in index.ts)
-let deployments = [
-  {
-    id: '1',
-    strategy_id: 'strat-001',
-    instrument_id: 123,
-    name: 'Golden Cross - NIFTY',
-    description: 'Strategy to detect golden cross on NIFTY',
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    lastUpdatedAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    strategy_id: 'strat-002',
-    instrument_id: 456,
-    name: 'RSI Oversold - BANKNIFTY',
-    description: 'Strategy to buy when RSI is oversold on BANKNIFTY',
-    isActive: false,
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
-  },
-  {
-    id: '3',
-    strategy_id: 'strat-003',
-    instrument_id: 789,
-    name: 'MACD Crossover - RELIANCE',
-    description: 'Strategy based on MACD crossover for RELIANCE',
-    isActive: true,
-    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days ago
-    lastUpdatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() // 1 day ago
-  }
-];
-
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  // Stop all active deployments
-  const currentTime = new Date().toISOString();
-  deployments = deployments.map(deployment => ({
-    ...deployment,
-    isActive: false,
-    lastUpdatedAt: currentTime
-  }));
-  
-  return res.status(200).json({ message: 'All deployments stopped successfully' });
+  try {
+    // TODO: Implement actual API call to pause all deployments
+    // This should integrate with your backend service
+    // Example:
+    // const response = await fetch(`${process.env.BACKEND_API_URL}/deployments/pause-all`, {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //     'Authorization': `Bearer ${token}`
+    //   }
+    // });
+    // 
+    // if (!response.ok) {
+    //   throw new Error('Failed to pause deployments');
+    // }
+    // 
+    // const result = await response.json();
+    
+    return res.status(200).json({ 
+      message: 'All deployments paused successfully',
+      success: true 
+    });
+  } catch (error) {
+    console.error('Error pausing deployments:', error);
+    return res.status(500).json({ 
+      message: 'Failed to pause deployments',
+      success: false 
+    });
+  }
 }
