@@ -33,8 +33,9 @@ import PauseIcon from '@mui/icons-material/Pause';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { useTheme } from '@mui/material/styles';
-import { Deployment, getDeployments, getDeploymentsSearch, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments } from '../services/deploymentService';
+import { Deployment, getDeployments, getDeploymentsSearch, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments, getDeploymentPositions, getDeploymentMetrics, closePosition, Position, DeploymentMetrics } from '../services/deploymentService';
 import { useToastContext } from '../context/ToastContext';
+import { PositionsMetricsDashboard } from '../components/Deployment';
 
 interface ConfirmDialogState {
   open: boolean;
@@ -48,6 +49,14 @@ interface LogsDialogState {
   deploymentId: string | null;
   deploymentName: string;
   logs: string[];
+  loading: boolean;
+}
+
+interface PositionsDialogState {
+  open: boolean;
+  deployment: Deployment | null;
+  positions: Position[];
+  metrics: DeploymentMetrics | null;
   loading: boolean;
 }
 
@@ -75,6 +84,14 @@ const DeploymentPage = () => {
     deploymentId: null,
     deploymentName: '',
     logs: [],
+    loading: false
+  });
+
+  const [positionsDialog, setPositionsDialog] = useState<PositionsDialogState>({
+    open: false,
+    deployment: null,
+    positions: [],
+    metrics: null,
     loading: false
   });
 
@@ -163,6 +180,90 @@ const DeploymentPage = () => {
         loading: false
       }));
     }, 1000);
+  };
+
+  const handleViewPositions = async (deployment: Deployment) => {
+    setPositionsDialog({
+      open: true,
+      deployment,
+      positions: [],
+      metrics: null,
+      loading: true
+    });
+
+    try {
+      // Fetch positions and metrics for the deployment
+      const [positionsData, metricsData] = await Promise.all([
+        getDeploymentPositions(deployment.id),
+        getDeploymentMetrics(deployment.id)
+      ]);
+
+      setPositionsDialog(prev => ({
+        ...prev,
+        positions: positionsData,
+        metrics: metricsData,
+        loading: false
+      }));
+    } catch (error) {
+      console.error('Error fetching positions:', error);
+      toast.showError('Failed to load positions data');
+      setPositionsDialog(prev => ({
+        ...prev,
+        loading: false
+      }));
+    }
+  };
+
+  const handleClosePositionsDialog = () => {
+    setPositionsDialog({
+      open: false,
+      deployment: null,
+      positions: [],
+      metrics: null,
+      loading: false
+    });
+  };
+
+  const handleClosePosition = async (position: Position) => {
+    try {
+      await closePosition(position.deployment_id, position.id);
+      toast.showSuccess(`Position ${position.id} closed successfully`);
+      
+      // Refresh positions data
+      if (positionsDialog.deployment) {
+        const updatedPositions = await getDeploymentPositions(positionsDialog.deployment.id);
+        setPositionsDialog(prev => ({
+          ...prev,
+          positions: updatedPositions
+        }));
+      }
+    } catch (error) {
+      console.error('Error closing position:', error);
+      toast.showError('Failed to close position');
+      throw error;
+    }
+  };
+
+  const handleRefreshPositions = async () => {
+    if (!positionsDialog.deployment) return;
+    
+    try {
+      const [positionsData, metricsData] = await Promise.all([
+        getDeploymentPositions(positionsDialog.deployment.id),
+        getDeploymentMetrics(positionsDialog.deployment.id)
+      ]);
+
+      setPositionsDialog(prev => ({
+        ...prev,
+        positions: positionsData,
+        metrics: metricsData
+      }));
+      
+      toast.showSuccess('Positions data refreshed');
+    } catch (error) {
+      console.error('Error refreshing positions:', error);
+      toast.showError('Failed to refresh positions data');
+    }
   };
 
   const handleBulkAction = (type: 'start_all' | 'stop_all' | 'exit_all') => {
@@ -319,7 +420,12 @@ const DeploymentPage = () => {
           <Table>
             <TableHead sx={{ backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Strategy Name</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>
+                  Strategy Name
+                  <Typography variant="caption" display="block" color="text.secondary" sx={{ fontWeight: 400 }}>
+                    Click row to view positions
+                  </Typography>
+                </TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Total P&L</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Win Trades</TableCell>
@@ -334,7 +440,14 @@ const DeploymentPage = () => {
                 <TableRow 
                   key={deployment.id}
                   hover
-                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                  onClick={() => handleViewPositions(deployment)}
+                  sx={{ 
+                    '&:last-child td, &:last-child th': { border: 0 },
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: theme.palette.action.hover
+                    }
+                  }}
                 >
                   <TableCell>
                     <Box>
@@ -390,7 +503,10 @@ const DeploymentPage = () => {
                       <Tooltip title={deployment.isActive ? 'Pause' : 'Resume'}>
                         <IconButton
                           size="small"
-                          onClick={() => handleToggleDeployment(deployment)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleDeployment(deployment);
+                          }}
                           disabled={actionLoading === `toggle_${deployment.id}`}
                           color={deployment.isActive ? 'warning' : 'success'}
                         >
@@ -406,7 +522,10 @@ const DeploymentPage = () => {
                       <Tooltip title="View Logs">
                         <IconButton
                           size="small"
-                          onClick={() => handleViewLogs(deployment)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewLogs(deployment);
+                          }}
                           color="primary"
                         >
                           <VisibilityIcon fontSize="small" />
@@ -497,6 +616,43 @@ const DeploymentPage = () => {
             Close
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Positions Dialog */}
+      <Dialog
+        open={positionsDialog.open}
+        onClose={handleClosePositionsDialog}
+        maxWidth="xl"
+        fullWidth
+        PaperProps={{
+          sx: { height: '90vh' }
+        }}
+      >
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">
+              {positionsDialog.deployment?.name} - Positions & Metrics
+            </Typography>
+            <Button onClick={handleClosePositionsDialog} color="inherit">
+              ×
+            </Button>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, height: '100%' }}>
+          {positionsDialog.deployment && (
+            <Box sx={{ height: '100%', p: 2 }}>
+              <PositionsMetricsDashboard
+                deploymentId={positionsDialog.deployment.id}
+                positions={positionsDialog.positions}
+                metrics={positionsDialog.metrics}
+                loading={false}
+                positionsLoading={positionsDialog.loading}
+                onClosePosition={handleClosePosition}
+                onRefresh={handleRefreshPositions}
+              />
+            </Box>
+          )}
+        </DialogContent>
       </Dialog>
     </Container>
   );
