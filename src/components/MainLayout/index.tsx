@@ -1,15 +1,15 @@
 // filepath: /Users/amit/workspace/mukham/src/components/MainLayout/index.tsx
 import { useState } from 'react';
-import { Box, Container, IconButton, Menu, MenuItem, useMediaQuery, Tooltip } from '@mui/material';
+import { Box, Container, IconButton, useMediaQuery, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Palette, Menu as MenuIcon } from '@mui/icons-material';
+import { Menu as MenuIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { Footer } from '../Footer';
 import Navbar from '../Navbar';
 import { PWAInstallPrompt } from '../PWAInstallPrompt';
 import { DeploymentSidebar } from '../DeploymentSidebar';
 import { DeploymentEventHandler } from '../DeploymentEventHandler';
-import { ThemeColor, themes } from '../../theme';
+import { ThemeColor } from '../../theme';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -26,24 +26,10 @@ export const MainLayout = ({
   onChangeThemeColor,
   currentTheme 
 }: MainLayoutProps) => {
-  const [themeAnchorEl, setThemeAnchorEl] = useState<null | HTMLElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  const handleThemeMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setThemeAnchorEl(event.currentTarget);
-  };
-
-  const handleThemeMenuClose = () => {
-    setThemeAnchorEl(null);
-  };
-
-  const handleThemeSelect = (theme: ThemeColor) => {
-    onChangeThemeColor(theme);
-    handleThemeMenuClose();
-  };
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);
@@ -146,48 +132,6 @@ export const MainLayout = ({
         </Container>
       </Box>
       
-      {/* Theme menu */}
-      <Box 
-        sx={{ 
-          position: 'fixed', 
-          top: '64px', 
-          right: '20px', 
-          zIndex: theme.zIndex.drawer + 1 
-        }}
-      >
-        <Tooltip title="Change theme color">
-          <IconButton
-            onClick={handleThemeMenuOpen}
-            color="inherit"
-            sx={{ 
-              backgroundColor: theme.palette.background.paper,
-              boxShadow: theme.shadows[3],
-              '&:hover': {
-                backgroundColor: theme.palette.action.hover,
-              }
-            }}
-          >
-            <Palette />
-          </IconButton>
-        </Tooltip>
-
-        <Menu
-          anchorEl={themeAnchorEl}
-          open={Boolean(themeAnchorEl)}
-          onClose={handleThemeMenuClose}
-        >
-          {themes.map((theme) => (
-            <MenuItem
-              key={theme}
-              onClick={() => handleThemeSelect(theme)}
-              selected={theme === currentTheme}
-            >
-              {theme.charAt(0).toUpperCase() + theme.slice(1)}
-            </MenuItem>
-          ))}
-        </Menu>
-      </Box>
-
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
       
