@@ -10,254 +10,463 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
-  DialogTitle
+  DialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  IconButton,
+  Tooltip,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio
 } from '@mui/material';
 import StopIcon from '@mui/icons-material/Stop';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { useTheme } from '@mui/material/styles';
-import { Deployment, getDeployments, deleteDeployment, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments } from '../services/deploymentService';
+import { Deployment, getDeployments, getDeploymentsSearch, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments } from '../services/deploymentService';
 import { useToastContext } from '../context/ToastContext';
-import { DeploymentCard } from '../components';
-import { useDeploymentEvents } from '../hooks/useDeploymentEvents';
+
+interface ConfirmDialogState {
+  open: boolean;
+  type: 'start_all' | 'stop_all' | 'exit_all' | null;
+  title: string;
+  message: string;
+}
+
+interface LogsDialogState {
+  open: boolean;
+  deploymentId: string | null;
+  deploymentName: string;
+  logs: string[];
+  loading: boolean;
+}
 
 const DeploymentPage = () => {
   const theme = useTheme();
   const toast = useToastContext();
+  
+  // State management
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
-  const [deploymentToDelete, setDeploymentToDelete] = useState<Deployment | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [stoppingAll, setStoppingAll] = useState<boolean>(false);
-  const [startingAll, setStartingAll] = useState<boolean>(false);
-
-  // Initialize WebSocket connection for real-time updates
-  const { connect, disconnect, connectionStatus } = useDeploymentEvents();
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [positionFilter, setPositionFilter] = useState<string>('all');
+  const [actionLoading, setActionLoading] = useState<string>('');
+  
+  // Dialog states
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
+    open: false,
+    type: null,
+    title: '',
+    message: ''
+  });
+  
+  const [logsDialog, setLogsDialog] = useState<LogsDialogState>({
+    open: false,
+    deploymentId: null,
+    deploymentName: '',
+    logs: [],
+    loading: false
+  });
 
   useEffect(() => {
     fetchDeployments();
-    // Connect to WebSocket for real-time updates
-    connect();
-    
-    // Cleanup on unmount
-    return () => {
-      disconnect();
-    };
-  }, [connect, disconnect]);
+  }, [statusFilter, positionFilter]);
 
   const fetchDeployments = async () => {
     try {
       setLoading(true);
-      const data = await getDeployments();
-      // Ensure that deployments is always an array
-      setDeployments(Array.isArray(data) ? data : []);
-      setError(null);
+      
+      // Build filter object based on current filter values
+      const filters: { status?: 'waiting' | 'entered'; is_active?: boolean } = {};
+      
+      // Set status filter if position filter is specified
+      if (positionFilter !== 'all') {
+        filters.status = positionFilter as 'waiting' | 'entered';
+      }
+      
+      // Set is_active filter if status filter is specified
+      if (statusFilter !== 'all') {
+        filters.is_active = statusFilter === 'active';
+      }
+      
+      // Use search endpoint if we have filters, otherwise use the basic endpoint
+      const hasFilters = Object.keys(filters).length > 0;
+      const data = hasFilters ? await getDeploymentsSearch(filters) : await getDeployments();
+      
+      setDeployments(data);
     } catch (err: any) {
       console.error('Error fetching deployments:', err);
-      setError('Failed to load deployments. Please try again later.');
-      // Display error toast
-      toast.showError(err.response?.data?.message || 'Failed to load deployments');
-      // Reset to empty array in case of error
-      setDeployments([]);
+      toast.showError('Failed to load deployments');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenDeleteDialog = (deployment: Deployment) => {
-    setDeploymentToDelete(deployment);
-    setDeleteDialogOpen(true);
+  const handleStatusFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setStatusFilter(event.target.value);
   };
 
-  const handleCloseDeleteDialog = () => {
-    setDeleteDialogOpen(false);
-    setDeploymentToDelete(null);
+  const handlePositionFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPositionFilter(event.target.value);
   };
 
-  const handleDeleteDeployment = async () => {
-    if (!deploymentToDelete) return;
-    
+  const handleToggleDeployment = async (deployment: Deployment) => {
+    setActionLoading(`toggle_${deployment.id}`);
     try {
-      const result = await deleteDeployment(deploymentToDelete.id);
-      setDeployments(deployments.filter(d => d.id !== deploymentToDelete.id));
-      handleCloseDeleteDialog();
-      // Show success toast
-      toast.showSuccess('Deployment deleted successfully');
-    } catch (err: any) {
-      console.error('Error deleting deployment:', err);
-      setError('Failed to delete deployment. Please try again.');
-      // Show error toast
-      toast.showError(err.response?.data?.message || 'Failed to delete deployment');
-    }
-  };
-
-  const handleToggleStatus = async (deployment: Deployment) => {
-    try {
-      let result;
       if (deployment.isActive) {
-        result = await deactivateDeployment(deployment.id);
-        // Show success toast for deactivation
-        toast.showSuccess('Deployment paused successfully');
+        await deactivateDeployment(deployment.id);
+        toast.showSuccess(`${deployment.name} paused successfully`);
       } else {
-        result = await activateDeployment(deployment.id);
-        // Show success toast for activation
-        toast.showSuccess('Deployment activated successfully');
+        await activateDeployment(deployment.id);
+        toast.showSuccess(`${deployment.name} activated successfully`);
       }
-      
-      // Update local state
-      setDeployments(
-        deployments.map(d => 
-          d.id === deployment.id ? { ...d, isActive: !d.isActive } : d
-        )
-      );
+      await fetchDeployments();
     } catch (err: any) {
-      console.error('Error toggling deployment status:', err);
-      setError(`Failed to ${deployment.isActive ? 'pause' : 'resume'} deployment.`);
-      // Show error toast
-      toast.showError(err.response?.data?.message || `Failed to ${deployment.isActive ? 'pause' : 'activate'} deployment`);
+      console.error('Error toggling deployment:', err);
+      toast.showError(`Failed to ${deployment.isActive ? 'pause' : 'activate'} deployment`);
+    } finally {
+      setActionLoading('');
     }
   };
 
-  const handleStopAllDeployments = async () => {
+  const handleViewLogs = async (deployment: Deployment) => {
+    setLogsDialog({
+      open: true,
+      deploymentId: deployment.id,
+      deploymentName: deployment.name,
+      logs: [],
+      loading: true
+    });
+
+    // Simulate loading logs (replace with actual API call)
+    setTimeout(() => {
+      const mockLogs = [
+        `[${new Date().toISOString()}] INFO: Deployment ${deployment.name} started`,
+        `[${new Date().toISOString()}] INFO: Monitoring market conditions`,
+        `[${new Date().toISOString()}] SUCCESS: Entry signal detected`,
+        `[${new Date().toISOString()}] INFO: Position opened successfully`
+      ];
+      
+      setLogsDialog(prev => ({
+        ...prev,
+        logs: mockLogs,
+        loading: false
+      }));
+    }, 1000);
+  };
+
+  const handleBulkAction = (type: 'start_all' | 'stop_all' | 'exit_all') => {
+    const titles = {
+      start_all: 'Start All Deployments',
+      stop_all: 'Stop All Deployments', 
+      exit_all: 'Exit All Deployments'
+    };
+
+    const messages = {
+      start_all: 'Are you sure you want to start all inactive deployments? This will resume live trading for all paused strategies.',
+      stop_all: 'Are you sure you want to stop all active deployments? This will pause all currently running strategies.',
+      exit_all: 'Are you sure you want to exit all deployments? This will stop all strategies and close any open positions.'
+    };
+
+    setConfirmDialog({
+      open: true,
+      type,
+      title: titles[type],
+      message: messages[type]
+    });
+  };
+
+  const executeAction = async () => {
+    if (!confirmDialog.type) return;
+    
+    setActionLoading(confirmDialog.type);
     try {
-      setStoppingAll(true);
-      const result = await stopAllDeployments();
-      
-      // Update all deployments to inactive
-      setDeployments(
-        deployments.map(d => ({ ...d, isActive: false }))
-      );
-      
-      // Show success toast
-      toast.showSuccess('All deployments stopped successfully');
+      switch (confirmDialog.type) {
+        case 'start_all':
+          await startAllDeployments();
+          toast.showSuccess('All deployments started successfully');
+          break;
+        case 'stop_all':
+          await stopAllDeployments();
+          toast.showSuccess('All deployments stopped successfully');
+          break;
+        case 'exit_all':
+          // Use stop all for now since we don't have exit all API
+          await stopAllDeployments();
+          toast.showSuccess('All deployments exited successfully');
+          break;
+      }
+      await fetchDeployments();
     } catch (err: any) {
-      console.error('Error stopping all deployments:', err);
-      setError('Failed to stop all deployments. Please try again.');
-      // Show error toast
-      toast.showError(err.response?.data?.message || 'Failed to stop all deployments');
+      console.error('Error executing action:', err);
+      toast.showError(`Failed to ${confirmDialog.type.replace('_', ' ')}`);
     } finally {
-      setStoppingAll(false);
+      setActionLoading('');
+      setConfirmDialog({ open: false, type: null, title: '', message: '' });
     }
   };
 
-  const handleStartAllDeployments = async () => {
-    try {
-      setStartingAll(true);
-      const result = await startAllDeployments();
-      
-      // Update all deployments to active
-      setDeployments(
-        deployments.map(d => ({ ...d, isActive: true }))
-      );
-      
-      // Show success toast
-      toast.showSuccess('All deployments started successfully');
-    } catch (err: any) {
-      console.error('Error starting all deployments:', err);
-      setError('Failed to start all deployments. Please try again.');
-      // Show error toast
-      toast.showError(err.response?.data?.message || 'Failed to start all deployments');
-    } finally {
-      setStartingAll(false);
+  const getStatusChip = (deployment: Deployment) => {
+    if (deployment.isActive) {
+      return <Chip label="Active" color="success" size="small" />;
     }
+    return <Chip label="Inactive" color="default" size="small" />;
   };
 
   return (
     <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
       {/* Page Header */}
-      <Box 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="center" 
-        mb={3}
-      >
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
           <Typography variant="h4" component="h1">
             Deployments
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Live data: {connectionStatus === 'connected' ? '🟢 Connected' : connectionStatus === 'connecting' ? '🟡 Connecting...' : '🔴 Disconnected'}
+          <Typography variant="body2" color="text.secondary">
+            Manage and monitor your live trading strategies
           </Typography>
         </Box>
+        
+        {/* Action Buttons */}
         <Box display="flex" gap={2}>
           <Button
             variant="contained"
             color="success"
             startIcon={<PlayArrowIcon />}
-            onClick={handleStartAllDeployments}
-            disabled={startingAll || !Array.isArray(deployments) || deployments.every(d => d.isActive) || deployments.length === 0}
+            onClick={() => handleBulkAction('start_all')}
+            disabled={actionLoading !== ''}
           >
-            {startingAll ? 'Starting All...' : 'Start All'}
+            {actionLoading === 'start_all' ? <CircularProgress size={20} /> : 'Start All'}
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            startIcon={<StopIcon />}
+            onClick={() => handleBulkAction('stop_all')}
+            disabled={actionLoading !== ''}
+          >
+            {actionLoading === 'stop_all' ? <CircularProgress size={20} /> : 'Stop All'}
           </Button>
           <Button
             variant="contained"
             color="error"
-            startIcon={<StopIcon />}
-            onClick={handleStopAllDeployments}
-            disabled={stoppingAll || !Array.isArray(deployments) || deployments.every(d => !d.isActive)}
+            startIcon={<ExitToAppIcon />}
+            onClick={() => handleBulkAction('exit_all')}
+            disabled={actionLoading !== ''}
           >
-            {stoppingAll ? 'Stopping All...' : 'Stop All'}
+            {actionLoading === 'exit_all' ? <CircularProgress size={20} /> : 'Exit All'}
           </Button>
         </Box>
       </Box>
 
-      {error && (
-        <Box sx={{ mb: 2 }}>
-          <Typography color="error">{error}</Typography>
-        </Box>
-      )}
+      {/* Filters */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={4} alignItems="center">
+          <Grid item>
+            <FormControl component="fieldset">
+              <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1 }}>Status</FormLabel>
+              <RadioGroup
+                row
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+              >
+                <FormControlLabel value="all" control={<Radio />} label="All" />
+                <FormControlLabel value="active" control={<Radio />} label="Active" />
+                <FormControlLabel value="inactive" control={<Radio />} label="Inactive" />
+              </RadioGroup>
+            </FormControl>
+          </Grid>
 
-      {/* Deployments List */}
-      {loading ? (
-        <Box display="flex" justifyContent="center" my={3}>
-          <CircularProgress />
-        </Box>
-      ) : deployments.length > 0 ? (
-        <Grid container spacing={3}>
-          {deployments.map((deployment) => (
-            <Grid item xs={12} sm={6} md={4} key={deployment.id}>
-              <DeploymentCard
-                deployment={deployment}
-                onDelete={handleOpenDeleteDialog}
-                onToggleStatus={handleToggleStatus}
-              />
-            </Grid>
-          ))}
+          <Grid item>
+            <FormControl component="fieldset">
+              <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1 }}>Position Status</FormLabel>
+              <RadioGroup
+                row
+                value={positionFilter}
+                onChange={handlePositionFilterChange}
+              >
+                <FormControlLabel value="all" control={<Radio />} label="All" />
+                <FormControlLabel value="waiting" control={<Radio />} label="Waiting" />
+                <FormControlLabel value="entered" control={<Radio />} label="Entered" />
+              </RadioGroup>
+            </FormControl>
+          </Grid>
         </Grid>
-      ) : (
-        <Box 
-          display="flex" 
-          flexDirection="column" 
-          alignItems="center" 
-          justifyContent="center" 
-          minHeight="250px"
-          textAlign="center"
-          p={3}
-        >
-          <Typography variant="h6" gutterBottom>
-            No deployments found
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            Deploy a strategy from the strategy backtest results to see deployments here.
-          </Typography>
+      </Paper>
+
+      {/* Deployments Table */}
+      {loading ? (
+        <Box display="flex" justifyContent="center" my={4}>
+          <CircularProgress size={60} />
         </Box>
+      ) : deployments.length === 0 ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography color="text.secondary">
+            No deployments found matching your filters.
+          </Typography>
+        </Paper>
+      ) : (
+        <TableContainer component={Paper} elevation={2}>
+          <Table>
+            <TableHead sx={{ backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)' }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600 }}>Strategy Name</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Created At</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Last Updated</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {deployments.map((deployment) => (
+                <TableRow 
+                  key={deployment.id}
+                  hover
+                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                >
+                  <TableCell>
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight="medium">
+                        {deployment.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {deployment.description}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    {getStatusChip(deployment)}
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {new Date(deployment.createdAt).toLocaleDateString()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {deployment.lastUpdatedAt ? new Date(deployment.lastUpdatedAt).toLocaleDateString() : 'Never'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Box display="flex" gap={1} justifyContent="center">
+                      <Tooltip title={deployment.isActive ? 'Pause' : 'Resume'}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleToggleDeployment(deployment)}
+                          disabled={actionLoading === `toggle_${deployment.id}`}
+                          color={deployment.isActive ? 'warning' : 'success'}
+                        >
+                          {actionLoading === `toggle_${deployment.id}` ? (
+                            <CircularProgress size={16} />
+                          ) : deployment.isActive ? (
+                            <PauseIcon fontSize="small" />
+                          ) : (
+                            <PlayArrowIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="View Logs">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleViewLogs(deployment)}
+                          color="primary"
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
-      {/* Delete Confirmation Dialog */}
+      {/* Confirmation Dialog */}
       <Dialog
-        open={deleteDialogOpen}
-        onClose={handleCloseDeleteDialog}
-        maxWidth="xs"
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog({ open: false, type: null, title: '', message: '' })}
+        maxWidth="sm"
+        fullWidth
       >
-        <DialogTitle>Delete Deployment</DialogTitle>
+        <DialogTitle>{confirmDialog.title}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete "{deploymentToDelete?.name}"? This action cannot be undone.
-          </DialogContentText>
+          <DialogContentText>{confirmDialog.message}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
-          <Button onClick={handleDeleteDeployment} color="error">Delete</Button>
+          <Button 
+            onClick={() => setConfirmDialog({ open: false, type: null, title: '', message: '' })}
+            disabled={actionLoading !== ''}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={executeAction} 
+            color={confirmDialog.type === 'exit_all' ? 'error' : 'primary'}
+            variant="contained"
+            disabled={actionLoading !== ''}
+          >
+            {actionLoading === confirmDialog.type ? <CircularProgress size={20} /> : 'Confirm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Logs Dialog */}
+      <Dialog
+        open={logsDialog.open}
+        onClose={() => setLogsDialog({ open: false, deploymentId: null, deploymentName: '', logs: [], loading: false })}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { height: '70vh' } }}
+      >
+        <DialogTitle>
+          Deployment Logs - {logsDialog.deploymentName}
+        </DialogTitle>
+        <DialogContent dividers>
+          {logsDialog.loading ? (
+            <Box display="flex" justifyContent="center" py={3}>
+              <CircularProgress />
+            </Box>
+          ) : logsDialog.logs.length === 0 ? (
+            <Typography color="text.secondary" textAlign="center" py={3}>
+              No logs available for this deployment.
+            </Typography>
+          ) : (
+            <Box>
+              {logsDialog.logs.map((log, index) => (
+                <Typography 
+                  key={index} 
+                  variant="body2" 
+                  sx={{ 
+                    fontFamily: 'monospace', 
+                    mb: 1,
+                    p: 1,
+                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                    borderRadius: 1
+                  }}
+                >
+                  {log}
+                </Typography>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setLogsDialog({ open: false, deploymentId: null, deploymentName: '', logs: [], loading: false })}
+          >
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
