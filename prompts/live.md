@@ -6,7 +6,7 @@ This document describes the real-time WebSocket API for receiving deployment eve
 
 ### WebSocket Endpoint
 ```
-ws://localhost:9099/ws/api/deployment/events/ws
+ws://localhost:9099/ws/api/deployment/ws
 ```
 
 ### Authentication
@@ -15,12 +15,12 @@ The WebSocket connection requires authentication via JWT token. Include the toke
 1. **Cookie Authentication** (Recommended):
    ```javascript
    // Token should be set as an HTTP-only cookie named 'token'
-   const ws = new WebSocket('ws://localhost:9099/ws/api/deployment/events/ws');
+   const ws = new WebSocket('ws://localhost:9099/ws/api/deployment/ws');
    ```
 
 2. **Header Authentication**:
    ```javascript
-   const ws = new WebSocket('ws://localhost:9099/ws/api/deployment/events/ws', [], {
+   const ws = new WebSocket('ws://localhost:9099/ws/api/deployment/ws', [], {
      headers: {
        'Authorization': 'Bearer YOUR_JWT_TOKEN'
      }
@@ -29,7 +29,7 @@ The WebSocket connection requires authentication via JWT token. Include the toke
 
 ### Connection Example (JavaScript)
 ```javascript
-const ws = new WebSocket('ws://localhost:9099/ws/api/deployment/events/ws');
+const ws = new WebSocket('ws://localhost:9099/ws/api/deployment/ws');
 
 ws.onopen = function(event) {
     console.log('Connected to deployment events WebSocket');
@@ -309,7 +309,7 @@ export const useDeploymentEvents = () => {
   const [ws, setWs] = useState(null);
 
   const connect = useCallback(() => {
-    const websocket = new WebSocket('ws://localhost:9099/ws/api/deployment/events/ws');
+    const websocket = new WebSocket('ws://localhost:9099/ws/api/deployment/ws');
     
     websocket.onopen = () => {
       setConnectionStatus('connected');
@@ -454,7 +454,7 @@ const connectWithRetry = (maxRetries = 5, delay = 1000) => {
   let retryCount = 0;
   
   const connect = () => {
-    const ws = new WebSocket('ws://localhost:9099/ws/api/deployment/events/ws');
+    const ws = new WebSocket('ws://localhost:9099/ws/api/deployment/ws');
     
     ws.onopen = () => {
       retryCount = 0; // Reset retry count on successful connection
@@ -501,6 +501,6 @@ You can test the WebSocket connection using browser developer tools or WebSocket
 
 ```javascript
 // Open browser console and run:
-const ws = new WebSocket('ws://localhost:9099/ws/api/deployment/events/ws');
+const ws = new WebSocket('ws://localhost:9099/ws/api/deployment/ws');
 ws.onmessage = (event) => console.log(JSON.parse(event.data));
 ```

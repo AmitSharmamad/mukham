@@ -17,25 +17,49 @@ import {
   Divider,
   Stack
 } from '@mui/material';
-import { Position } from '../../services/deploymentService';
+import { Position, DeploymentMetrics } from '../../services/deploymentService';
 import { useToastContext } from '../../context/ToastContext';
+import PositionsMetricsDashboard from './PositionsMetricsDashboard';
 
 interface DeploymentPositionsProps {
   positions: Position[];
   loading: boolean;
   onClosePosition?: (position: Position) => Promise<void>;
+  deploymentId?: string;
+  metrics?: DeploymentMetrics | null;
+  onRefresh?: () => void;
+  useNewDashboard?: boolean;
 }
 
 const DeploymentPositions: React.FC<DeploymentPositionsProps> = ({ 
   positions, 
   loading,
-  onClosePosition
+  onClosePosition,
+  deploymentId,
+  metrics,
+  onRefresh,
+  useNewDashboard = false
 }) => {
   const theme = useTheme();
   const toast = useToastContext();
   const [positionToClose, setPositionToClose] = useState<Position | null>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [closingPosition, setClosingPosition] = useState(false);
+
+  // Use new dashboard if enabled and deploymentId is provided
+  if (useNewDashboard && deploymentId) {
+    return (
+      <PositionsMetricsDashboard
+        deploymentId={deploymentId}
+        positions={positions}
+        metrics={metrics || null}
+        loading={false}
+        positionsLoading={loading}
+        onClosePosition={onClosePosition}
+        onRefresh={onRefresh}
+      />
+    );
+  }
 
   // Only show open positions as that's what can be closed
   const openPositions = positions.filter(position => position.status === 'OPEN');

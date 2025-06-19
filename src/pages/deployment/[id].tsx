@@ -279,9 +279,16 @@ const DeploymentDetail = () => {
       {/* Deployment Info Header */}
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h4" component="h1">
-            {deployment.name}
-          </Typography>
+          <Box>
+            <Typography variant="h4" component="h1">
+              {deployment.name}
+            </Typography>
+            {deployment.instrument_master?.symbol && (
+              <Typography variant="h6" color="primary.main" sx={{ fontWeight: 500, mt: 0.5 }}>
+                {deployment.instrument_master.symbol}
+              </Typography>
+            )}
+          </Box>
           <Box display="flex" alignItems="center" gap={1}>
             <Chip 
               label={deployment.isActive ? 'Active' : 'Inactive'} 
@@ -319,33 +326,43 @@ const DeploymentDetail = () => {
               <strong>Last Updated:</strong> {new Date(deployment.lastUpdatedAt).toLocaleString()}
             </Typography>
           )}
+          {deployment.instrument_master && (
+            <>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Exchange:</strong> {deployment.instrument_master.exchange}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Segment:</strong> {deployment.instrument_master.segment}
+              </Typography>
+            </>
+          )}
         </Box>
       </Paper>
       
+      {/* Unified Positions & Metrics Dashboard */}
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+          Positions & Performance Dashboard
+          <Chip 
+            label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus} 
+            size="small" 
+            color={connectionStatus === 'connected' ? 'success' : 'default'}
+            sx={{ ml: 2 }}
+          />
+        </Typography>
         <DeploymentPositions 
-          positions={positions.filter(p => p.status === 'OPEN')} 
+          positions={positions}
           loading={positionsLoading} 
           onClosePosition={handleClosePosition}
+          deploymentId={deployment.id}
+          metrics={metrics}
+          onRefresh={handleRefresh}
+          useNewDashboard={true}
         />
       </Paper>
 
-      {/* Key Metrics */}
-      <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-        Deployment Metrics
-        <Chip 
-          label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus} 
-          size="small" 
-          color={connectionStatus === 'connected' ? 'success' : 'default'}
-          sx={{ ml: 2 }}
-        />
-      </Typography>
-
-      {metricsLoading ? (
-        <Box display="flex" justifyContent="center" my={3}>
-          <CircularProgress size={30} />
-        </Box>
-      ) : metrics ? (
+      {/* Charts and Additional Information */}
+      {metrics && (
         <>
           {(() => {
             // Get real-time metrics if available
@@ -560,10 +577,6 @@ const DeploymentDetail = () => {
             return null;
           })()}
         </>
-      ) : (
-        <Alert severity="info" sx={{ mb: 4 }}>
-          No metrics available for this deployment yet.
-        </Alert>
       )}
     </Container>
   );

@@ -202,16 +202,6 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             Deployment
           </Button>
 
-          {/* Deployment Events (Development/Testing) */}
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/deployment-events"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Live Events
-          </Button>
-
           {/* Scanners as a direct link */}
           {/* <Button 
             color="inherit" 
@@ -279,12 +269,33 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
         }}>
           {!loading && (authStatus ? (
             <>
-              <PnLDisplay />
+              {/* Options - Coming Soon Banner */}
+              <Typography
+                variant="body2"
+                sx={{
+                  opacity: 0.8,
+                  fontWeight: 'bold',
+                  fontStyle: 'normal',
+                  mr: 4,
+                  ml: -3,
+                  fontSize: '0.95rem',
+                  px: 2,
+                  py: 0.5,
+                  borderRadius: 1,
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+                  color: 'green'
+                }}
+              >
+                Coming Soon - Options
+              </Typography>
+              
               <IconButton 
                 size="large" 
                 onClick={handleProfileMenu} 
                 color="inherit"
-                sx={{ fontSize: '1.75rem', ml: 2 }}
+                sx={{ fontSize: '1.75rem' }}
               >
                 <AccountCircle />
               </IconButton>
