@@ -25,7 +25,7 @@ export interface IndicatorExpression {
  * Returns a formatted string representation of an indicator's formula
  */
 export const getIndicatorFormula = (name: string): string => {
-  if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(name)) {
+  if (['HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(name)) {
     return `${name}(offset)`;
   }
   
@@ -53,7 +53,7 @@ export const getIndicatorString = (indicator: Indicator): string => {
 export const isIndicatorComplete = (indicator: Indicator): boolean => {
   if (!indicator.name) return false;
   
-  if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME', 'MARKET_POSITION'].includes(indicator.name)) {
+  if (['HIGH', 'LOW', 'CLOSE', 'VOLUME', 'MARKET_POSITION'].includes(indicator.name)) {
     return true;
   }
   
@@ -118,7 +118,7 @@ export const parseExpressions = (expressionStr: string): IndicatorExpression[] =
             return { value: parseFloat(paramArray[0]) || 0 };
           }
           
-          if (['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(indicatorName)) {
+          if (['HIGH', 'LOW', 'CLOSE', 'VOLUME'].includes(indicatorName)) {
             return { offset: parseInt(paramArray[0]) || 0 };
           }
           
