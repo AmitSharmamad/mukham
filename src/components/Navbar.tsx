@@ -269,6 +269,28 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
         }}>
           {!loading && (authStatus ? (
             <>
+              {/* Options - Coming Soon Banner */}
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'inherit',
+                  opacity: 0.8,
+                  fontWeight: 'bold',
+                  fontStyle: 'italic',
+                  mr: 4,
+                  ml: -3,
+                  fontSize: '0.95rem',
+                  px: 2,
+                  py: 0.5,
+                  borderRadius: 1,
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                }}
+              >
+                ⚙️ Options - Coming Soon
+              </Typography>
+              
               <IconButton 
                 size="large" 
                 onClick={handleProfileMenu} 

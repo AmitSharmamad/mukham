@@ -5,10 +5,10 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { strategy_id, instrument_id, is_active, name } = req.query;
+  const { strategy_id, instrument_id, name, status } = req.query;
 
   // TODO: Replace with actual database search call
-  // Example: const filteredDeployments = await searchDeploymentsInDatabase({ strategy_id, instrument_id, is_active, name });
+  // Example: const filteredDeployments = await searchDeploymentsInDatabase({ strategy_id, instrument_id, status, name });
 
   return res.status(200).json({
     success: true,

@@ -249,12 +249,6 @@ const MetricsTiles: React.FC<MetricsTilesProps> = ({
       value: formatCurrency(Math.abs(displayMetrics.maxDrawdown)),
       icon: <TrendingDown />,
       color: Math.abs(displayMetrics.maxDrawdown) <= 1000 ? 'success' : Math.abs(displayMetrics.maxDrawdown) <= 5000 ? 'warning' : 'error'
-    },
-    {
-      title: 'Connection',
-      value: connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1),
-      icon: getConnectionStatusIcon(),
-      color: getConnectionStatusColor()
     }
   ].slice(0, maxTiles);
 
@@ -264,12 +258,6 @@ const MetricsTiles: React.FC<MetricsTilesProps> = ({
         <Typography variant="h6" component="h2">
           Live Metrics
         </Typography>
-        <Chip
-          label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus}
-          color={getConnectionStatusColor() as any}
-          size="small"
-          icon={getConnectionStatusIcon()}
-        />
       </Box>
 
       <Grid container spacing={2}>
