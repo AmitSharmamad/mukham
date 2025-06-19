@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -12,7 +12,12 @@ import {
   Button,
   CircularProgress,
   Grid,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import { Refresh, Download } from '@mui/icons-material';
 import { BacktestResult, Instrument } from '../../types/strategy';
@@ -53,6 +58,63 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
   onDeployAll,
   onRefreshDeploymentStatus
 }) => {
+  // State for confirmation dialog
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    type: 'single' as 'single' | 'all',
+    instrumentId: null as number | null,
+    instrumentName: '',
+    undeployedCount: 0
+  });
+
+  // Handle opening confirmation dialog for single deploy
+  const handleSingleDeployClick = (instrumentId: number, instrumentName: string) => {
+    setConfirmDialog({
+      open: true,
+      type: 'single',
+      instrumentId,
+      instrumentName,
+      undeployedCount: 0
+    });
+  };
+
+  // Handle opening confirmation dialog for deploy all
+  const handleDeployAllClick = (undeployedCount: number) => {
+    setConfirmDialog({
+      open: true,
+      type: 'all',
+      instrumentId: null,
+      instrumentName: '',
+      undeployedCount
+    });
+  };
+
+  // Handle confirming deployment
+  const handleConfirmDeploy = () => {
+    if (confirmDialog.type === 'single' && confirmDialog.instrumentId) {
+      onDeploy(confirmDialog.instrumentId);
+    } else if (confirmDialog.type === 'all') {
+      onDeployAll();
+    }
+    setConfirmDialog({
+      open: false,
+      type: 'single',
+      instrumentId: null,
+      instrumentName: '',
+      undeployedCount: 0
+    });
+  };
+
+  // Handle closing confirmation dialog
+  const handleCloseConfirmDialog = () => {
+    setConfirmDialog({
+      open: false,
+      type: 'single',
+      instrumentId: null,
+      instrumentName: '',
+      undeployedCount: 0
+    });
+  };
   // Function to handle Excel export
   const handleExportToExcel = async () => {
     if (!strategyId) {
@@ -210,7 +272,7 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
                     <Button
                       variant="contained"
                       size="small"
-                      onClick={onDeployAll}
+                      onClick={() => handleDeployAllClick(undeployedCount)}
                       disabled={deployingInstruments.size > 0}
                     >
                       {deployingInstruments.size > 0 ? (
@@ -258,7 +320,7 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation(); // Prevent row click
-                          onDeploy(result.instrumentId);
+                          handleSingleDeployClick(result.instrumentId, result.instrumentName);
                         }}
                         disabled={deployingInstruments.has(result.instrumentId)}
                       >
@@ -282,6 +344,56 @@ export const BacktestResultsDisplay: React.FC<BacktestResultsDisplayProps> = ({
         instruments={selectedInstruments}
         timeframe={timeframe}
       />
+
+      {/* Deployment Confirmation Dialog */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={handleCloseConfirmDialog}
+        aria-labelledby="deploy-confirmation-dialog-title"
+        aria-describedby="deploy-confirmation-dialog-description"
+      >
+        <DialogTitle id="deploy-confirmation-dialog-title">
+          {confirmDialog.type === 'single' ? 'Deploy Strategy' : 'Deploy All Strategies'}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="deploy-confirmation-dialog-description">
+            {confirmDialog.type === 'single' ? (
+              <>
+                Are you sure you want to deploy the strategy for <strong>{confirmDialog.instrumentName}</strong>?
+                <br /><br />
+                This will start live trading with real money. Make sure you have reviewed your strategy parameters and risk management settings.
+              </>
+            ) : (
+              <>
+                Are you sure you want to deploy strategies for <strong>{confirmDialog.undeployedCount}</strong> instrument{confirmDialog.undeployedCount > 1 ? 's' : ''}?
+                <br /><br />
+                This will start live trading with real money for multiple instruments. Make sure you have reviewed your strategy parameters and risk management settings.
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseConfirmDialog} disabled={deployingInstruments.size > 0}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleConfirmDeploy} 
+            color="primary"
+            variant="contained"
+            disabled={deployingInstruments.size > 0}
+            autoFocus
+          >
+            {deployingInstruments.size > 0 ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                Deploying...
+              </>
+            ) : (
+              confirmDialog.type === 'single' ? 'Deploy Strategy' : `Deploy ${confirmDialog.undeployedCount} Strategies`
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
