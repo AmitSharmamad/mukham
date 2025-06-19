@@ -361,6 +361,35 @@ export const closePosition = async (deploymentId: string, positionId: number): P
   }
 };
 
+export const exitDeployment = async (deploymentId: string): Promise<ApiResponse> => {
+  try {
+    // First, get all open positions for this deployment
+    const positions = await getDeploymentPositions(deploymentId);
+    const openPositions = positions.filter(position => position.status === 'OPEN');
+    
+    // Close all open positions
+    if (openPositions.length > 0) {
+      await Promise.all(
+        openPositions.map(position => 
+          closePosition(deploymentId, position.id)
+        )
+      );
+    }
+    
+    // Then deactivate the deployment
+    const response = await deactivateDeployment(deploymentId);
+    
+    return {
+      success: true,
+      message: `Deployment exited successfully. ${openPositions.length} positions closed.`,
+      data: response.data
+    };
+  } catch (error) {
+    console.error('Error exiting deployment:', error);
+    throw error;
+  }
+};
+
 export const getDeploymentPositionLogs = async (deploymentId: string, positionId: number): Promise<DeploymentPositionLog[]> => {
   try {
     const response = await apiClient.get(`/deployment/${deploymentId}/position/log`);
@@ -390,5 +419,6 @@ export default {
   stopAllDeployments,
   startAllDeployments,
   closePosition,
+  exitDeployment,
   getDeploymentPositionLogs
 };
