@@ -1,6 +1,27 @@
 import apiClient from '../utils/api';
 
 // Types
+export interface InstrumentMaster {
+  exchange_security_id: number;
+  exchange: string;
+  segment: string;
+  symbol: string;
+  name: string;
+  start_date: string;
+  expiry: string;
+  exm_exch_id: number;
+  smst_security_id: number;
+  instrument_name: string;
+  trading_symbol: string;
+  lot_units: number;
+  strike_price: number;
+  option_type: string;
+  tick_size: number;
+  expiry_flag: string;
+  exch_instrument_type: string;
+  symbol_name: string;
+}
+
 export interface DeploymentMetricsData {
   id: string;
   deployment_id: string;
@@ -42,6 +63,7 @@ export interface Deployment {
   createdAt: string; // Note: This is mapped from created_at in the API
   lastUpdatedAt?: string; // Note: This is mapped from updated_at in the API
   metrics?: DeploymentMetricsData;
+  instrument_master?: InstrumentMaster;
 }
 
 export interface Position {
@@ -135,7 +157,8 @@ export const getDeployments = async (filters?: {
         status: item.status,
         createdAt: item.created_at,
         lastUpdatedAt: item.updated_at,
-        metrics: item.metrics
+        metrics: item.metrics,
+        instrument_master: item.instrument_master
       }));
     }
     return [];
@@ -176,7 +199,8 @@ export const getDeploymentsSearch = async (filters: {
         status: item.status,
         createdAt: item.created_at,
         lastUpdatedAt: item.updated_at,
-        metrics: item.metrics
+        metrics: item.metrics,
+        instrument_master: item.instrument_master
       }));
     }
     return [];
@@ -202,7 +226,8 @@ export const getDeployment = async (id: string): Promise<Deployment | null> => {
         status: item.status,
         createdAt: item.created_at,
         lastUpdatedAt: item.updated_at,
-        metrics: item.metrics
+        metrics: item.metrics,
+        instrument_master: item.instrument_master
       };
     }
     

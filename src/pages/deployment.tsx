@@ -646,6 +646,7 @@ const DeploymentPage = () => {
                     Click row to view positions
                   </Typography>
                 </TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Symbol</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Run Time</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>MTM</TableCell>
@@ -718,6 +719,11 @@ const DeploymentPage = () => {
                         {deployment.description}
                       </Typography>
                     </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" fontWeight="medium" color="primary.main">
+                      {deployment.instrument_master?.symbol || 'N/A'}
+                    </Typography>
                   </TableCell>
                   <TableCell>
                     {getStatusChip(deployment)}
