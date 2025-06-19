@@ -202,16 +202,6 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             Deployment
           </Button>
 
-          {/* Deployment Events (Development/Testing) */}
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/deployment-events"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Live Events
-          </Button>
-
           {/* Scanners as a direct link */}
           {/* <Button 
             color="inherit" 
