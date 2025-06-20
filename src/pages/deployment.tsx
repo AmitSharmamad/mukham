@@ -661,6 +661,8 @@ const DeploymentPage = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Run Time</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>MTM</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Total P&L</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>Win Trades</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>Loss Trades</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -700,7 +702,7 @@ const DeploymentPage = () => {
                 
                 return (
                 <TableRow 
-                  key={deployment.id}
+                  key={`${deployment.id}-${realtimeMetrics?.lastUpdateTime || deployment.lastUpdatedAt}`}
                   hover
                   onClick={() => handleViewPositions(deployment)}
                   sx={{ 
@@ -780,6 +782,20 @@ const DeploymentPage = () => {
                         />
                       )}
                     </Box>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 500 }}>
+                      {realtimeMetrics?.winTrades !== undefined
+                        ? realtimeMetrics.winTrades
+                        : deployment.metrics?.win_trades || 0}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 500 }}>
+                      {realtimeMetrics?.lossTrades !== undefined
+                        ? realtimeMetrics.lossTrades
+                        : deployment.metrics?.loss_trades || 0}
+                    </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Box display="flex" gap={1} justifyContent="center">
