@@ -17,7 +17,8 @@ import {
   Divider,
   useTheme,
   Container,
-  Button
+  Button,
+  Alert
 } from '@mui/material';
 import { 
   TrendingUp, 
@@ -28,43 +29,43 @@ import {
   MenuBook,
   Assessment,
   BarChart,
-  Build
+  Build,
+  AccountBalance,
+  PlayArrow,
+  Psychology
 } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { DashboardWidget } from '../components/DashboardWidget';
 import { checkPageAuth } from '../utils/pageAuthUtils';
-
-// This would come from an API in a real application
-const mockData = {
-  totalPnl: '+₹25,430',
-  pnlChange: '+2.8%',
-  activeStrategies: 3,
-  winRate: '68%',
-  totalTrades: 124,
-  profitFactor: 1.86,
-  maxDrawdown: '14.2',
-  sharpeRatio: 1.32,
-  recentTrades: [
-    { id: 1, strategy: 'MACD Crossover', instrument: 'RELIANCE', entry: '2458.50', exit: '2487.25', pnl: '+₹2,875', date: '2025-05-19' },
-    { id: 2, strategy: 'RSI Divergence', instrument: 'INFY', entry: '1845.00', exit: '1832.50', pnl: '-₹1,250', date: '2025-05-19' },
-    { id: 3, strategy: 'Bollinger Breakout', instrument: 'HDFC', entry: '3240.75', exit: '3276.50', pnl: '+₹3,575', date: '2025-05-18' },
-    { id: 4, strategy: 'Moving Average', instrument: 'TCS', entry: '4125.25', exit: '4158.75', pnl: '+₹3,350', date: '2025-05-18' },
-    { id: 5, strategy: 'MACD Crossover', instrument: 'ITC', entry: '458.50', exit: '445.25', pnl: '-₹1,325', date: '2025-05-17' },
-  ],
-  strategiesPerformance: [
-    { name: 'MACD Crossover', winRate: 72, pnl: '+₹15,430', trades: 48 },
-    { name: 'RSI Divergence', winRate: 65, pnl: '+₹8,275', trades: 32 },
-    { name: 'Bollinger Breakout', winRate: 58, pnl: '+₹4,825', trades: 24 },
-    { name: 'Moving Average', winRate: 70, pnl: '-₹3,100', trades: 20 }
-  ]
-};
+import { dashboardService } from '../services/dashboardService';
+import { DashboardStatistics } from '../types/dashboard';
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState<DashboardStatistics | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const theme = useTheme();
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
+  
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await dashboardService.getStatistics();
+      if (response.success) {
+        setDashboardData(response.data);
+        setError(null);
+      } else {
+        setError('Failed to fetch dashboard data');
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   useEffect(() => {
     // Check authentication
@@ -75,13 +76,11 @@ export default function Home() {
         if (!isAuthed) return;
         setAuthChecked(true);
         
-        // Simulate data loading only after auth check
-        const timer = setTimeout(() => {
-          setLoading(false);
-        }, 1000);
-        return () => clearTimeout(timer);
+        // Fetch dashboard data after auth check
+        await fetchDashboardData();
       } catch (error) {
         console.error('Auth check error:', error);
+        setLoading(false);
       }
     };
     
@@ -96,6 +95,43 @@ export default function Home() {
     );
   }
 
+  if (error) {
+    return (
+      <Box sx={{ padding: 3 }}>
+        <Alert severity="error" action={
+          <Button color="inherit" size="small" onClick={fetchDashboardData}>
+            Retry
+          </Button>
+        }>
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
+        <Typography>No data available</Typography>
+      </Box>
+    );
+  }
+
+  // Format currency values
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  // Format percentage
+  const formatPercentage = (value: number) => {
+    return `${value.toFixed(1)}%`;
+  };
+
   return (
     <Box sx={{ padding: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -105,41 +141,48 @@ export default function Home() {
         Track and analyze your trading performance across all strategies
       </Typography>
 
+      {/* Main Widget Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <DashboardWidget
-            title="Overall P&L"
-            value={mockData.totalPnl}
-            subtitle={`Change: ${mockData.pnlChange}`}
-            href="/home/pnl"
+            title="Total P&L"
+            value={formatCurrency(dashboardData.trading_performance.total_pnl)}
+            subtitle={`Portfolio: ${formatCurrency(dashboardData.trading_performance.current_portfolio_value)}`}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <DashboardWidget
-            title="Active Strategies"
-            value={mockData.activeStrategies}
-            subtitle="Currently deployed"
-            href="/strategy"
+            title="Total Trades"
+            value={dashboardData.trading_performance.total_trades_executed.toString()}
+            subtitle={`Win Rate: ${formatPercentage(dashboardData.trading_performance.overall_win_rate)}`}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <DashboardWidget
             title="Win Rate"
-            value={mockData.winRate}
-            subtitle={`Total trades: ${mockData.totalTrades}`}
+            value={formatPercentage(dashboardData.trading_performance.overall_win_rate)}
+            subtitle={`Max Drawdown: ${formatPercentage(dashboardData.trading_performance.max_drawdown)}`}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <DashboardWidget
-            title="Profit Factor"
-            value={mockData.profitFactor.toFixed(2)}
-            subtitle={`Max drawdown: ${mockData.maxDrawdown}`}
+            title="Active Deployments"
+            value={dashboardData.trading_performance.active_deployments_count.toString()}
+            subtitle={`Today's P&L: ${formatCurrency(dashboardData.trading_performance.todays_pnl)}`}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <DashboardWidget
+            title="Total Strategies"
+            value={dashboardData.strategy_development.total_strategies_created.toString()}
+            subtitle={`Backtests: ${dashboardData.strategy_development.backtests_completed}`}
           />
         </Grid>
       </Grid>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
+          {/* Recent Trading Activity */}
           <Paper sx={{ p: 3, mb: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">
@@ -151,31 +194,28 @@ export default function Home() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Strategy</TableCell>
                     <TableCell>Instrument</TableCell>
-                    <TableCell align="right">Entry Price</TableCell>
-                    <TableCell align="right">Exit Price</TableCell>
+                    <TableCell>Strategy</TableCell>
                     <TableCell align="right">P&L</TableCell>
+                    <TableCell>Direction</TableCell>
                     <TableCell>Date</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {mockData.recentTrades.map((trade) => (
-                    <TableRow key={trade.id} hover>
-                      <TableCell>{trade.strategy}</TableCell>
-                      <TableCell>{trade.instrument}</TableCell>
-                      <TableCell align="right">{trade.entry}</TableCell>
-                      <TableCell align="right">{trade.exit}</TableCell>
-                      <TableCell 
-                        align="right"
-                        sx={{ 
-                          color: trade.pnl.startsWith('+') ? 'success.main' : 'error.main',
+                  {dashboardData.live_trading_status.recent_trades.slice(0, 5).map((trade) => (
+                    <TableRow key={trade.trade_id} hover>
+                      <TableCell>{trade.instrument_name}</TableCell>
+                      <TableCell>{trade.strategy_name}</TableCell>
+                      <TableCell align="right">{formatCurrency(trade.pnl)}</TableCell>
+                      <TableCell>
+                        <Box sx={{ 
+                          color: trade.direction === 'LONG' ? 'success.main' : 'error.main',
                           fontWeight: 'medium'
-                        }}
-                      >
-                        {trade.pnl}
+                        }}>
+                          {trade.direction}
+                        </Box>
                       </TableCell>
-                      <TableCell>{trade.date}</TableCell>
+                      <TableCell>{new Date(trade.executed_at).toLocaleDateString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -183,59 +223,46 @@ export default function Home() {
             </TableContainer>
           </Paper>
           
+          {/* Current Positions */}
           <Paper sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">
-                Strategy Performance
+                Current Positions
               </Typography>
-              <Timeline color="primary" />
+              <AccountBalance color="primary" />
             </Box>
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell>Strategy</TableCell>
-                    <TableCell>Win Rate</TableCell>
+                    <TableCell>Instrument</TableCell>
                     <TableCell align="right">P&L</TableCell>
-                    <TableCell align="right">Trades</TableCell>
+                    <TableCell>Status</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {mockData.strategiesPerformance.map((strat) => (
-                    <TableRow key={strat.name} hover>
-                      <TableCell>{strat.name}</TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Box sx={{ width: '100%', mr: 1 }}>
-                            <LinearProgress 
-                              variant="determinate" 
-                              value={strat.winRate}
-                              sx={{ 
-                                height: 6, 
-                                borderRadius: 3,
-                                backgroundColor: theme.palette.mode === 'light' ? '#e0e0e0' : '#333',
-                                '& .MuiLinearProgress-bar': {
-                                  backgroundColor: strat.winRate > 65 ? 'success.main' : strat.winRate > 50 ? 'warning.main' : 'error.main',
-                                  borderRadius: 3
-                                }
-                              }}
-                            />
-                          </Box>
-                          <Box sx={{ minWidth: 35 }}>
-                            <Typography variant="body2" color="text.secondary">{`${strat.winRate}%`}</Typography>
-                          </Box>
-                        </Box>
-                      </TableCell>
+                  {dashboardData.live_trading_status.strategy_statuses.map((strategy) => (
+                    <TableRow key={strategy.deployment_id} hover>
+                      <TableCell>{strategy.strategy_name}</TableCell>
+                      <TableCell>{strategy.instrument_name}</TableCell>
                       <TableCell 
                         align="right"
                         sx={{ 
-                          color: strat.pnl.startsWith('+') ? 'success.main' : 'error.main',
+                          color: strategy.current_pnl >= 0 ? 'success.main' : 'error.main',
                           fontWeight: 'medium'
                         }}
                       >
-                        {strat.pnl}
+                        {formatCurrency(strategy.current_pnl)}
                       </TableCell>
-                      <TableCell align="right">{strat.trades}</TableCell>
+                      <TableCell>
+                        <Box sx={{ 
+                          color: strategy.is_active ? 'success.main' : 'error.main',
+                          fontWeight: 'medium'
+                        }}>
+                          {strategy.is_active ? 'ACTIVE' : 'INACTIVE'}
+                        </Box>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -245,6 +272,7 @@ export default function Home() {
         </Grid>
         
         <Grid item xs={12} md={4}>
+          {/* Performance Metrics */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2 }}>
@@ -254,69 +282,98 @@ export default function Home() {
               
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <DonutSmall sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="body2">Win Rate</Typography>
-                </Box>
-                <Typography variant="body1" fontWeight="medium">{mockData.winRate}</Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <ShowChart sx={{ mr: 1, color: 'secondary.main' }} />
-                  <Typography variant="body2">Total Trades</Typography>
-                </Box>
-                <Typography variant="body1" fontWeight="medium">{mockData.totalTrades}</Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <TrendingUp sx={{ mr: 1, color: 'success.main' }} />
-                  <Typography variant="body2">Profit Factor</Typography>
+                  <Typography variant="body2">Total P&L</Typography>
                 </Box>
-                <Typography variant="body1" fontWeight="medium">{mockData.profitFactor.toFixed(2)}</Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {formatCurrency(dashboardData.trading_performance.total_pnl)}
+                </Typography>
               </Box>
               
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <TrendingDown sx={{ mr: 1, color: 'error.main' }} />
-                  <Typography variant="body2">Max Drawdown</Typography>
+                  <TrendingDown sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="body2">Today's P&L</Typography>
                 </Box>
-                <Typography variant="body1" fontWeight="medium">{mockData.maxDrawdown}</Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {formatCurrency(dashboardData.trading_performance.todays_pnl)}
+                </Typography>
+              </Box>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <ShowChart sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="body2">Active Positions</Typography>
+                </Box>
+                <Typography variant="body1" fontWeight="medium">
+                  {dashboardData.live_trading_status.active_positions}
+                </Typography>
+              </Box>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Timeline sx={{ mr: 1, color: 'secondary.main' }} />
+                  <Typography variant="body2">Volatility</Typography>
+                </Box>
+                <Typography variant="body1" fontWeight="medium">
+                  {formatPercentage(dashboardData.quick_analytics.risk_metrics.volatility)}
+                </Typography>
               </Box>
               
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Timeline sx={{ mr: 1, color: 'info.main' }} />
-                  <Typography variant="body2">Sharpe Ratio</Typography>
+                  <DonutSmall sx={{ mr: 1, color: 'info.main' }} />
+                  <Typography variant="body2">Max Drawdown</Typography>
                 </Box>
-                <Typography variant="body1" fontWeight="medium">{mockData.sharpeRatio.toFixed(2)}</Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {formatPercentage(dashboardData.trading_performance.max_drawdown)}
+                </Typography>
               </Box>
             </CardContent>
           </Card>
           
-          <Paper sx={{ p: 2 }}>
+          {/* Recent Deployments */}
+          <Paper sx={{ p: 2, mb: 3 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>
-              Monthly P&L Breakdown
+              Recent Deployment Events
             </Typography>
-            {/* Placeholder for a chart - in a real app this would be a component rendering a chart */}
-            <Box
-              sx={{
-                height: 220,
-                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                borderRadius: 1,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                Monthly P&L Chart
-              </Typography>
-            </Box>
+            {dashboardData.recent_activity.deployment_events.slice(0, 5).map((event) => (
+              <Box key={event.event_id} sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                py: 1,
+                borderBottom: '1px solid',
+                borderColor: 'divider'
+              }}>
+                <Box>
+                  <Typography variant="body2" fontWeight="medium">
+                    {event.title}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {event.description}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {new Date(event.timestamp).toLocaleDateString()}
+                  </Typography>
+                </Box>
+                <Box sx={{
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 1,
+                  bgcolor: 'success.light',
+                  color: 'success.dark'
+                }}>
+                  <Typography variant="caption" fontWeight="medium">
+                    {event.event_type.toUpperCase()}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
           </Paper>
           
-          {/* Navigation Cards to link to other pages */}
-          <Box sx={{ mt: 3 }}>
+          {/* Quick Navigation */}
+          <Box>
             <Typography variant="h6" gutterBottom>
               Quick Navigation
             </Typography>
@@ -330,15 +387,15 @@ export default function Home() {
                     cursor: 'pointer',
                     '&:hover': { bgcolor: 'action.hover' }
                   }}
-                  onClick={() => router.push('/strategy')}
+                  onClick={() => router.push('/deployment')}
                 >
                   <Build 
                     sx={{ fontSize: 32, color: 'primary.main', mr: 2 }} 
                   />
                   <Box>
-                    <Typography variant="h6">Strategy</Typography>
+                    <Typography variant="h6">Deployments</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Build and manage your trading strategies
+                      Manage your active trading deployments
                     </Typography>
                   </Box>
                 </Card>
@@ -361,28 +418,6 @@ export default function Home() {
                     <Typography variant="h6">Reports</Typography>
                     <Typography variant="body2" color="text.secondary">
                       View detailed performance analytics
-                    </Typography>
-                  </Box>
-                </Card>
-              </Grid>
-              <Grid item xs={12}>
-                <Card 
-                  sx={{ 
-                    p: 2, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: 'action.hover' }
-                  }}
-                  onClick={() => router.push('/docs')}
-                >
-                  <MenuBook 
-                    sx={{ fontSize: 32, color: 'info.main', mr: 2 }} 
-                  />
-                  <Box>
-                    <Typography variant="h6">Documentation</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Learn how to use the platform effectively
                     </Typography>
                   </Box>
                 </Card>
