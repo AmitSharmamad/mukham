@@ -123,8 +123,8 @@ export const MainLayout = ({
             flex: 1, 
             py: 4, 
             mt: 8, 
-            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '170px' : 'auto',
-            mr: shouldShowSidebar && sidebarOpen && !isMobile ? 0 : 'auto',
+            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '85px' : 'auto',
+            mr: shouldShowSidebar && sidebarOpen && !isMobile ? '85px' : 'auto',
             transition: theme.transitions.create(['margin-left', 'margin-right'], {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,

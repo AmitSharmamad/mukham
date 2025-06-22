@@ -44,6 +44,10 @@ export const useDeploymentEvents = () => {
       return;
     }
 
+    if (wsRef.current?.readyState === WebSocket.CONNECTING) {
+      return;
+    }
+
     setConnectionStatus('connecting');
     
     try {
@@ -53,23 +57,15 @@ export const useDeploymentEvents = () => {
       websocket.onopen = () => {
         setConnectionStatus('connected');
         reconnectAttemptsRef.current = 0;
-        console.log('Connected to deployment events WebSocket');
       };
       
       websocket.onmessage = (event) => {
         try {
           const deploymentEvent: DeploymentEvent = JSON.parse(event.data);
-          console.log('Received deployment event:', deploymentEvent);
           
-          // Batch the updates to ensure they happen together
-          setDeploymentMetrics(prev => {
-            const updated = updateMetricsFromEvent(prev, deploymentEvent);
-            
-            // After metrics are updated, update events
-            setEvents(prevEvents => [deploymentEvent, ...prevEvents.slice(0, 99)]);
-            
-            return updated;
-          });
+          // Update metrics and events separately to avoid stale closures
+          setDeploymentMetrics(prev => updateMetricsFromEvent(prev, deploymentEvent));
+          setEvents(prevEvents => [deploymentEvent, ...prevEvents.slice(0, 99)]);
           
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -78,7 +74,6 @@ export const useDeploymentEvents = () => {
       
       websocket.onclose = (event) => {
         setConnectionStatus('disconnected');
-        console.log('WebSocket connection closed:', event.code, event.reason);
         
         // Attempt reconnection if not manually closed
         if (event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts) {
@@ -109,8 +104,6 @@ export const useDeploymentEvents = () => {
     reconnectAttemptsRef.current++;
     const delay = baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current - 1);
     
-    console.log(`Scheduling reconnection attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts} in ${delay}ms`);
-    
     reconnectTimeoutRef.current = setTimeout(() => {
       connect();
     }, delay);
@@ -119,12 +112,7 @@ export const useDeploymentEvents = () => {
   const updateMetricsFromEvent = useCallback((currentMetrics: DeploymentEventMetrics, event: DeploymentEvent): DeploymentEventMetrics => {
     const { event_type, deployment_id, data } = event;
     
-    console.log('Updating deployment metrics for event:', {
-      event_type,
-      deployment_id,
-      data
-    });
-    
+    // Get existing metrics or initialize with empty values (not zeros)
     const current = currentMetrics[deployment_id] || {
       pnl: 0,
       unrealizedPnl: 0,
@@ -148,7 +136,6 @@ export const useDeploymentEvents = () => {
         updated.openPositions = Math.max(0, updated.openPositions - 1);
         if (data.pnl !== undefined) {
           updated.pnl += data.pnl;
-          // Track win/loss trades based on PnL
           if (data.pnl > 0) {
             updated.winTrades++;
           } else if (data.pnl < 0) {
@@ -169,7 +156,6 @@ export const useDeploymentEvents = () => {
         updated.openPositions = Math.max(0, updated.openPositions - 1);
         if (data.pnl !== undefined) {
           updated.pnl += data.pnl;
-          // Track win/loss trades based on PnL
           if (data.pnl > 0) {
             updated.winTrades++;
           } else if (data.pnl < 0) {
@@ -183,7 +169,6 @@ export const useDeploymentEvents = () => {
         break;
         
       case 'entry_window_closed':
-        // Don't change status, just log the event
         break;
         
       case 'evaluation_started':
@@ -191,13 +176,10 @@ export const useDeploymentEvents = () => {
       case 'exit_signal_detected':
       case 'no_signal':
       case 'trailing_stop_updated':
-        // These events don't directly affect metrics but indicate activity
         updated.status = 'active';
         break;
         
       default:
-        // Handle other event types as needed
-        console.log('Unhandled event type:', event_type);
         break;
     }
 
@@ -205,12 +187,6 @@ export const useDeploymentEvents = () => {
       ...currentMetrics,
       [deployment_id]: updated
     };
-    
-    console.log('Updated deployment metrics:', {
-      deployment_id,
-      updated,
-      totalMetrics: Object.keys(newMetrics).length
-    });
     
     return newMetrics;
   }, []);
