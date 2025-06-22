@@ -76,26 +76,12 @@ export const useDeploymentUpdater = () => {
   }, []);
 
   const applyUpdatesToDeployments = useCallback((deployments: Deployment[], realtimeMetrics: DeploymentEventMetrics): Deployment[] => {
-    console.log('applyUpdatesToDeployments called with:', {
-      deploymentsCount: deployments.length,
-      realtimeMetricsCount: Object.keys(realtimeMetrics).length,
-      realtimeMetricsKeys: Object.keys(realtimeMetrics),
-      updatesCount: deploymentUpdates.size
-    });
-    
     return deployments.map(deployment => {
       const update = deploymentUpdates.get(deployment.id);
       const metrics = realtimeMetrics[deployment.id];
       
       if (update || metrics) {
         const updatedDeployment = { ...deployment };
-        
-        console.log(`Updating deployment ${deployment.id}:`, {
-          hasUpdate: !!update,
-          hasMetrics: !!metrics,
-          currentPnl: deployment.metrics?.total_pnl,
-          metricsData: metrics
-        });
         
         // Apply stored updates
         if (update) {
@@ -105,15 +91,13 @@ export const useDeploymentUpdater = () => {
         // Apply real-time metrics
         if (metrics && updatedDeployment.metrics) {
           const newTotalPnl = metrics.pnl + (metrics.unrealizedPnl || 0);
-          console.log(`Updating P&L for ${deployment.id}: ${updatedDeployment.metrics.total_pnl} -> ${newTotalPnl}`);
           
           updatedDeployment.metrics = {
             ...updatedDeployment.metrics,
             total_pnl: newTotalPnl,
             total_trades: metrics.totalTrades,
-            // Use real-time win/loss trades data when available
-            win_trades: metrics.winTrades || Math.floor(metrics.totalTrades * 0.6),
-            loss_trades: metrics.lossTrades || Math.ceil(metrics.totalTrades * 0.4),
+            win_trades: metrics.winTrades || updatedDeployment.metrics.win_trades || 0,
+            loss_trades: metrics.lossTrades || updatedDeployment.metrics.loss_trades || 0,
             updated_at: metrics.lastUpdateTime,
           };
           

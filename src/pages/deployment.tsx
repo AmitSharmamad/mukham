@@ -84,13 +84,7 @@ const DeploymentPage = () => {
   
   // Apply real-time updates to deployments
   const updatedDeployments = useMemo(() => {
-    const result = applyUpdatesToDeployments(deployments, deploymentMetrics);
-    console.log('Updating deployments with real-time metrics:', {
-      deploymentsCount: deployments.length,
-      metricsCount: Object.keys(deploymentMetrics).length,
-      metricsKeys: Object.keys(deploymentMetrics)
-    });
-    return result;
+    return applyUpdatesToDeployments(deployments, deploymentMetrics);
   }, [deployments, deploymentMetrics, applyUpdatesToDeployments]);
   
   // Dialog states
@@ -163,8 +157,6 @@ const DeploymentPage = () => {
     ];
 
     if (positionAffectingEvents.includes(latestEvent.event_type)) {
-      console.log('Live position update for modal:', latestEvent.event_type, 'Position:', latestEvent.data.position_id);
-      
       // For position_opened events, refresh the entire positions list
       if (latestEvent.event_type === 'position_opened') {
         handleRefreshPositions(false);
@@ -253,7 +245,6 @@ const DeploymentPage = () => {
       ];
       
       if (positionAffectingEvents.includes(latestEvent.event_type)) {
-        console.log('Applying deployment update for event:', latestEvent.event_type, 'Deployment:', latestEvent.deployment_id);
         updateDeploymentFromEvent(latestEvent, deploymentMetrics);
         
         // Force a small state update to trigger re-render of the table
@@ -287,7 +278,6 @@ const DeploymentPage = () => {
   useEffect(() => {
     if (connectionStatus === 'connected') {
       const interval = setInterval(() => {
-        console.log('Background sync: Refreshing deployment list...');
         fetchDeployments();
         clearDeploymentUpdates(); // Clear updates after full refresh
       }, 300000); // 5 minutes
@@ -504,10 +494,16 @@ const DeploymentPage = () => {
   const getStatusChip = (deployment: Deployment) => {
     // Check if we have real-time metrics for more accurate status
     const realtimeMetrics = deploymentMetrics[deployment.id];
+    const hasRealtimeData = realtimeMetrics && (
+      realtimeMetrics.totalTrades > 0 || 
+      realtimeMetrics.pnl !== 0 || 
+      realtimeMetrics.unrealizedPnl !== 0 ||
+      realtimeMetrics.openPositions > 0
+    );
     
     if (deployment.isActive) {
       // If we have real-time metrics, show more detailed status
-      if (realtimeMetrics) {
+      if (hasRealtimeData) {
         if (realtimeMetrics.openPositions > 0) {
           return <Chip label="Active (In Position)" color="success" size="small" />;
         } else {
@@ -674,7 +670,15 @@ const DeploymentPage = () => {
                   new Date(realtimeMetrics.lastUpdateTime) > new Date(Date.now() - 60000); // Last minute
                 
                 // Pre-calculate values to avoid recalculation in render
-                const totalPnl = realtimeMetrics 
+                // Only use realtime metrics if they have been updated from actual events
+                const hasRealtimeData = realtimeMetrics && (
+                  realtimeMetrics.totalTrades > 0 || 
+                  realtimeMetrics.pnl !== 0 || 
+                  realtimeMetrics.unrealizedPnl !== 0 ||
+                  realtimeMetrics.openPositions > 0
+                );
+                
+                const totalPnl = hasRealtimeData 
                   ? (realtimeMetrics.pnl + (realtimeMetrics.unrealizedPnl || 0))
                   : deployment.metrics?.total_pnl || 0;
                 
@@ -698,7 +702,7 @@ const DeploymentPage = () => {
                 })();
                 
                 // MTM (Mark to Market) - current unrealized P&L
-                const mtm = realtimeMetrics?.unrealizedPnl || 0;
+                const mtm = hasRealtimeData ? (realtimeMetrics?.unrealizedPnl || 0) : 0;
                 
                 return (
                 <TableRow 
@@ -772,7 +776,7 @@ const DeploymentPage = () => {
                           : 'N/A'}
                       </Typography>
                       {/* Show real-time data if available */}
-                      {realtimeMetrics && (
+                      {hasRealtimeData && (
                         <Chip 
                           label="Live"
                           size="small"
@@ -785,14 +789,14 @@ const DeploymentPage = () => {
                   </TableCell>
                   <TableCell align="center">
                     <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 500 }}>
-                      {realtimeMetrics?.winTrades !== undefined
+                      {hasRealtimeData && realtimeMetrics?.winTrades !== undefined
                         ? realtimeMetrics.winTrades
                         : deployment.metrics?.win_trades || 0}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 500 }}>
-                      {realtimeMetrics?.lossTrades !== undefined
+                      {hasRealtimeData && realtimeMetrics?.lossTrades !== undefined
                         ? realtimeMetrics.lossTrades
                         : deployment.metrics?.loss_trades || 0}
                     </Typography>
