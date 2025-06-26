@@ -18,6 +18,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { formatDate, formatTimeOnly } from '../../utils/deploymentUtils';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -202,15 +203,15 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
             {/* Bottom info with last event time */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mt={1}>
               <Typography variant="caption" color="text.secondary">
-                Last updated: {deployment.lastUpdatedAt ? new Date(deployment.lastUpdatedAt).toLocaleString() : 'Never'}
+                Last updated: {deployment.lastUpdatedAt ? formatDate(deployment.lastUpdatedAt) : 'Never'}
               </Typography>
               {lastSignificantEvent ? (
                 <Typography variant="caption" color="text.secondary">
-                  {lastSignificantEvent.event_type.replace(/_/g, ' ')}: {new Date(lastSignificantEvent.timestamp).toLocaleTimeString()}
+                  {lastSignificantEvent.event_type.replace(/_/g, ' ')}: {formatTimeOnly(lastSignificantEvent.timestamp)}
                 </Typography>
               ) : metrics && (
                 <Typography variant="caption" color="text.secondary">
-                  Last event: {new Date(metrics.lastUpdateTime).toLocaleTimeString()}
+                  Last event: {formatTimeOnly(metrics.lastUpdateTime)}
                 </Typography>
               )}
             </Box>

@@ -36,6 +36,8 @@ import {
 import Link from 'next/link';
 import { getDeployments, Deployment } from '../../services/deploymentService';
 import { useDeploymentContext } from '../../context/DeploymentContext';
+import { formatDateOnly, formatTimeOnly } from '../../utils/deploymentUtils';
+import { DeploymentPositionModal } from '../Deployment';
 
 interface DeploymentSidebarProps {
   open: boolean;
@@ -56,7 +58,8 @@ const DeploymentCard = React.memo(({
   deploymentStatus, 
   metrics, 
   recentEventCount, 
-  isActive 
+  isActive,
+  onClick
 }: {
   deployment: Deployment;
   index: number;
@@ -66,6 +69,7 @@ const DeploymentCard = React.memo(({
   metrics: any;
   recentEventCount: number;
   isActive: boolean;
+  onClick: (deployment: Deployment) => void;
 }) => {
   const theme = useTheme();
   
@@ -73,8 +77,7 @@ const DeploymentCard = React.memo(({
     <React.Fragment key={deployment.id}>
       {index > 0 && <Divider sx={{ my: 0.5 }} />}
       <ListItem
-        component={Link}
-        href={`/deployment`}
+        onClick={() => onClick(deployment)}
         sx={{
           borderRadius: 1,
           mb: 0.5,
@@ -195,7 +198,7 @@ const DeploymentCard = React.memo(({
           
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <Typography variant="caption" color="text.secondary">
-              {new Date(deployment.createdAt).toLocaleDateString()}
+              {formatDateOnly(deployment.createdAt)}
             </Typography>
             {(metrics || deployment.metrics) && (
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
@@ -245,6 +248,8 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
   
   // Use centralized WebSocket context for real-time updates
   const { 
@@ -431,6 +436,16 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
     return deployment.isActive ? 'active' : 'inactive';
   };
 
+  const handleDeploymentClick = (deployment: Deployment) => {
+    setSelectedDeployment(deployment);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedDeployment(null);
+  };
+
   const getConnectionStatusIcon = () => {
     switch (connectionStatus) {
       case 'connected':
@@ -567,6 +582,7 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                     metrics={metrics}
                     recentEventCount={recentEventCount}
                     isActive={isActive}
+                    onClick={handleDeploymentClick}
                   />
                 );
               })}
@@ -608,7 +624,7 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
             {/* Recent Activity */}
             {events.length > 0 && (
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                Last: {events[0].event_type} • {new Date(events[0].timestamp).toLocaleTimeString()}
+                Last: {events[0].event_type} • {formatTimeOnly(events[0].timestamp)}
               </Typography>
             )}
             
@@ -644,53 +660,69 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
 
   if (variant === 'temporary') {
     return (
+      <>
+        <Drawer
+          anchor={anchor}
+          open={open}
+          onClose={onClose}
+          variant="temporary"
+          ModalProps={{
+            keepMounted: true, // Better open performance on mobile
+          }}
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: DRAWER_WIDTH,
+              boxSizing: 'border-box',
+              top: 64, // Position below navbar
+              height: 'calc(100vh - 64px)',
+              zIndex: theme.zIndex.drawer
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+        
+        <DeploymentPositionModal
+          open={modalOpen}
+          onClose={handleCloseModal}
+          deployment={selectedDeployment}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
       <Drawer
         anchor={anchor}
         open={open}
-        onClose={onClose}
-        variant="temporary"
-        ModalProps={{
-          keepMounted: true, // Better open performance on mobile
-        }}
+        variant="persistent"
         sx={{
+          width: open ? DRAWER_WIDTH : 0,
+          flexShrink: 0,
+          transition: theme.transitions.create('width', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
           '& .MuiDrawer-paper': {
             width: DRAWER_WIDTH,
             boxSizing: 'border-box',
             top: 64, // Position below navbar
             height: 'calc(100vh - 64px)',
+            border: 'none',
             zIndex: theme.zIndex.drawer
           },
         }}
       >
         {drawerContent}
       </Drawer>
-    );
-  }
-
-  return (
-    <Drawer
-      anchor={anchor}
-      open={open}
-      variant="persistent"
-      sx={{
-        width: open ? DRAWER_WIDTH : 0,
-        flexShrink: 0,
-        transition: theme.transitions.create('width', {
-          easing: theme.transitions.easing.sharp,
-          duration: theme.transitions.duration.enteringScreen,
-        }),
-        '& .MuiDrawer-paper': {
-          width: DRAWER_WIDTH,
-          boxSizing: 'border-box',
-          top: 64, // Position below navbar
-          height: 'calc(100vh - 64px)',
-          border: 'none',
-          zIndex: theme.zIndex.drawer
-        },
-      }}
-    >
-      {drawerContent}
-    </Drawer>
+      
+      <DeploymentPositionModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        deployment={selectedDeployment}
+      />
+    </>
   );
 };
 

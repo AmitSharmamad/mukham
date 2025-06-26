@@ -24,6 +24,7 @@ import {
   Error as ErrorIcon
 } from '@mui/icons-material';
 import { useDeploymentEvents, DeploymentEvent } from '../../hooks/useDeploymentEvents';
+import { formatTimeOnly } from '../../utils/deploymentUtils';
 
 const DeploymentEventsDashboard = () => {
   const theme = useTheme();
@@ -52,7 +53,7 @@ const DeploymentEventsDashboard = () => {
   const getErrorEvents = () => events.filter(e => e.event_type.includes('error'));
 
   const formatEventTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString();
+    return formatTimeOnly(timestamp);
   };
 
   const formatEventData = (event: DeploymentEvent) => {

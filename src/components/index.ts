@@ -24,7 +24,8 @@ export {
   DeploymentPositions, 
   TradeChart, 
   CandlestickChart, 
-  InstrumentCandlestickChart 
+  InstrumentCandlestickChart,
+  DeploymentPositionModal
 } from './Deployment';
 export { default as MetricsDetail } from './Reports/MetricsDetail';
 export { default as PnLDisplay } from './PnLDisplay';

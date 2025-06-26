@@ -42,3 +42,70 @@ export const formatPnLText = (pnl: number | null): string => {
   }
   return pnl >= 0 ? `+₹${pnl.toFixed(2)}` : `₹${pnl.toFixed(2)}`;
 };
+
+/**
+ * Formats a date string for display without transforming it
+ * @param dateString ISO date string
+ * @returns Formatted date string
+ */
+export const formatDate = (dateString: string): string => {
+  if (!dateString) return '-';
+  
+  try {
+    // Extract date and time parts directly from the ISO string
+    const date = dateString.split('T')[0]; // YYYY-MM-DD
+    const timePart = dateString.split('T')[1];
+    
+    if (!timePart) {
+      return date; // Return just the date if no time part
+    }
+    
+    const time = timePart.split('.')[0]; // HH:MM:SS (remove milliseconds if present)
+    const timeOnly = time.substring(0, 5); // HH:MM (remove seconds)
+    
+    // Format as DD/MM/YYYY HH:MM
+    const [year, month, day] = date.split('-');
+    return `${day}/${month}/${year} ${timeOnly}`;
+  } catch (error) {
+    console.warn('Error formatting date:', dateString, error);
+    return dateString; // Return original string if formatting fails
+  }
+};
+
+/**
+ * Formats a date string for display showing only date part
+ * @param dateString ISO date string
+ * @returns Formatted date string
+ */
+export const formatDateOnly = (dateString: string): string => {
+  if (!dateString) return '-';
+  
+  try {
+    const date = dateString.split('T')[0]; // YYYY-MM-DD
+    const [year, month, day] = date.split('-');
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.warn('Error formatting date:', dateString, error);
+    return dateString;
+  }
+};
+
+/**
+ * Formats a date string for display showing only time part
+ * @param dateString ISO date string
+ * @returns Formatted time string
+ */
+export const formatTimeOnly = (dateString: string): string => {
+  if (!dateString) return '-';
+  
+  try {
+    const timePart = dateString.split('T')[1];
+    if (!timePart) return '-';
+    
+    const time = timePart.split('.')[0]; // HH:MM:SS (remove milliseconds if present)
+    return time.substring(0, 5); // HH:MM (remove seconds)
+  } catch (error) {
+    console.warn('Error formatting time:', dateString, error);
+    return dateString;
+  }
+};
