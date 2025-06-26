@@ -259,25 +259,9 @@ const PositionsMetricsDashboard: React.FC<PositionsMetricsDashboardProps> = ({
             <Typography variant="caption" color="text.secondary">
               Last updated: {lastUpdated.toLocaleTimeString()}
             </Typography>
-            {hasUpdates && (
-              <Chip
-                size="small"
-                label="Live Updates"
-                color="info"
-                variant="filled"
-                sx={{ 
-                  animation: 'pulse 2s infinite',
-                  '@keyframes pulse': {
-                    '0%': { opacity: 1 },
-                    '50%': { opacity: 0.7 },
-                    '100%': { opacity: 1 }
-                  }
-                }}
-              />
-            )}
             <Chip
               size="small"
-              label={connectionStatus === 'connected' ? 'Live' : connectionStatus}
+              label={connectionStatus === 'connected' ? 'Connected' : connectionStatus}
               color={connectionStatus === 'connected' ? 'success' : 
                      connectionStatus === 'connecting' ? 'warning' : 'error'}
               variant="outlined"

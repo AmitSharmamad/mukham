@@ -270,7 +270,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
           {!loading && (authStatus ? (
             <>
               {/* Options - Coming Soon Banner */}
-              <Typography
+              {/* <Typography
                 variant="body2"
                 sx={{
                   opacity: 0.8,
@@ -289,7 +289,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                 }}
               >
                 Coming Soon - Options
-              </Typography>
+              </Typography> */}
               
               <IconButton 
                 size="large" 

@@ -10,6 +10,7 @@ import { PWAInstallPrompt } from '../PWAInstallPrompt';
 import { DeploymentSidebar } from '../DeploymentSidebar';
 import { DeploymentEventHandler } from '../DeploymentEventHandler';
 import { ThemeColor } from '../../theme';
+import { useDeploymentContext } from '../../context/DeploymentContext';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -30,12 +31,31 @@ export const MainLayout = ({
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Initialize WebSocket connection for real-time updates
+  const { connect, disconnect, connectionStatus } = useDeploymentContext();
 
   // Effect to handle initial sidebar state based on screen size
   useEffect(() => {
     // Keep sidebar open by default on all screen sizes
     setSidebarOpen(true);
   }, [isMobile]);
+
+  // Connect to WebSocket when component mounts
+  useEffect(() => {
+    console.log('🚀 MainLayout: Connecting to WebSocket...');
+    connect();
+    
+    return () => {
+      console.log('🔌 MainLayout: Disconnecting WebSocket...');
+      disconnect();
+    };
+  }, [connect, disconnect]);
+
+  // Log connection status changes
+  useEffect(() => {
+    console.log(`🔗 MainLayout: WebSocket connection status: ${connectionStatus}`);
+  }, [connectionStatus]);
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);

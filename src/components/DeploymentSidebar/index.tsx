@@ -35,8 +35,7 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { getDeployments, Deployment } from '../../services/deploymentService';
-import { useDeploymentEvents } from '../../hooks/useDeploymentEvents';
-import { useDeploymentUpdater } from '../../hooks/useDeploymentUpdater';
+import { useDeploymentContext } from '../../context/DeploymentContext';
 
 interface DeploymentSidebarProps {
   open: boolean;
@@ -147,33 +146,10 @@ const DeploymentCard = React.memo(({
             />
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            {recentEventCount > 0 && (
-              <Badge 
-                badgeContent={recentEventCount} 
-                color="primary" 
-                sx={{ 
-                  '& .MuiBadge-badge': { 
-                    fontSize: '0.6rem',
-                    minWidth: 16,
-                    height: 16
-                  }
-                }}
-              >
-                <Chip
-                  label="Live"
-                  size="small"
-                  color="success"
-                  variant="outlined"
-                  sx={{ fontSize: '0.6rem', height: 18 }}
-                />
-              </Badge>
-            )}
             <Chip
               label={
                 deploymentStatus === 'error' ? 'Error' : 
-                deployment.isActive ? 
-                  (metrics?.openPositions > 0 ? `Active (${metrics.openPositions} pos)` : 'Active (Waiting)') : 
-                  'Paused'
+                deployment.isActive ? 'Active' : 'Paused'
               }
               size="small"
               color={deploymentStatus === 'error' ? 'error' : deployment.isActive ? 'success' : 'warning'}
@@ -270,77 +246,39 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
   
-  // Use WebSocket events for real-time updates - same as deployment page
+  // Use centralized WebSocket context for real-time updates
   const { 
-    events, 
     connectionStatus, 
     deploymentMetrics, 
+    events,
     connect,
     disconnect,
-    getDeploymentMetrics
-  } = useDeploymentEvents();
+    getDeploymentMetrics,
+    getRecentEventCount,
+    hasRecentActivity,
+    hasRecentErrors
+  } = useDeploymentContext();
 
-  // Deployment updater for selective updates - same as deployment page
-  const {
-    updateDeploymentFromEvent,
-    applyUpdatesToDeployments,
-    clearAllUpdates: clearDeploymentUpdates,
-    hasUpdates: hasDeploymentUpdates
-  } = useDeploymentUpdater();
-
-  // Apply real-time updates to deployments efficiently - only for deployments with active metrics
+  // Apply real-time updates to deployments - use centralized context data
   const updatedDeployments = useMemo(() => {
-    // Only apply updates to deployments that have real-time metrics with actual data
-    const deploymentsWithActiveMetrics = Object.keys(deploymentMetrics).filter(deploymentId => {
-      const metrics = deploymentMetrics[deploymentId];
-      return metrics && (
-        metrics.totalTrades > 0 || 
-        metrics.pnl !== 0 || 
-        metrics.unrealizedPnl !== 0 ||
-        metrics.openPositions > 0
-      );
-    });
-    
-    if (deploymentsWithActiveMetrics.length === 0) {
-      return deployments;
-    }
-    
     return deployments.map(deployment => {
-      // Only process deployments that have real-time metrics with actual data
-      if (deploymentsWithActiveMetrics.includes(deployment.id)) {
-        const metrics = deploymentMetrics[deployment.id];
-        
-        if (metrics) {
-          const updatedDeployment = { ...deployment };
-          
-          // Apply real-time metrics
-          if (updatedDeployment.metrics) {
-            const newTotalPnl = metrics.pnl + (metrics.unrealizedPnl || 0);
-            
-            updatedDeployment.metrics = {
-              ...updatedDeployment.metrics,
-              total_pnl: newTotalPnl,
-              total_trades: metrics.totalTrades,
-              win_trades: metrics.winTrades || updatedDeployment.metrics.win_trades || 0,
-              loss_trades: metrics.lossTrades || updatedDeployment.metrics.loss_trades || 0,
-              updated_at: metrics.lastUpdateTime,
-            };
-            
-            // Update status based on open positions
-            if (metrics.openPositions > 0) {
-              updatedDeployment.status = 'entered';
-            } else if (metrics.totalTrades > 0) {
-              updatedDeployment.status = 'waiting';
-            }
-            
-            updatedDeployment.lastUpdatedAt = metrics.lastUpdateTime;
-          }
-          
-          return updatedDeployment;
-        }
+      const realtimeMetrics = deploymentMetrics[deployment.id];
+      if (realtimeMetrics) {
+        // Create updated deployment with real-time data from events
+        return {
+          ...deployment,
+          metrics: deployment.metrics ? {
+            ...deployment.metrics,
+            total_pnl: realtimeMetrics.pnl + realtimeMetrics.unrealizedPnl,
+            total_trades: realtimeMetrics.totalTrades,
+            win_trades: realtimeMetrics.winTrades,
+            loss_trades: realtimeMetrics.lossTrades,
+            updated_at: realtimeMetrics.lastUpdateTime,
+          } : undefined,
+          status: realtimeMetrics.openPositions > 0 ? 'entered' as const : 'waiting' as const,
+          lastUpdatedAt: realtimeMetrics.lastUpdateTime
+        };
       }
-      
-      // Return unchanged deployment if no active metrics
       return deployment;
     });
   }, [deployments, deploymentMetrics]);
@@ -389,57 +327,6 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
 
     return () => clearInterval(interval);
   }, [open, connectionStatus, events, deploymentMetrics]);
-
-  // Listen for WebSocket events and apply selective updates to specific deployments
-  useEffect(() => {
-    if (events.length === 0) return;
-
-    const latestEvent = events[0];
-    
-    // Only update the specific deployment that has changes
-    const targetDeploymentId = latestEvent.deployment_id;
-    const metrics = deploymentMetrics[targetDeploymentId];
-    
-    if (metrics && deployments.some(d => d.id === targetDeploymentId)) {
-      // Update only the specific deployment without full array recreation
-      setDeployments(prev => prev.map(deployment => {
-        if (deployment.id === targetDeploymentId) {
-          const updatedDeployment = { ...deployment };
-          
-          // Apply real-time metrics to this specific deployment
-          if (updatedDeployment.metrics) {
-            const newTotalPnl = metrics.pnl + (metrics.unrealizedPnl || 0);
-            
-            updatedDeployment.metrics = {
-              ...updatedDeployment.metrics,
-              total_pnl: newTotalPnl,
-              total_trades: metrics.totalTrades,
-              win_trades: metrics.winTrades || Math.floor(metrics.totalTrades * 0.6),
-              loss_trades: metrics.lossTrades || Math.ceil(metrics.totalTrades * 0.4),
-              updated_at: metrics.lastUpdateTime,
-            };
-            
-            // Update status based on open positions
-            if (metrics.openPositions > 0) {
-              updatedDeployment.status = 'entered';
-            } else if (metrics.totalTrades > 0) {
-              updatedDeployment.status = 'waiting';
-            }
-            
-            // Update last updated time
-            updatedDeployment.lastUpdatedAt = metrics.lastUpdateTime;
-          }
-          
-          return updatedDeployment;
-        }
-        return deployment; // Return unchanged for other deployments
-      }));
-    } else {
-      // Fallback: use the deployment updater for event-based updates
-      updateDeploymentFromEvent(latestEvent, deploymentMetrics);
-    }
-    
-  }, [events, updateDeploymentFromEvent, deploymentMetrics, connectionStatus]);
 
   const fetchDeployments = async (forceRefresh = false) => {
     try {
@@ -557,27 +444,6 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
     }
   };
 
-  const getRecentEventCount = (deploymentId: string) => {
-    const now = new Date();
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    
-    return events.filter(event => 
-      event.deployment_id === deploymentId && 
-      new Date(event.timestamp) > fiveMinutesAgo
-    ).length;
-  };
-
-  // Check if deployment has recent activity for visual indicators
-  const hasRecentActivity = (deploymentId: string) => {
-    const now = new Date();
-    const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
-    
-    return events.some(event => 
-      event.deployment_id === deploymentId && 
-      new Date(event.timestamp) > oneMinuteAgo
-    );
-  };
-
   const drawerContent = (
     <Box sx={{ 
       width: DRAWER_WIDTH, 
@@ -601,7 +467,7 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-            Live Deployments
+            Deployments
           </Typography>
           <Tooltip title={`WebSocket: ${connectionStatus}`}>
             {getConnectionStatusIcon()}
@@ -720,10 +586,7 @@ export const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
             {/* Connection Status */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography variant="caption" color="text.secondary">
-                Live Data: {connectionStatus}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {events.length} events
+                Connection: {connectionStatus}
               </Typography>
             </Box>
             
