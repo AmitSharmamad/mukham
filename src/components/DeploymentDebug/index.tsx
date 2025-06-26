@@ -19,6 +19,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useDeploymentEvents } from '../../hooks/useDeploymentEvents';
+import { formatTimeOnly } from '../../utils/deploymentUtils';
 
 interface DeploymentDebugProps {
   show?: boolean;
@@ -122,7 +123,7 @@ export const DeploymentDebug: React.FC<DeploymentDebugProps> = ({ show = false }
                           color={metrics.status === 'active' ? 'success' : 'error'}
                         />
                       </TableCell>
-                      <TableCell>{new Date(metrics.lastUpdateTime).toLocaleTimeString()}</TableCell>
+                      <TableCell>{formatTimeOnly(metrics.lastUpdateTime)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -155,7 +156,7 @@ export const DeploymentDebug: React.FC<DeploymentDebugProps> = ({ show = false }
                 <TableBody>
                   {events.slice(0, 10).map((event, index) => (
                     <TableRow key={index}>
-                      <TableCell>{new Date(event.timestamp).toLocaleTimeString()}</TableCell>
+                      <TableCell>{formatTimeOnly(event.timestamp)}</TableCell>
                       <TableCell>
                         <Chip label={event.event_type} size="small" />
                       </TableCell>
