@@ -296,7 +296,7 @@ const DeploymentDetail = () => {
               size="medium"
             />
             <Chip 
-              label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus} 
+              label={connectionStatus === 'connected' ? 'Connected' : connectionStatus} 
               size="small" 
               color={connectionStatus === 'connected' ? 'success' : connectionStatus === 'error' ? 'error' : 'default'}
               sx={{ 
@@ -344,7 +344,7 @@ const DeploymentDetail = () => {
         <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
           Positions & Performance Dashboard
           <Chip 
-            label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus} 
+            label={connectionStatus === 'connected' ? 'Connected' : connectionStatus} 
             size="small" 
             color={connectionStatus === 'connected' ? 'success' : 'default'}
             sx={{ ml: 2 }}
@@ -376,7 +376,7 @@ const DeploymentDetail = () => {
                     <Card>
                       <CardContent>
                         <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Total P&L {realtimeMetrics && '(Live)'}
+                          Total P&L
                         </Typography>
                         <Typography variant="h4" component="div" sx={{ 
                           color: realtimeMetrics 
@@ -400,7 +400,7 @@ const DeploymentDetail = () => {
                     <Card>
                       <CardContent>
                         <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Open Positions {realtimeMetrics && '(Live)'}
+                          Open Positions
                         </Typography>
                         <Typography variant="h4" component="div">
                           {realtimeMetrics ? realtimeMetrics.openPositions : positions.filter(p => p.status === 'OPEN').length}
@@ -412,7 +412,7 @@ const DeploymentDetail = () => {
                     <Card>
                       <CardContent>
                         <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Total Trades {realtimeMetrics && '(Live)'}
+                          Total Trades
                         </Typography>
                         <Typography variant="h4" component="div">
                           {realtimeMetrics ? realtimeMetrics.totalTrades : metrics.totalTrades}

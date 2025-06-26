@@ -196,18 +196,18 @@ const MetricsTiles: React.FC<MetricsTilesProps> = ({
     }
   };
 
-  // Calculate metrics with real-time data priority
+  // Calculate metrics with real-time data priority - don't default to 0
   const displayMetrics = {
     totalPnL: realtimeMetrics 
       ? realtimeMetrics.pnl + realtimeMetrics.unrealizedPnl 
-      : metrics?.totalPnL || 0,
-    realizedPnL: realtimeMetrics?.pnl || aggregatedMetrics?.realizedPnL || 0,
-    unrealizedPnL: realtimeMetrics?.unrealizedPnl || aggregatedMetrics?.unrealizedPnL || 0,
-    openPositions: realtimeMetrics?.openPositions || aggregatedMetrics?.openPositions || 0,
-    totalTrades: realtimeMetrics?.totalTrades || metrics?.totalTrades || 0,
-    winRate: metrics?.winRate || 0,
-    maxDrawdown: metrics?.maxDrawdown || 0,
-    sharpeRatio: metrics?.sharpeRatio || 0
+      : metrics?.totalPnL ?? null,
+    realizedPnL: realtimeMetrics?.pnl ?? aggregatedMetrics?.realizedPnL ?? null,
+    unrealizedPnL: realtimeMetrics?.unrealizedPnl ?? aggregatedMetrics?.unrealizedPnL ?? null,
+    openPositions: realtimeMetrics?.openPositions ?? aggregatedMetrics?.openPositions ?? null,
+    totalTrades: realtimeMetrics?.totalTrades ?? metrics?.totalTrades ?? null,
+    winRate: metrics?.winRate ?? null,
+    maxDrawdown: metrics?.maxDrawdown ?? null,
+    sharpeRatio: metrics?.sharpeRatio ?? null
   };
 
   const gridSize = compact ? 6 : { xs: 12, sm: 6, md: 4, lg: 2 };
@@ -216,39 +216,45 @@ const MetricsTiles: React.FC<MetricsTilesProps> = ({
   const tiles = [
     {
       title: 'Total P&L',
-      value: formatCurrency(displayMetrics.totalPnL),
-      subtitle: realtimeMetrics ? `R: ${formatCurrency(displayMetrics.realizedPnL)} | U: ${formatCurrency(displayMetrics.unrealizedPnL)}` : undefined,
+      value: displayMetrics.totalPnL !== null ? formatCurrency(displayMetrics.totalPnL) : 'N/A',
+      subtitle: realtimeMetrics && displayMetrics.realizedPnL !== null && displayMetrics.unrealizedPnL !== null 
+        ? `R: ${formatCurrency(displayMetrics.realizedPnL)} | U: ${formatCurrency(displayMetrics.unrealizedPnL)}` 
+        : undefined,
       icon: <AccountBalance />,
-      color: displayMetrics.totalPnL >= 0 ? 'success' : 'error',
+      color: displayMetrics.totalPnL !== null ? (displayMetrics.totalPnL >= 0 ? 'success' : 'error') : 'info',
       isLive: !!realtimeMetrics,
-      trend: displayMetrics.totalPnL >= 0 ? 'up' : 'down'
+      trend: displayMetrics.totalPnL !== null ? (displayMetrics.totalPnL >= 0 ? 'up' : 'down') : 'neutral'
     },
     {
       title: 'Open Positions',
-      value: displayMetrics.openPositions,
+      value: displayMetrics.openPositions ?? 'N/A',
       icon: <ShowChart />,
       color: 'primary',
       isLive: !!realtimeMetrics
     },
     {
       title: 'Total Trades',
-      value: displayMetrics.totalTrades,
+      value: displayMetrics.totalTrades ?? 'N/A',
       icon: <Timeline />,
       color: 'info',
       isLive: !!realtimeMetrics
     },
     {
       title: 'Win Rate',
-      value: formatPercentage(displayMetrics.winRate),
+      value: displayMetrics.winRate !== null ? formatPercentage(displayMetrics.winRate) : 'N/A',
       icon: <TrendingUp />,
-      color: displayMetrics.winRate >= 0.6 ? 'success' : displayMetrics.winRate >= 0.4 ? 'warning' : 'error',
-      progress: displayMetrics.winRate * 100
+      color: displayMetrics.winRate !== null 
+        ? (displayMetrics.winRate >= 0.6 ? 'success' : displayMetrics.winRate >= 0.4 ? 'warning' : 'error')
+        : 'info',
+      progress: displayMetrics.winRate !== null ? displayMetrics.winRate * 100 : undefined
     },
     {
       title: 'Max Drawdown',
-      value: formatCurrency(Math.abs(displayMetrics.maxDrawdown)),
+      value: displayMetrics.maxDrawdown !== null ? formatCurrency(Math.abs(displayMetrics.maxDrawdown)) : 'N/A',
       icon: <TrendingDown />,
-      color: Math.abs(displayMetrics.maxDrawdown) <= 1000 ? 'success' : Math.abs(displayMetrics.maxDrawdown) <= 5000 ? 'warning' : 'error'
+      color: displayMetrics.maxDrawdown !== null 
+        ? (Math.abs(displayMetrics.maxDrawdown) <= 1000 ? 'success' : Math.abs(displayMetrics.maxDrawdown) <= 5000 ? 'warning' : 'error')
+        : 'info'
     }
   ].slice(0, maxTiles);
 

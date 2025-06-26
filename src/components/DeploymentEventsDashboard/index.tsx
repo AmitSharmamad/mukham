@@ -79,7 +79,7 @@ const DeploymentEventsDashboard = () => {
     <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" component="h1">
-          Live Deployment Events
+          Deployment Events
         </Typography>
         <Box display="flex" alignItems="center" gap={1}>
           <Circle 
