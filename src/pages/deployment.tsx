@@ -508,8 +508,8 @@ const DeploymentPage = () => {
                 </TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Symbol</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Run Time</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>MTM</TableCell>
+                {/* <TableCell sx={{ fontWeight: 600 }}>Run Time</TableCell> */}
+                {/* <TableCell sx={{ fontWeight: 600 }}>MTM</TableCell> */}
                 <TableCell sx={{ fontWeight: 600 }}>Total P&L</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>Win Trades</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>Loss Trades</TableCell>
@@ -595,12 +595,12 @@ const DeploymentPage = () => {
                   <TableCell>
                     {getStatusChip(deployment)}
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     <Typography variant="body2">
                       {runTime}
                     </Typography>
-                  </TableCell>
-                  <TableCell>
+                  </TableCell> */}
+                  {/* <TableCell>
                     <Typography 
                       variant="body2" 
                       sx={{ 
@@ -612,7 +612,7 @@ const DeploymentPage = () => {
                         ? `₹${mtm.toFixed(2)}`
                         : 'N/A'}
                     </Typography>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       <Typography 
