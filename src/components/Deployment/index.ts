@@ -1,5 +1,6 @@
 import DeploymentCard from './DeploymentCard';
 import DeploymentPositions from './DeploymentPositions';
+import DeploymentPositionModal from './DeploymentPositionModal';
 import TradeChart from './TradeChart';
 import CandlestickChart from './CandlestickChart';
 import InstrumentCandlestickChart from './InstrumentCandlestickChart';
@@ -12,6 +13,7 @@ import QuickActions from './QuickActions';
 export {
   DeploymentCard,
   DeploymentPositions,
+  DeploymentPositionModal,
   TradeChart,
   CandlestickChart,
   InstrumentCandlestickChart,

@@ -26,7 +26,7 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { logout as logoutService, checkAPIServer } from '../services/authService';
-import { PnLDisplay } from './';
+import { PnLDisplay, LiveClock } from './';
 
 interface NavbarProps {
   onToggleTheme?: () => void;
@@ -157,7 +157,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
           sx={{
             fontFamily: 'Arial, sans-serif',
             paddingLeft: '90px',
-            paddingRight: '90px',
+            paddingRight: '20px',
             fontSize: '1.5rem',
             textDecoration: 'none',
             color: 'inherit'
@@ -166,11 +166,15 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
           सूत्रम्
         </Typography>
         
+        {/* Live Clock */}
+        <LiveClock color="green" fontSize="1.1rem" />
+        
         <Box sx={{ 
           display: 'flex', 
           gap: 2,
           flexGrow: 1,
-          justifyContent: 'center'
+          justifyContent: 'center',
+          paddingLeft: '70px'
         }}>
           {/* Home */}
           <Button 
@@ -270,7 +274,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
           {!loading && (authStatus ? (
             <>
               {/* Options - Coming Soon Banner */}
-              <Typography
+              {/* <Typography
                 variant="body2"
                 sx={{
                   opacity: 0.8,
@@ -289,7 +293,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                 }}
               >
                 Coming Soon - Options
-              </Typography>
+              </Typography> */}
               
               <IconButton 
                 size="large" 

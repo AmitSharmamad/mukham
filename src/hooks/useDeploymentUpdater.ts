@@ -29,8 +29,8 @@ export const useDeploymentUpdater = () => {
         deployment_id,
         metric_date: new Date().toISOString().split('T')[0],
         total_trades: metrics.totalTrades,
-        win_trades: Math.max(0, metrics.totalTrades - (metrics.totalTrades - Math.floor(metrics.totalTrades * 0.6))), // Estimate
-        loss_trades: Math.max(0, metrics.totalTrades - Math.floor(metrics.totalTrades * 0.6)), // Estimate
+        win_trades: metrics.winTrades || Math.max(0, Math.floor(metrics.totalTrades * 0.6)), // Use real-time data or estimate
+        loss_trades: metrics.lossTrades || Math.max(0, Math.ceil(metrics.totalTrades * 0.4)), // Use real-time data or estimate
         total_pnl: metrics.pnl + (metrics.unrealizedPnl || 0),
         max_drawdown: 0, // Would need historical data
         win_rate: metrics.totalTrades > 0 ? (Math.floor(metrics.totalTrades * 0.6) / metrics.totalTrades) * 100 : 0,
@@ -90,13 +90,14 @@ export const useDeploymentUpdater = () => {
         
         // Apply real-time metrics
         if (metrics && updatedDeployment.metrics) {
+          const newTotalPnl = metrics.pnl + (metrics.unrealizedPnl || 0);
+          
           updatedDeployment.metrics = {
             ...updatedDeployment.metrics,
-            total_pnl: metrics.pnl + (metrics.unrealizedPnl || 0),
+            total_pnl: newTotalPnl,
             total_trades: metrics.totalTrades,
-            // Estimate win/loss trades based on P&L trend
-            win_trades: Math.floor(metrics.totalTrades * 0.6), // Rough estimate
-            loss_trades: Math.ceil(metrics.totalTrades * 0.4), // Rough estimate
+            win_trades: metrics.winTrades || updatedDeployment.metrics.win_trades || 0,
+            loss_trades: metrics.lossTrades || updatedDeployment.metrics.loss_trades || 0,
             updated_at: metrics.lastUpdateTime,
           };
           

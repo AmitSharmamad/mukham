@@ -20,6 +20,7 @@ import {
 import { Position, DeploymentMetrics } from '../../services/deploymentService';
 import { useToastContext } from '../../context/ToastContext';
 import PositionsMetricsDashboard from './PositionsMetricsDashboard';
+import { formatDate } from '../../utils/deploymentUtils';
 
 interface DeploymentPositionsProps {
   positions: Position[];
@@ -156,7 +157,7 @@ const DeploymentPositions: React.FC<DeploymentPositionsProps> = ({
                         </Grid>
                         
                         <Typography variant="body2" color="text.secondary">
-                          Entry Time: {new Date(position.entry_time).toLocaleString()}
+                          Entry Time: {formatDate(position.entry_time)}
                         </Typography>
                         
                         {position.pnl !== undefined && (

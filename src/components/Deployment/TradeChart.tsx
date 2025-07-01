@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTheme, Box, Typography, alpha } from '@mui/material';
+import { formatDate } from '../../utils/deploymentUtils';
 import { 
   Chart as ChartJS, 
   CategoryScale, 
@@ -127,7 +128,12 @@ const TradeChart: React.FC<TradeChartProps> = ({ trades }) => {
         callbacks: {
           title: (context) => {
             const index = context[0].dataIndex;
-            return new Date(tradeData.timestamps[index]).toLocaleString();
+            const timestamp = tradeData.timestamps[index];
+            // Convert numeric timestamp to ISO string if needed
+            const dateString = typeof timestamp === 'number' 
+              ? new Date(timestamp * 1000).toISOString()  // Assuming Unix timestamp in seconds
+              : timestamp;
+            return formatDate(dateString);
           },
           label: (context) => {
             const label = context.dataset.label || '';

@@ -33,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import { Position } from '../../services/deploymentService';
 import { useToastContext } from '../../context/ToastContext';
+import { formatDate, formatDateOnly, formatTimeOnly } from '../../utils/deploymentUtils';
 
 interface PositionTableProps {
   positions: Position[];
@@ -333,11 +334,11 @@ const PositionTable: React.FC<PositionTableProps> = ({
               </Box>
               
               <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-                Entry: {new Date(position.entry_time).toLocaleString()}
+                Entry: {formatDate(position.entry_time)}
               </Typography>
               {position.exit_time && (
                 <Typography variant="caption" color="text.secondary" display="block">
-                  Exit: {new Date(position.exit_time).toLocaleString()}
+                  Exit: {formatDate(position.exit_time)}
                 </Typography>
               )}
             </CardContent>
@@ -420,7 +421,7 @@ const PositionTable: React.FC<PositionTableProps> = ({
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {new Date(position.entry_time).toLocaleDateString()} {new Date(position.entry_time).toLocaleTimeString()}
+                        {formatDate(position.entry_time)}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
@@ -430,10 +431,7 @@ const PositionTable: React.FC<PositionTableProps> = ({
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {position.exit_time ? 
-                          `${new Date(position.exit_time).toLocaleDateString()} ${new Date(position.exit_time).toLocaleTimeString()}` 
-                          : '-'
-                        }
+                        {position.exit_time ? formatDate(position.exit_time) : '-'}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -476,7 +474,7 @@ const PositionTable: React.FC<PositionTableProps> = ({
                                 Created At
                               </Typography>
                               <Typography variant="body2">
-                                {new Date(position.created_at).toLocaleString()}
+                                {formatDate(position.created_at)}
                               </Typography>
                             </Box>
                             <Box>
@@ -484,7 +482,7 @@ const PositionTable: React.FC<PositionTableProps> = ({
                                 Updated At
                               </Typography>
                               <Typography variant="body2">
-                                {new Date(position.updated_at).toLocaleString()}
+                                {formatDate(position.updated_at)}
                               </Typography>
                             </Box>
                           </Stack>
