@@ -18,13 +18,15 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { formatDate, formatTimeOnly } from '../../utils/deploymentUtils';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import ErrorIcon from '@mui/icons-material/Error';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import { useRouter } from 'next/router';
 import { Deployment } from '../../services/deploymentService';
-import { useDeploymentEvents } from '../../hooks/useDeploymentEvents';
+import { useDeploymentContext } from '../../context/DeploymentContext';
+import { getDeploymentStatus, formatPnL, getPnLColor, formatPnLText } from '../../utils/deploymentUtils';
 
 export interface DeploymentCardProps {
   deployment: Deployment;
@@ -39,24 +41,22 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
 }) => {
   const theme = useTheme();
   const router = useRouter();
-  const { getDeploymentMetrics, getEventsByDeployment } = useDeploymentEvents();
+  const { 
+    getDeploymentMetrics, 
+    getEventsByDeployment, 
+    getRecentEventCount,
+    hasRecentErrors: hasRecentErrorsFromContext 
+  } = useDeploymentContext();
 
   // Get real-time metrics for this deployment
   const metrics = getDeploymentMetrics(deployment.id);
   const recentEvents = getEventsByDeployment(deployment.id);
   
   // Get recent events count (last 5 minutes)
-  const now = new Date();
-  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-  const recentEventCount = recentEvents.filter(event => 
-    new Date(event.timestamp) > fiveMinutesAgo
-  ).length;
+  const recentEventCount = getRecentEventCount(deployment.id, 5);
 
   // Check if there are any error events recently
-  const hasRecentErrors = recentEvents.some(event => 
-    event.event_type === 'deployment_error' && 
-    new Date(event.timestamp) > fiveMinutesAgo
-  );
+  const hasRecentErrors = hasRecentErrorsFromContext(deployment.id, 5);
 
   // Get the most recent significant event for display
   const getLastSignificantEvent = () => {
@@ -69,20 +69,11 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
 
   const lastSignificantEvent = getLastSignificantEvent();
 
-  // Calculate total P&L
-  const totalPnL = metrics ? metrics.pnl + metrics.unrealizedPnl : 0;
-  const pnlColor = totalPnL >= 0 ? theme.palette.success.main : theme.palette.error.main;
-  const pnlText = totalPnL >= 0 ? `+₹${totalPnL.toFixed(2)}` : `₹${totalPnL.toFixed(2)}`;
-
-  // Get deployment status
-  const getDeploymentStatus = () => {
-    if (hasRecentErrors) return 'error';
-    if (!deployment.isActive) return 'inactive';
-    if (metrics && metrics.status === 'error') return 'error';
-    return 'active';
-  };
-
-  const deploymentStatus = getDeploymentStatus();
+  // Use centralized utility functions for consistent calculations
+  const totalPnL = formatPnL(deployment, metrics || undefined);
+  const pnlColor = getPnLColor(totalPnL, hasRecentErrors, theme);
+  const pnlText = formatPnLText(totalPnL);
+  const deploymentStatus = getDeploymentStatus(deployment, metrics || undefined, hasRecentErrors);
 
   const handleCardClick = () => {
     router.push(`/deployment/${deployment.id}`);
@@ -123,36 +114,6 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
               <Box display="flex" alignItems="center" gap={1}>
                 <Typography variant="h6" component="h2">{deployment.name}</Typography>
-                {recentEventCount > 0 && (
-                  <Badge 
-                    badgeContent={recentEventCount} 
-                    color="primary"
-                    sx={{
-                      '& .MuiBadge-badge': {
-                        fontSize: '0.7rem',
-                        minWidth: 16,
-                        height: 16
-                      }
-                    }}
-                  >
-                    <Chip
-                      label="Live"
-                      size="small"
-                      color="success"
-                      variant="outlined"
-                      icon={<FiberManualRecordIcon sx={{ fontSize: 12, animation: 'pulse 2s infinite' }} />}
-                      sx={{ 
-                        fontSize: '0.7rem', 
-                        height: 20,
-                        '@keyframes pulse': {
-                          '0%': { opacity: 1 },
-                          '50%': { opacity: 0.5 },
-                          '100%': { opacity: 1 }
-                        }
-                      }}
-                    />
-                  </Badge>
-                )}
               </Box>
               <Box display="flex" alignItems="center" gap={1}>
                 {deploymentStatus === 'error' && (
@@ -173,7 +134,7 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
             </Box>
 
             {/* Real-time P&L and metrics */}
-            {metrics && (
+            {(metrics || deployment.metrics) && (
               <Box 
                 sx={{ 
                   backgroundColor: alpha(pnlColor, 0.1),
@@ -184,11 +145,11 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
               >
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Box display="flex" alignItems="center" gap={1}>
-                    {totalPnL >= 0 ? (
+                    {totalPnL !== undefined && totalPnL !== null && totalPnL >= 0 ? (
                       <TrendingUpIcon sx={{ color: pnlColor, fontSize: 20 }} />
-                    ) : (
+                    ) : totalPnL !== undefined && totalPnL !== null && totalPnL < 0 ? (
                       <TrendingDownIcon sx={{ color: pnlColor, fontSize: 20 }} />
-                    )}
+                    ) : null}
                     <Typography 
                       variant="h6" 
                       sx={{ 
@@ -201,11 +162,11 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
                   </Box>
                   <Box textAlign="right">
                     <Typography variant="caption" color="text.secondary">
-                      {metrics.openPositions} open positions
+                      {metrics ? metrics.openPositions : 0} open positions
                     </Typography>
                     <br />
                     <Typography variant="caption" color="text.secondary">
-                      {metrics.totalTrades} total trades
+                      {metrics ? metrics.totalTrades : (deployment.metrics?.total_trades || 0)} total trades
                     </Typography>
                   </Box>
                 </Box>
@@ -213,10 +174,10 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
                 {/* Individual P&L breakdown */}
                 <Box display="flex" justifyContent="space-between" mt={1}>
                   <Typography variant="caption" color="text.secondary">
-                    Realized: ₹{metrics.pnl.toFixed(2)}
+                    Realized: {metrics ? `₹${metrics.pnl.toFixed(2)}` : 'N/A'}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Unrealized: ₹{metrics.unrealizedPnl.toFixed(2)}
+                    Unrealized: {metrics ? `₹${metrics.unrealizedPnl.toFixed(2)}` : 'N/A'}
                   </Typography>
                 </Box>
               </Box>
@@ -242,15 +203,15 @@ const DeploymentCard: React.FC<DeploymentCardProps> = ({
             {/* Bottom info with last event time */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mt={1}>
               <Typography variant="caption" color="text.secondary">
-                Last updated: {deployment.lastUpdatedAt ? new Date(deployment.lastUpdatedAt).toLocaleString() : 'Never'}
+                Last updated: {deployment.lastUpdatedAt ? formatDate(deployment.lastUpdatedAt) : 'Never'}
               </Typography>
               {lastSignificantEvent ? (
                 <Typography variant="caption" color="text.secondary">
-                  {lastSignificantEvent.event_type.replace(/_/g, ' ')}: {new Date(lastSignificantEvent.timestamp).toLocaleTimeString()}
+                  {lastSignificantEvent.event_type.replace(/_/g, ' ')}: {formatTimeOnly(lastSignificantEvent.timestamp)}
                 </Typography>
               ) : metrics && (
                 <Typography variant="caption" color="text.secondary">
-                  Last event: {new Date(metrics.lastUpdateTime).toLocaleTimeString()}
+                  Last event: {formatTimeOnly(metrics.lastUpdateTime)}
                 </Typography>
               )}
             </Box>

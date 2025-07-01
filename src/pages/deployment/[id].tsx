@@ -38,6 +38,7 @@ import DeploymentPositions from '../../components/Deployment/DeploymentPositions
 import TradeChart from '../../components/Deployment/TradeChart';
 import CandlestickChart from '../../components/Deployment/CandlestickChart';
 import InstrumentCandlestickChart from '../../components/Deployment/InstrumentCandlestickChart';
+import { formatDate, formatTimeOnly } from '../../utils/deploymentUtils';
 
 const DeploymentDetail = () => {
   const router = useRouter();
@@ -296,7 +297,7 @@ const DeploymentDetail = () => {
               size="medium"
             />
             <Chip 
-              label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus} 
+              label={connectionStatus === 'connected' ? 'Connected' : connectionStatus} 
               size="small" 
               color={connectionStatus === 'connected' ? 'success' : connectionStatus === 'error' ? 'error' : 'default'}
               sx={{ 
@@ -319,11 +320,11 @@ const DeploymentDetail = () => {
         
         <Box display="flex" flexWrap="wrap" gap={2}>
           <Typography variant="body2" color="text.secondary">
-            <strong>Created:</strong> {new Date(deployment.createdAt).toLocaleString()}
+            <strong>Created:</strong> {formatDate(deployment.createdAt)}
           </Typography>
           {deployment.lastUpdatedAt && (
             <Typography variant="body2" color="text.secondary">
-              <strong>Last Updated:</strong> {new Date(deployment.lastUpdatedAt).toLocaleString()}
+              <strong>Last Updated:</strong> {formatDate(deployment.lastUpdatedAt)}
             </Typography>
           )}
           {deployment.instrument_master && (
@@ -344,7 +345,7 @@ const DeploymentDetail = () => {
         <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
           Positions & Performance Dashboard
           <Chip 
-            label={connectionStatus === 'connected' ? 'Live Data' : connectionStatus} 
+            label={connectionStatus === 'connected' ? 'Connected' : connectionStatus} 
             size="small" 
             color={connectionStatus === 'connected' ? 'success' : 'default'}
             sx={{ ml: 2 }}
@@ -376,7 +377,7 @@ const DeploymentDetail = () => {
                     <Card>
                       <CardContent>
                         <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Total P&L {realtimeMetrics && '(Live)'}
+                          Total P&L
                         </Typography>
                         <Typography variant="h4" component="div" sx={{ 
                           color: realtimeMetrics 
@@ -400,7 +401,7 @@ const DeploymentDetail = () => {
                     <Card>
                       <CardContent>
                         <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Open Positions {realtimeMetrics && '(Live)'}
+                          Open Positions
                         </Typography>
                         <Typography variant="h4" component="div">
                           {realtimeMetrics ? realtimeMetrics.openPositions : positions.filter(p => p.status === 'OPEN').length}
@@ -412,7 +413,7 @@ const DeploymentDetail = () => {
                     <Card>
                       <CardContent>
                         <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Total Trades {realtimeMetrics && '(Live)'}
+                          Total Trades
                         </Typography>
                         <Typography variant="h4" component="div">
                           {realtimeMetrics ? realtimeMetrics.totalTrades : metrics.totalTrades}
@@ -565,7 +566,7 @@ const DeploymentDetail = () => {
                             )}
                           </Box>
                           <Typography variant="caption" color="text.secondary">
-                            {new Date(event.timestamp).toLocaleTimeString()}
+                            {formatTimeOnly(event.timestamp)}
                           </Typography>
                         </Box>
                       </Box>

@@ -8,6 +8,7 @@ import MainLayout from '../components/MainLayout';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
+import { DeploymentProvider } from '../context/DeploymentContext';
 import AuthGuard from '../components/AuthGuard';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
@@ -73,7 +74,9 @@ function MyApp(props: AppProps) {
     <AuthProvider>
       <ThemeProvider>
         <ToastProvider>
-          <AppContent {...props} />
+          <DeploymentProvider>
+            <AppContent {...props} />
+          </DeploymentProvider>
         </ToastProvider>
       </ThemeProvider>
     </AuthProvider>

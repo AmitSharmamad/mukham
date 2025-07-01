@@ -22,6 +22,8 @@ export interface DeploymentEventMetrics {
     unrealizedPnl: number;
     openPositions: number;
     totalTrades: number;
+    winTrades: number;
+    lossTrades: number;
     lastUpdateTime: string;
     status: 'active' | 'inactive' | 'error';
   };
@@ -42,6 +44,10 @@ export const useDeploymentEvents = () => {
       return;
     }
 
+    if (wsRef.current?.readyState === WebSocket.CONNECTING) {
+      return;
+    }
+
     setConnectionStatus('connecting');
     
     try {
@@ -51,19 +57,15 @@ export const useDeploymentEvents = () => {
       websocket.onopen = () => {
         setConnectionStatus('connected');
         reconnectAttemptsRef.current = 0;
-        console.log('Connected to deployment events WebSocket');
       };
       
       websocket.onmessage = (event) => {
         try {
           const deploymentEvent: DeploymentEvent = JSON.parse(event.data);
-          console.log('Received deployment event:', deploymentEvent);
           
-          // Add event to history (keep last 100 events)
-          setEvents(prev => [deploymentEvent, ...prev.slice(0, 99)]);
-          
-          // Update deployment metrics based on event type
-          updateDeploymentMetrics(deploymentEvent);
+          // Update metrics and events separately to avoid stale closures
+          setDeploymentMetrics(prev => updateMetricsFromEvent(prev, deploymentEvent));
+          setEvents(prevEvents => [deploymentEvent, ...prevEvents.slice(0, 99)]);
           
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -72,7 +74,6 @@ export const useDeploymentEvents = () => {
       
       websocket.onclose = (event) => {
         setConnectionStatus('disconnected');
-        console.log('WebSocket connection closed:', event.code, event.reason);
         
         // Attempt reconnection if not manually closed
         if (event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts) {
@@ -103,99 +104,96 @@ export const useDeploymentEvents = () => {
     reconnectAttemptsRef.current++;
     const delay = baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current - 1);
     
-    console.log(`Scheduling reconnection attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts} in ${delay}ms`);
-    
     reconnectTimeoutRef.current = setTimeout(() => {
       connect();
     }, delay);
   }, [connect]);
 
-  const updateDeploymentMetrics = useCallback((event: DeploymentEvent) => {
-    const { event_type, deployment_id, data, metadata } = event;
+  const updateMetricsFromEvent = useCallback((currentMetrics: DeploymentEventMetrics, event: DeploymentEvent): DeploymentEventMetrics => {
+    const { event_type, deployment_id, data } = event;
     
-    console.log('Updating deployment metrics for event:', {
-      event_type,
-      deployment_id,
-      data
-    });
+    // Get existing metrics or initialize with empty values (not zeros)
+    const current = currentMetrics[deployment_id] || {
+      pnl: 0,
+      unrealizedPnl: 0,
+      openPositions: 0,
+      totalTrades: 0,
+      winTrades: 0,
+      lossTrades: 0,
+      lastUpdateTime: event.timestamp,
+      status: 'active' as const
+    };
+
+    let updated = { ...current, lastUpdateTime: event.timestamp };
+
+    switch (event_type) {
+      case 'position_opened':
+        updated.openPositions++;
+        updated.totalTrades++;
+        break;
+        
+      case 'position_closed':
+        updated.openPositions = Math.max(0, updated.openPositions - 1);
+        if (data.pnl !== undefined) {
+          updated.pnl += data.pnl;
+          if (data.pnl > 0) {
+            updated.winTrades++;
+          } else if (data.pnl < 0) {
+            updated.lossTrades++;
+          }
+        }
+        break;
+        
+      case 'position_update':
+        if (data.unrealized_pnl !== undefined) {
+          updated.unrealizedPnl = data.unrealized_pnl;
+        }
+        break;
+        
+      case 'stop_loss_triggered':
+      case 'target_profit_triggered':
+      case 'eod_square_off':
+        updated.openPositions = Math.max(0, updated.openPositions - 1);
+        if (data.pnl !== undefined) {
+          updated.pnl += data.pnl;
+          if (data.pnl > 0) {
+            updated.winTrades++;
+          } else if (data.pnl < 0) {
+            updated.lossTrades++;
+          }
+        }
+        break;
+        
+      case 'deployment_error':
+        updated.status = 'error';
+        break;
+        
+      case 'entry_window_closed':
+        break;
+        
+      case 'evaluation_started':
+      case 'entry_signal_detected':
+      case 'exit_signal_detected':
+      case 'no_signal':
+      case 'trailing_stop_updated':
+        updated.status = 'active';
+        break;
+        
+      default:
+        break;
+    }
+
+    const newMetrics = {
+      ...currentMetrics,
+      [deployment_id]: updated
+    };
     
-    setDeploymentMetrics(prev => {
-      const current = prev[deployment_id] || {
-        pnl: 0,
-        unrealizedPnl: 0,
-        openPositions: 0,
-        totalTrades: 0,
-        lastUpdateTime: event.timestamp,
-        status: 'active' as const
-      };
-
-      let updated = { ...current, lastUpdateTime: event.timestamp };
-
-      switch (event_type) {
-        case 'position_opened':
-          updated.openPositions++;
-          updated.totalTrades++;
-          break;
-          
-        case 'position_closed':
-          updated.openPositions = Math.max(0, updated.openPositions - 1);
-          if (data.pnl !== undefined) {
-            updated.pnl += data.pnl;
-          }
-          break;
-          
-        case 'position_update':
-          if (data.unrealized_pnl !== undefined) {
-            updated.unrealizedPnl = data.unrealized_pnl;
-          }
-          break;
-          
-        case 'stop_loss_triggered':
-        case 'target_profit_triggered':
-        case 'eod_square_off':
-          updated.openPositions = Math.max(0, updated.openPositions - 1);
-          if (data.pnl !== undefined) {
-            updated.pnl += data.pnl;
-          }
-          break;
-          
-        case 'deployment_error':
-          updated.status = 'error';
-          break;
-          
-        case 'entry_window_closed':
-          // Don't change status, just log the event
-          break;
-          
-        case 'evaluation_started':
-        case 'entry_signal_detected':
-        case 'exit_signal_detected':
-        case 'no_signal':
-        case 'trailing_stop_updated':
-          // These events don't directly affect metrics but indicate activity
-          updated.status = 'active';
-          break;
-          
-        default:
-          // Handle other event types as needed
-          console.log('Unhandled event type:', event_type);
-          break;
-      }
-
-      const newMetrics = {
-        ...prev,
-        [deployment_id]: updated
-      };
-      
-      console.log('Updated deployment metrics:', {
-        deployment_id,
-        updated,
-        totalMetrics: Object.keys(newMetrics).length
-      });
-      
-      return newMetrics;
-    });
+    return newMetrics;
   }, []);
+
+  const updateDeploymentMetrics = useCallback((event: DeploymentEvent) => {
+    setDeploymentMetrics(prev => updateMetricsFromEvent(prev, event));
+  }, [updateMetricsFromEvent]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
