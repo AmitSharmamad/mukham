@@ -23,6 +23,7 @@ import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { logout as logoutService, checkAPIServer } from '../services/authService';
@@ -35,8 +36,9 @@ interface NavbarProps {
 
 export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) {
   const [profileAnchorEl, setProfileAnchorEl] = useState<null | HTMLElement>(null);
+  const [themeAnchorEl, setThemeAnchorEl] = useState<null | HTMLElement>(null);
   const muiTheme = useMuiTheme();
-  const { mode, toggleMode } = useTheme();
+  const { mode, toggleMode, useSystemTheme, isUsingSystemTheme } = useTheme();
   const { user, logout, checkUserAuth } = useAuth();
   const [authStatus, setAuthStatus] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -119,6 +121,24 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
   
   const handleProfileMenuClose = () => {
     setProfileAnchorEl(null);
+  };
+
+  const handleThemeMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setThemeAnchorEl(event.currentTarget);
+  };
+
+  const handleThemeMenuClose = () => {
+    setThemeAnchorEl(null);
+  };
+
+  const handleUseSystemTheme = () => {
+    useSystemTheme();
+    handleThemeMenuClose();
+  };
+
+  const handleToggleThemeManual = () => {
+    toggleMode();
+    handleThemeMenuClose();
   };
 
   const handleLogout = async () => {
@@ -304,15 +324,43 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                 <AccountCircle />
               </IconButton>
               
-              <Tooltip title={`Switch to ${currentMode ? 'light' : 'dark'} mode`}>
+              <Tooltip title={isUsingSystemTheme ? `System theme (${mode})` : `${mode} mode`}>
                 <IconButton 
                   color="inherit" 
-                  onClick={handleToggleTheme} 
+                  onClick={handleThemeMenuOpen} 
                   sx={{ ml: 1 }}
                 >
-                  {currentMode ? <Brightness7Icon /> : <Brightness4Icon />}
+                  {isUsingSystemTheme ? <SettingsSuggestIcon /> : (currentMode ? <Brightness7Icon /> : <Brightness4Icon />)}
                 </IconButton>
               </Tooltip>
+              
+              <Menu
+                anchorEl={themeAnchorEl}
+                open={Boolean(themeAnchorEl)}
+                onClose={handleThemeMenuClose}
+              >
+                <MenuItem 
+                  onClick={handleUseSystemTheme}
+                  sx={{ 
+                    fontWeight: isUsingSystemTheme ? 'bold' : 'normal',
+                    color: isUsingSystemTheme ? muiTheme.palette.primary.main : 'inherit'
+                  }}
+                >
+                  <SettingsSuggestIcon sx={{ mr: 1 }} />
+                  Use System Theme
+                </MenuItem>
+                <MenuItem 
+                  onClick={handleToggleThemeManual}
+                  sx={{ 
+                    fontWeight: !isUsingSystemTheme ? 'bold' : 'normal',
+                    color: !isUsingSystemTheme ? muiTheme.palette.primary.main : 'inherit'
+                  }}
+                >
+                  {currentMode ? <Brightness7Icon sx={{ mr: 1 }} /> : <Brightness4Icon sx={{ mr: 1 }} />}
+                  {currentMode ? 'Switch to Light' : 'Switch to Dark'}
+                </MenuItem>
+              </Menu>
+              
               <Menu
                 anchorEl={profileAnchorEl}
                 open={Boolean(profileAnchorEl)}
