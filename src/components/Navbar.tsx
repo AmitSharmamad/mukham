@@ -333,16 +333,16 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <Button 
                 variant="contained"
-                size="large"
+                size="medium"
                 component={Link}
                 href="/waitlist"
                 sx={{ 
-                  py: 1.5,
-                  px: 4,
-                  borderRadius: '28px',
+                  py: 0.8,
+                  px: 2.5,
+                  borderRadius: '20px',
                   fontWeight: 500,
                   textTransform: 'none',
-                  fontSize: '1rem'
+                  fontSize: '0.9rem'
                 }}
               >
                 Join Waitlist
