@@ -345,7 +345,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                   fontSize: '0.9rem'
                 }}
               >
-                Join Waitlist
+                🚀 Join Waitlist 🚀
               </Button>
               <Button 
                 color="inherit"
