@@ -330,14 +330,32 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
               </Menu>
             </>
           ) : (
-            <Button 
-              color="inherit"
-              onClick={handleLoginClick}
-              sx={{ fontSize: '1.1rem' }}
-              startIcon={<LoginIcon />}
-            >
-              Login
-            </Button>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Button 
+                variant="contained"
+                size="large"
+                component={Link}
+                href="/waitlist"
+                sx={{ 
+                  py: 1.5,
+                  px: 4,
+                  borderRadius: '28px',
+                  fontWeight: 500,
+                  textTransform: 'none',
+                  fontSize: '1rem'
+                }}
+              >
+                Join Waitlist
+              </Button>
+              <Button 
+                color="inherit"
+                onClick={handleLoginClick}
+                sx={{ fontSize: '1.1rem' }}
+                startIcon={<LoginIcon />}
+              >
+                Login
+              </Button>
+            </Box>
           ))}
         </Box>
       </Toolbar>
