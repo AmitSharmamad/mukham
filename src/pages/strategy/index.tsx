@@ -296,18 +296,13 @@ export default function StrategyList() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {strategy.description || 'No description provided.'}
                 </Typography>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography variant="caption" color="text.secondary">
-                    Last updated: {new Date(strategy.updated_at).toLocaleString()}
-                  </Typography>
-                  {isDefault && (
-                    <Chip 
-                      label="Default" 
-                      color="secondary"
-                      size="small"
-                    />
-                  )}
-                </Box>
+                {!isDefault && (
+                  <Box display="flex" justifyContent="flex-start" alignItems="center">
+                    <Typography variant="caption" color="text.secondary">
+                      Last updated: {new Date(strategy.updated_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                )}
               </CardContent>
               <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
                 <Box>
@@ -359,6 +354,13 @@ export default function StrategyList() {
                     </Tooltip>
                   )}
                 </Box>
+                {isDefault && (
+                  <Chip 
+                    label="Default" 
+                    color="secondary"
+                    size="small"
+                  />
+                )}
               </CardActions>
             </Card>
           </Grid>
