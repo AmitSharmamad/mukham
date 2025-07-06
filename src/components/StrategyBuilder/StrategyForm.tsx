@@ -93,7 +93,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     maxAllocation: initialData?.maxAllocation || '',
     maxQuantity: initialData?.maxQuantity || '',
     brickSize: initialData?.brickSize || '',
-    entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [],
+    entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [{
+      indicator1: { name: '', config: {} },
+      operator: '',
+      indicator2: { name: '', config: {} },
+      logicalOperator: 'AND'
+    }],
     exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
     entryOptionLegs: initialData?.entryOptionLegs || [],
     exitOptionLegs: initialData?.exitOptionLegs || [],
@@ -112,7 +117,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     slippage: initialData?.slippage || '0.5',
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
-  const [expandedSections, setExpandedSections] = useState<string[]>(['name']);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isInstrumentSelectorOpen, setInstrumentSelectorOpen] = useState(false);
@@ -150,7 +155,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         maxAllocation: initialData?.maxAllocation || '',
         maxQuantity: initialData?.maxQuantity || '',
         brickSize: initialData?.brickSize || '',
-        entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [],
+        entryConditions: initialData?.entryConditions ? parseExpressions(initialData.entryConditions) : [{
+          indicator1: { name: '', config: {} },
+          operator: '',
+          indicator2: { name: '', config: {} },
+          logicalOperator: 'AND'
+        }],
         exitConditions: initialData?.exitConditions ? parseExpressions(initialData.exitConditions) : [],
         entryOptionLegs: initialData?.entryOptionLegs || [],
         exitOptionLegs: initialData?.exitOptionLegs || [],
@@ -520,7 +530,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     },
     {
       id: 'entry',
-      title: 'Entry Condition',
+      title: 'Entry Conditions',
       component: (
         <Box>
           {formData.instrumentType === 'options' ? (
@@ -546,6 +556,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               error={attemptedSubmit && !!errors.entryConditions}
               helperText={attemptedSubmit ? errors.entryConditions : undefined}
               required
+              isOptional={false}
             />
           )}
           <LocalizationProvider dateAdapter={AdapterDayjs}>
