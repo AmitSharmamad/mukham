@@ -11,6 +11,7 @@ import { DeploymentSidebar } from '../DeploymentSidebar';
 import { DeploymentEventHandler } from '../DeploymentEventHandler';
 import { ThemeColor } from '../../theme';
 import { useDeploymentContext } from '../../context/DeploymentContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -31,6 +32,7 @@ export const MainLayout = ({
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { isLoggedIn, user } = useAuth(); // Get authentication status
   
   // Initialize WebSocket connection for real-time updates
   const { connect, disconnect, connectionStatus } = useDeploymentContext();
@@ -65,8 +67,9 @@ export const MainLayout = ({
     setSidebarOpen(false);
   };
 
-  // Determine if we should show the sidebar based on route
-  const shouldShowSidebar = !router.pathname.startsWith('/docs') && 
+  // Determine if we should show the sidebar based on route and authentication
+  const shouldShowSidebar = isLoggedIn && 
+                           !router.pathname.startsWith('/docs') && 
                            !router.pathname.startsWith('/chat') &&
                            !router.pathname.startsWith('/login') &&
                            !router.pathname.startsWith('/user/login');
