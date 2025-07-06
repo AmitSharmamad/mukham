@@ -6,6 +6,8 @@ interface ThemeContextType {
   color: ThemeColor;
   toggleMode: () => void;
   setThemeColor: (color: ThemeColor) => void;
+  useSystemTheme: () => void;
+  isUsingSystemTheme: boolean;
 }
 
 export const ThemeContext = createContext<ThemeContextType>({
@@ -13,25 +15,59 @@ export const ThemeContext = createContext<ThemeContextType>({
   color: 'default',
   toggleMode: () => {},
   setThemeColor: () => {},
+  useSystemTheme: () => {},
+  isUsingSystemTheme: false,
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<ThemeMode>('dark');
   const [color, setColor] = useState<ThemeColor>('default');
+  const [isUsingSystemTheme, setIsUsingSystemTheme] = useState(true);
+
+  // Function to get system theme preference
+  const getSystemTheme = (): ThemeMode => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return 'dark'; // Default fallback
+  };
 
   useEffect(() => {
     setMounted(true);
     const savedMode = localStorage.getItem('themeMode') as ThemeMode;
     const savedColor = localStorage.getItem('themeColor') as ThemeColor;
     
-    setMode(savedMode || 'dark');
+    // Check if user has manually set a theme preference
+    const hasManualPreference = savedMode !== null;
+    setIsUsingSystemTheme(!hasManualPreference);
+    
+    // Use system theme if no saved preference, otherwise use saved preference
+    const initialMode = savedMode || getSystemTheme();
+    setMode(initialMode);
     setColor(savedColor && themes.includes(savedColor) ? savedColor : 'default');
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+      // Only update if user hasn't manually set a preference
+      if (!localStorage.getItem('themeMode')) {
+        setMode(e.matches ? 'dark' : 'light');
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+
+    // Cleanup
+    return () => {
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    };
   }, []);
 
   const toggleMode = () => {
     const newMode = mode === 'dark' ? 'light' : 'dark';
     setMode(newMode);
+    setIsUsingSystemTheme(false);
     localStorage.setItem('themeMode', newMode);
   };
 
@@ -40,12 +76,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('themeColor', newColor);
   };
 
+  const useSystemTheme = () => {
+    const systemTheme = getSystemTheme();
+    setMode(systemTheme);
+    setIsUsingSystemTheme(true);
+    localStorage.removeItem('themeMode');
+  };
+
   // Create values object to maintain consistent structure
   const value = {
     mode,
     color,
     toggleMode,
-    setThemeColor
+    setThemeColor,
+    useSystemTheme,
+    isUsingSystemTheme
   };
   
   return (
