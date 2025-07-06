@@ -173,7 +173,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
         <Typography
           variant="h6"
           component={Link}
-          href="/home"
+          href="/"
           sx={{
             fontFamily: 'Arial, sans-serif',
             paddingLeft: '90px',
