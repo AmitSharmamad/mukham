@@ -124,7 +124,8 @@ interface IndicatorExpressionBuilderProps {
 const isExpressionComplete = (expression: IndicatorExpression): boolean => {
   return (
     isIndicatorComplete(expression.indicator1) &&
-    !!expression.operator &&
+    !!expression.operator && 
+    expression.operator.trim() !== '' &&
     isIndicatorComplete(expression.indicator2)
   );
 };
@@ -380,7 +381,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
       <Box sx={{ position: 'relative', width: '100%', minWidth: 200 }}>
         <TextField
           fullWidth
-          label={`Indicator ${field === 'indicator1' ? '1' : '2'}`}
+          label="Indicator"
           value={searchQuery}
           onChange={handleSearchChange(field)}
           onFocus={() => setShowIndicatorList(true)}            placeholder="Search indicators..."
@@ -1036,7 +1037,10 @@ export const IndicatorExpressionBuilder = ({
   const [aiModalOpen, setAiModalOpen] = useState(false);
   
   const isComplete = useMemo(() => {
-    if (conditions.length === 0) return isOptional;
+    // If no conditions exist, it's complete only if optional
+    if (conditions.length === 0) return isOptional === true;
+    
+    // If conditions exist, check if all are complete
     return conditions.every((condition) => {
       if (condition.isNested && condition.nestedConditions) {
         return condition.nestedConditions.every(nestedCondition => isExpressionComplete(nestedCondition));
