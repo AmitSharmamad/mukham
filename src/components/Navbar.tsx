@@ -323,47 +323,14 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                 size="large" 
                 onClick={handleProfileMenu} 
                 color="inherit"
-                sx={{ fontSize: '1.75rem' }}
+                sx={{ 
+                  fontSize: '1.75rem',
+                  width: 48,
+                  height: 48
+                }}
               >
-                <AccountCircle />
+                <AccountCircle sx={{ fontSize: '1.75rem' }} />
               </IconButton>
-              
-              <Tooltip title={isUsingSystemTheme ? `System theme (${mode})` : `${mode} mode`}>
-                <IconButton 
-                  color="inherit" 
-                  onClick={handleThemeMenuOpen} 
-                  sx={{ ml: 1 }}
-                >
-                  {isUsingSystemTheme ? <SettingsSuggestIcon /> : (currentMode ? <Brightness7Icon /> : <Brightness4Icon />)}
-                </IconButton>
-              </Tooltip>
-              
-              <Menu
-                anchorEl={themeAnchorEl}
-                open={Boolean(themeAnchorEl)}
-                onClose={handleThemeMenuClose}
-              >
-                <MenuItem 
-                  onClick={handleUseSystemTheme}
-                  sx={{ 
-                    fontWeight: isUsingSystemTheme ? 'bold' : 'normal',
-                    color: isUsingSystemTheme ? muiTheme.palette.primary.main : 'inherit'
-                  }}
-                >
-                  <SettingsSuggestIcon sx={{ mr: 1 }} />
-                  Use System Theme
-                </MenuItem>
-                <MenuItem 
-                  onClick={handleToggleThemeManual}
-                  sx={{ 
-                    fontWeight: !isUsingSystemTheme ? 'bold' : 'normal',
-                    color: !isUsingSystemTheme ? muiTheme.palette.primary.main : 'inherit'
-                  }}
-                >
-                  {currentMode ? <Brightness7Icon sx={{ mr: 1 }} /> : <Brightness4Icon sx={{ mr: 1 }} />}
-                  {currentMode ? 'Switch to Light' : 'Switch to Dark'}
-                </MenuItem>
-              </Menu>
               
               <Menu
                 anchorEl={profileAnchorEl}
@@ -383,6 +350,26 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             </>
           ) : (
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Tooltip title={isUsingSystemTheme ? `System theme (${mode})` : `${mode} mode`}>
+                <IconButton 
+                  size="large"
+                  color="inherit" 
+                  onClick={handleThemeMenuOpen} 
+                  sx={{ 
+                    fontSize: '1.75rem',
+                    width: 48,
+                    height: 48
+                  }}
+                >
+                  {isUsingSystemTheme ? 
+                    <SettingsSuggestIcon sx={{ fontSize: '1.75rem' }} /> : 
+                    (currentMode ? 
+                      <Brightness7Icon sx={{ fontSize: '1.75rem' }} /> : 
+                      <Brightness4Icon sx={{ fontSize: '1.75rem' }} />
+                    )
+                  }
+                </IconButton>
+              </Tooltip>
               <Button 
                 variant="contained"
                 size="medium"
@@ -409,6 +396,34 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
               </Button>
             </Box>
           ))}
+          
+          {/* Theme menu for all users */}
+          <Menu
+            anchorEl={themeAnchorEl}
+            open={Boolean(themeAnchorEl)}
+            onClose={handleThemeMenuClose}
+          >
+            <MenuItem 
+              onClick={handleUseSystemTheme}
+              sx={{ 
+                fontWeight: isUsingSystemTheme ? 'bold' : 'normal',
+                color: isUsingSystemTheme ? muiTheme.palette.primary.main : 'inherit'
+              }}
+            >
+              <SettingsSuggestIcon sx={{ mr: 1 }} />
+              Use System Theme
+            </MenuItem>
+            <MenuItem 
+              onClick={handleToggleThemeManual}
+              sx={{ 
+                fontWeight: !isUsingSystemTheme ? 'bold' : 'normal',
+                color: !isUsingSystemTheme ? muiTheme.palette.primary.main : 'inherit'
+              }}
+            >
+              {currentMode ? <Brightness7Icon sx={{ mr: 1 }} /> : <Brightness4Icon sx={{ mr: 1 }} />}
+              {currentMode ? 'Switch to Light' : 'Switch to Dark'}
+            </MenuItem>
+          </Menu>
         </Box>
       </Toolbar>
     </AppBar>

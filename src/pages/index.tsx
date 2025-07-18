@@ -138,33 +138,6 @@ export default function Index() {
 
   return (
     <Box>
-      {/* Theme Toggle - Always visible in top right */}
-      <Box
-        sx={{
-          position: 'fixed',
-          top: 20,
-          right: 20,
-          zIndex: 9999,
-          background: muiTheme.palette.background.paper,
-          borderRadius: '50%',
-          boxShadow: muiTheme.shadows[4],
-        }}
-      >
-        <Tooltip title={`Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`}>
-          <IconButton
-            onClick={toggleMode}
-            sx={{
-              color: muiTheme.palette.text.primary,
-              '&:hover': {
-                backgroundColor: muiTheme.palette.action.hover,
-              },
-            }}
-          >
-            {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
-        </Tooltip>
-      </Box>
-
       {/* Hero Section with Waitlist CTA */}
       <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
         <motion.div
@@ -187,6 +160,7 @@ export default function Index() {
               }}
             >
               {/* Floating background elements */}
+              {/* Green circle moved to bottom left */}
               <motion.div
                 animate={{
                   y: [0, -10, 0]
@@ -198,7 +172,7 @@ export default function Index() {
                 }}
                 style={{
                   position: 'absolute',
-                  top: '10%',
+                  bottom: '10%',
                   left: '10%',
                   width: '100px',
                   height: '100px',
@@ -207,6 +181,7 @@ export default function Index() {
                   zIndex: 1
                 }}
               />
+              {/* Red circle moved to top right */}
               <motion.div
                 animate={{
                   y: [0, 15, 0]
@@ -219,7 +194,7 @@ export default function Index() {
                 }}
                 style={{
                   position: 'absolute',
-                  top: '60%',
+                  top: '10%',
                   right: '15%',
                   width: '80px',
                   height: '80px',
@@ -228,28 +203,69 @@ export default function Index() {
                   zIndex: 1
                 }}
               />
+              {/* Bull image in the current place of green circle (top left) */}
+              <motion.div
+                animate={{
+                  y: [0, -8, 0],
+                  rotate: [0, 5, 0]
+                }}
+                transition={{
+                  duration: 3.5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '10%',
+                  left: '10%',
+                  width: '120px',
+                  height: '120px',
+                  zIndex: 2
+                }}
+              >
+                <img 
+                  src="/bull.png" 
+                  alt="Bull market indicator"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
+              </motion.div>
+              {/* Bear image in the current place of red circle (middle right) */}
+              <motion.div
+                animate={{
+                  y: [0, 12, 0],
+                  rotate: [0, -3, 0]
+                }}
+                transition={{
+                  duration: 4.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.8
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '60%',
+                  right: '15%',
+                  width: '100px',
+                  height: '100px',
+                  zIndex: 2
+                }}
+              >
+                <img 
+                  src="/bear.png" 
+                  alt="Bear market indicator"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
+              </motion.div>
               
               <Box sx={{ position: 'relative', zIndex: 2 }}>
-                <motion.div variants={fadeInUp}>
-                  <Box sx={{ mb: 2 }}>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Chip 
-                        label="Join Early Access 🚀"
-                        sx={{ 
-                          bgcolor: 'primary.main',
-                          color: 'primary.contrastText',
-                          fontSize: '1rem',
-                          px: 2,
-                          py: 1
-                        }} 
-                      />
-                    </motion.div>
-                  </Box>
-                </motion.div>
-                
                 <motion.div variants={fadeInUp}>
                   <Typography 
                     variant="h1" 
