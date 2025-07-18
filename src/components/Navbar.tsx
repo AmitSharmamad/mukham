@@ -191,102 +191,74 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
         
         <Box sx={{ 
           display: 'flex', 
-          gap: 2,
           flexGrow: 1,
-          justifyContent: 'center',
-          paddingLeft: '70px'
+          justifyContent: 'space-between',
+          alignItems: 'center'
         }}>
-          {/* Home - Only show for authenticated users */}
-          {authStatus && (
+          {/* Left side - Home and Deployment for authenticated users */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2,
+            minWidth: 'fit-content'
+          }}>
+            {/* Home - Only show for authenticated users */}
+            {authStatus && (
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/home"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Home
+              </Button>
+            )}
+
+            {/* Deployment - Only show for authenticated users */}
+            {authStatus && (
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/deployment"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Deployment
+              </Button>
+            )}
+          </Box>
+
+          {/* Center - Strategy and Docs always visible */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 4,
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)'
+          }}>
+            {/* Strategy - Always visible */}
             <Button 
               color="inherit" 
               component={Link} 
-              href="/home"
+              href="/strategy"
               sx={{ fontSize: '1.1rem' }}
             >
-              Home
+              Strategy
             </Button>
-          )}
 
-          {/* Strategy - Always visible */}
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/strategy"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Strategy
-          </Button>
-
-          {/* Deployment - Only show for authenticated users */}
-          {authStatus && (
+            {/* Docs - Always visible */}
             <Button 
               color="inherit" 
               component={Link} 
-              href="/deployment"
+              href="/docs"
               sx={{ fontSize: '1.1rem' }}
             >
-              Deployment
+              Docs
             </Button>
-          )}
+          </Box>
 
-          {/* Scanners as a direct link */}
-          {/* <Button 
-            color="inherit" 
-            component={Link} 
-            href="/scanners"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Scanners
-          </Button> */}
-
-          {/* Community */}
-          {/* <Button 
-            color="inherit" 
-            component={Link} 
-            href="/community"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Community
-          </Button> */}
-
-          {/* Marketplace */}
-          {/* <Button 
-            color="inherit" 
-            component={Link} 
-            href="/marketplace"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Marketplace
-          </Button> */}
-
-          {/* Maruti (Chat) */}
-          {/* <Button 
-            color="inherit" 
-            component={Link} 
-            href="/chat"
-            sx={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <Avatar sx={{ width: 24, height: 24 }}>
-              <Image 
-                src="/hanuman.jpg" 
-                alt="Maruti" 
-                width={24} 
-                height={24} 
-              />
-            </Avatar>
-            Maruti
-          </Button> */}
-
-          {/* Docs - Always visible */}
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/docs"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Docs
-          </Button>
+          {/* Right side - Empty for now, could add more items later */}
+          <Box sx={{ minWidth: 'fit-content' }}>
+            {/* Reserved for future navigation items */}
+          </Box>
         </Box>
         
         <Box sx={{ 

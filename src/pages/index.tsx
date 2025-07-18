@@ -12,26 +12,27 @@ import {
   Lightbulb as LightBulbIcon,
   Memory as CpuChipIcon,
   Brightness4 as Brightness4Icon,
-  Brightness7 as Brightness7Icon
+  Brightness7 as Brightness7Icon,
+  People as PeopleIcon
 } from '@mui/icons-material';
 import { useTheme } from '../context/ThemeContext';
 
 const tradingTypes = [
   {
     title: 'Equity',
-    description: 'Trade stocks and shares with automated strategies. Perfect for long-term investing and day trading with advanced technical indicators.',
+    description: 'Trade stocks with automated strategies. Perfect for momentum trading and day trading with advanced technical indicators.',
     icon: TrendingUpIcon,
     color: '#4CAF50'
   },
   {
     title: 'F&O',
-    description: 'Futures & Options trading with high leverage. Execute complex strategies with precision timing and risk management.',
+    description: 'Futures & Options trading with high accuracy. Execute complex strategies with precision timing and risk management.',
     icon: BarChartIcon,
     color: '#FF9800'
   },
   {
     title: 'Commodities',
-    description: 'Trade commodities like gold, silver, oil, and agricultural products with sophisticated algorithmic strategies.',
+    description: 'Trade commodities like Gold, Silver, Crude Oil, and Natural Gas with sophisticated algorithmic strategies.',
     icon: ShieldCheckIcon,
     color: '#2196F3'
   }
@@ -73,7 +74,7 @@ const algoTradingBenefits = [
 const features = [
   {
     title: 'No Code Builder',
-    description: 'Create sophisticated trading strategies without writing a single line of code. Use our intuitive drag-and-drop interface to build complex logic.',
+    description: 'Create sophisticated trading strategies without writing a single line of code. Use our intuitive interface to build complex logic.',
     icon: CodeIcon,
     color: '#9C27B0'
   },
@@ -91,9 +92,10 @@ const features = [
   },
   {
     title: 'Live Trading',
-    description: 'Deploy your proven strategies to trade automatically in real-time. Monitor performance and adjust parameters on the fly.',
+    description: 'Deploy your proven strategies to trade automatically in real-time.',
     icon: RocketLaunchIcon,
-    color: '#4CAF50'
+    color: '#4CAF50',
+    comingSoon: true
   },
   {
     title: 'Scanners',
@@ -104,9 +106,16 @@ const features = [
   },
   {
     title: 'Marketplace',
-    description: 'Access a marketplace of proven strategies created by professional traders and quantitative analysts.',
+    description: 'Access a marketplace of proven strategies created by SEBI registered research analysts.',
     icon: ShieldCheckIcon,
     color: '#FF9800',
+    comingSoon: true
+  },
+  {
+    title: 'Community',
+    description: 'Connect with fellow traders, share insights, and learn from experienced algorithmic trading professionals.',
+    icon: PeopleIcon,
+    color: '#673AB7',
     comingSoon: true
   }
 ];
@@ -139,7 +148,7 @@ export default function Index() {
   return (
     <Box>
       {/* Hero Section with Waitlist CTA */}
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
           initial="initial"
           animate="animate"
@@ -362,7 +371,7 @@ export default function Index() {
       </Container>
 
       {/* Why Algo Trading Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
             initial="initial"
             whileInView="animate"
@@ -439,8 +448,14 @@ export default function Index() {
                           fontSize: '0.9rem',
                           px: 2,
                           py: 1,
+                          minHeight: '36px',
+                          height: 'auto',
                           '& .MuiChip-label': {
-                            fontWeight: 900
+                            fontWeight: 900,
+                            whiteSpace: 'normal',
+                            textAlign: 'center',
+                            lineHeight: 1.2,
+                            padding: '4px 8px'
                           }
                         }}
                       />
@@ -463,7 +478,7 @@ export default function Index() {
         </Container>
 
       {/* Trading Types Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
             initial="initial"
             whileInView="animate"
@@ -504,6 +519,9 @@ export default function Index() {
                           borderColor: `${type.color}20`,
                           borderRadius: 3,
                           transition: 'all 0.3s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          minHeight: '400px',
                           '&:hover': {
                             transform: 'translateY(-8px)',
                             boxShadow: `0 20px 40px ${type.color}30`,
@@ -550,7 +568,13 @@ export default function Index() {
                           gutterBottom
                           sx={{ 
                             fontWeight: 'bold',
-                            color: type.color
+                            color: type.color,
+                            fontSize: '1.5rem',
+                            minHeight: '2em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textAlign: 'center'
                           }}
                         >
                           {type.title}
@@ -559,7 +583,12 @@ export default function Index() {
                         <Typography 
                           variant="body1" 
                           color="text.secondary"
-                          sx={{ lineHeight: 1.6 }}
+                          sx={{ 
+                            lineHeight: 1.6,
+                            flexGrow: 1,
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
                         >
                           {type.description}
                         </Typography>
@@ -573,7 +602,7 @@ export default function Index() {
         </Container>
 
       {/* Platform Features Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
             initial="initial"
             whileInView="animate"
@@ -699,7 +728,7 @@ export default function Index() {
         </Container>
 
       {/* Call to Action Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
             initial="initial"
             whileInView="animate"
