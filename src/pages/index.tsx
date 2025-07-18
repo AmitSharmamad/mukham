@@ -242,16 +242,28 @@ export default function Index() {
                   left: '10%',
                   width: '120px',
                   height: '120px',
-                  zIndex: 2
+                  zIndex: 2,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(56, 142, 60, 0.3))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid rgba(76, 175, 80, 0.4)',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 8px 24px rgba(76, 175, 80, 0.2)'
                 }}
               >
                 <img 
-                  src="/bull.png" 
+                  src="/bull.jpeg" 
                   alt="Bull market indicator"
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain'
+                    width: '80%',
+                    height: '80%',
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3)) saturate(1.5) contrast(2) brightness(0.9) hue-rotate(10deg)',
+                    background: 'transparent',
+                    mixBlendMode: 'screen',
+                    opacity: 0.95
                   }}
                 />
               </motion.div>
