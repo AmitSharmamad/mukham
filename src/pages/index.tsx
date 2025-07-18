@@ -71,6 +71,19 @@ const algoTradingBenefits = [
   }
 ];
 
+const optionsTradingBenefits = [
+  {
+    title: 'Conditional Based',
+    description: 'Execute options strategies based on sophisticated market conditions and technical indicators',
+    color: '#673AB7'
+  },
+  {
+    title: 'Time Based',
+    description: 'Automate options trading with precise time-based execution for optimal theta decay management',
+    color: '#E91E63'
+  }
+];
+
 const features = [
   {
     title: 'No Code Builder',
@@ -477,130 +490,6 @@ export default function Index() {
           </motion.div>
         </Container>
 
-      {/* Trading Types Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
-        <motion.div
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={staggerContainer}
-          >
-            <motion.div variants={fadeInUp}>
-              <Typography 
-                variant="h3" 
-                component="h2" 
-                gutterBottom 
-                align="center" 
-                sx={{ 
-                  mb: 6,
-                  fontWeight: 'bold',
-                  color: 'primary.main'
-                }}
-              >
-                Trade Across All Markets
-              </Typography>
-            </motion.div>
-            
-            <Grid container spacing={4}>
-              {tradingTypes.map((type, index) => (
-                <Grid item xs={12} md={4} key={index}>
-                  <motion.div
-                    variants={fadeInUp}
-                    whileHover="hover"
-                  >
-                    <motion.div variants={scaleOnHover}>
-                      <Card 
-                        sx={{ 
-                          height: '100%',
-                          p: 4,
-                          textAlign: 'center',
-                          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-                          border: '1px solid',
-                          borderColor: `${type.color}20`,
-                          borderRadius: 3,
-                          transition: 'all 0.3s ease',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          minHeight: '400px',
-                          '&:hover': {
-                            transform: 'translateY(-8px)',
-                            boxShadow: `0 20px 40px ${type.color}30`,
-                            borderColor: `${type.color}40`
-                          }
-                        }}
-                      >
-                        <motion.div
-                          animate={{ 
-                            rotate: [0, 5, -5, 0],
-                          }}
-                          transition={{ 
-                            duration: 4,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                            delay: index * 0.5
-                          }}
-                        >
-                          <Box 
-                            sx={{ 
-                              width: 80,
-                              height: 80,
-                              borderRadius: '50%',
-                              bgcolor: `${type.color}20`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              mx: 'auto',
-                              mb: 3
-                            }}
-                          >
-                            <type.icon 
-                              sx={{ 
-                                fontSize: 40,
-                                color: type.color
-                              }} 
-                            />
-                          </Box>
-                        </motion.div>
-                        
-                        <Typography 
-                          variant="h5" 
-                          component="h3" 
-                          gutterBottom
-                          sx={{ 
-                            fontWeight: 'bold',
-                            color: type.color,
-                            fontSize: '1.5rem',
-                            minHeight: '2em',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            textAlign: 'center'
-                          }}
-                        >
-                          {type.title}
-                        </Typography>
-                        
-                        <Typography 
-                          variant="body1" 
-                          color="text.secondary"
-                          sx={{ 
-                            lineHeight: 1.6,
-                            flexGrow: 1,
-                            display: 'flex',
-                            alignItems: 'center'
-                          }}
-                        >
-                          {type.description}
-                        </Typography>
-                      </Card>
-                    </motion.div>
-                  </motion.div>
-                </Grid>
-              ))}
-            </Grid>
-          </motion.div>
-        </Container>
-
       {/* Platform Features Section */}
       <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
@@ -727,6 +616,237 @@ export default function Index() {
           </motion.div>
         </Container>
 
+      {/* Trading Types Section */}
+      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+        <motion.div
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={staggerContainer}
+          >
+            <motion.div variants={fadeInUp}>
+              <Typography 
+                variant="h3" 
+                component="h2" 
+                gutterBottom 
+                align="center" 
+                sx={{ 
+                  mb: 6,
+                  fontWeight: 'bold',
+                  color: 'primary.main'
+                }}
+              >
+                Trade Across All Markets
+              </Typography>
+            </motion.div>
+            
+            <Grid container spacing={4}>
+              {tradingTypes.map((type, index) => (
+                <Grid item xs={12} md={4} key={index}>
+                  <motion.div
+                    variants={fadeInUp}
+                    whileHover="hover"
+                  >
+                    <motion.div variants={scaleOnHover}>
+                      <Card 
+                        sx={{ 
+                          height: '100%',
+                          p: 4,
+                          textAlign: 'center',
+                          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                          border: '1px solid',
+                          borderColor: `${type.color}20`,
+                          borderRadius: 3,
+                          transition: 'all 0.3s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          minHeight: '400px',
+                          '&:hover': {
+                            transform: 'translateY(-8px)',
+                            boxShadow: `0 20px 40px ${type.color}30`,
+                            borderColor: `${type.color}40`
+                          }
+                        }}
+                      >
+                        <motion.div
+                          animate={{ 
+                            rotate: [0, 5, -5, 0],
+                          }}
+                          transition={{ 
+                            duration: 4,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: index * 0.5
+                          }}
+                        >
+                          <Box 
+                            sx={{ 
+                              width: 80,
+                              height: 80,
+                              borderRadius: '50%',
+                              bgcolor: `${type.color}20`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mx: 'auto',
+                              mb: 3
+                            }}
+                          >
+                            <type.icon 
+                              sx={{ 
+                                fontSize: 40,
+                                color: type.color
+                              }} 
+                            />
+                          </Box>
+                        </motion.div>
+                        
+                        <Typography 
+                          variant="h5" 
+                          component="h3" 
+                          gutterBottom
+                          sx={{ 
+                            fontWeight: 'bold',
+                            color: type.color,
+                            fontSize: '1.5rem',
+                            minHeight: '2em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textAlign: 'center'
+                          }}
+                        >
+                          {type.title}
+                        </Typography>
+                        
+                        <Typography 
+                          variant="body1" 
+                          color="text.secondary"
+                          sx={{ 
+                            lineHeight: 1.6,
+                            flexGrow: 1,
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          {type.description}
+                        </Typography>
+                      </Card>
+                    </motion.div>
+                  </motion.div>
+                </Grid>
+              ))}
+            </Grid>
+          </motion.div>
+        </Container>
+
+      {/* Trade your favourite Options Section */}
+      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+        <motion.div
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={staggerContainer}
+          >
+            <motion.div variants={fadeInUp}>
+              <Typography 
+                variant="h3" 
+                component="h2" 
+                gutterBottom 
+                align="center" 
+                sx={{ 
+                  mb: 6,
+                  fontWeight: 'bold',
+                  color: 'primary.main'
+                }}
+              >
+                Trade your favourite Options
+              </Typography>
+            </motion.div>
+            
+            <motion.div variants={fadeInUp}>
+              <Typography 
+                variant="h6" 
+                align="center"
+                sx={{ 
+                  mb: 6,
+                  maxWidth: '800px',
+                  mx: 'auto',
+                  lineHeight: 1.6,
+                  color: 'text.secondary'
+                }}
+              >
+                Maximize your options trading potential with automated strategies designed for the options market. 
+                Whether you're trading intraday or managing multi-day positions, our platform provides the tools 
+                you need for sophisticated options trading.
+              </Typography>
+            </motion.div>
+            
+            <Grid container spacing={4}>
+              {optionsTradingBenefits.map((benefit, index) => (
+                <Grid item xs={12} sm={6} key={index}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1, duration: 0.5 }}
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <Box
+                      sx={{
+                        textAlign: 'center',
+                        p: 4,
+                        height: '100%',
+                        borderRadius: 3,
+                        border: '1px solid',
+                        borderColor: `${benefit.color}20`,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: `0 12px 24px ${benefit.color}20`,
+                          borderColor: `${benefit.color}40`
+                        }
+                      }}
+                    >
+                      <Chip
+                        label={benefit.title}
+                        sx={{
+                          bgcolor: `${benefit.color}20`,
+                          color: benefit.color,
+                          fontWeight: 900,
+                          mb: 2,
+                          fontSize: '0.9rem',
+                          px: 2,
+                          py: 1,
+                          minHeight: '36px',
+                          height: 'auto',
+                          '& .MuiChip-label': {
+                            fontWeight: 900,
+                            whiteSpace: 'normal',
+                            textAlign: 'center',
+                            lineHeight: 1.2,
+                            padding: '4px 8px'
+                          }
+                        }}
+                      />
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: '0.95rem',
+                          color: 'text.secondary',
+                          lineHeight: 1.5
+                        }}
+                      >
+                        {benefit.description}
+                      </Typography>
+                    </Box>
+                  </motion.div>
+                </Grid>
+              ))}
+            </Grid>
+          </motion.div>
+        </Container>
+
       {/* Call to Action Section */}
       <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
@@ -795,7 +915,7 @@ export default function Index() {
                         lineHeight: 1.6
                       }}
                     >
-                      Join thousands of traders who are already using सूत्रम् to automate their trading strategies. 
+                      Join thousands of traders who are already using Sutram to automate their trading strategies. 
                       Get early access to our revolutionary platform and start building your financial future today.
                     </Typography>
                   </motion.div>
