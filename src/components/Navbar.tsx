@@ -196,17 +196,19 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
           justifyContent: 'center',
           paddingLeft: '70px'
         }}>
-          {/* Home */}
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/home"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Home
-          </Button>
+          {/* Home - Only show for authenticated users */}
+          {authStatus && (
+            <Button 
+              color="inherit" 
+              component={Link} 
+              href="/home"
+              sx={{ fontSize: '1.1rem' }}
+            >
+              Home
+            </Button>
+          )}
 
-          {/* Strategy */}
+          {/* Strategy - Always visible */}
           <Button 
             color="inherit" 
             component={Link} 
@@ -216,15 +218,17 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             Strategy
           </Button>
 
-          {/* Deployment */}
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/deployment"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Deployment
-          </Button>
+          {/* Deployment - Only show for authenticated users */}
+          {authStatus && (
+            <Button 
+              color="inherit" 
+              component={Link} 
+              href="/deployment"
+              sx={{ fontSize: '1.1rem' }}
+            >
+              Deployment
+            </Button>
+          )}
 
           {/* Scanners as a direct link */}
           {/* <Button 
@@ -274,7 +278,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             Maruti
           </Button> */}
 
-          {/* Docs */}
+          {/* Docs - Always visible */}
           <Button 
             color="inherit" 
             component={Link} 

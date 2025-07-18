@@ -23,6 +23,7 @@
     "critters": "^0.0.23",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "framer-motion": "^12.23.6",
     "jsonwebtoken": "^9.0.2",
     "lightweight-charts": "^5.0.7",
     "next": "latest",
