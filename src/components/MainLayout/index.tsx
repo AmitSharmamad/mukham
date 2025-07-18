@@ -78,13 +78,7 @@ export const MainLayout = ({
     <Box sx={{ 
       display: 'flex', 
       flexDirection: 'column', 
-      minHeight: '100vh', 
-      overflow: 'hidden',
-      '&::-webkit-scrollbar': {
-        display: 'none',
-      },
-      scrollbarWidth: 'none',
-      msOverflowStyle: 'none',
+      minHeight: '100vh',
     }}>
       {/* Use the updated Navbar component */}
       <Navbar 
@@ -92,7 +86,7 @@ export const MainLayout = ({
         isDarkMode={isDarkMode}
       />
       
-      <Box sx={{ display: 'flex', flex: 1, position: 'relative' }}>
+      <Box sx={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden' }}>
         {/* Deployment Sidebar */}
         {shouldShowSidebar && (
           <DeploymentSidebar
@@ -138,29 +132,43 @@ export const MainLayout = ({
           </Box>
         )}
 
-        {/* Main Content */}
-        <Container 
-          component="main" 
-          maxWidth="lg"
+        {/* Main Content with Scroll */}
+        <Box
           sx={{ 
             flex: 1, 
-            py: 4, 
-            mt: 8, 
-            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '85px' : 'auto',
-            mr: shouldShowSidebar && sidebarOpen && !isMobile ? '85px' : 'auto',
-            transition: theme.transitions.create(['margin-left', 'margin-right'], {
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'auto',
+            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '340px' : 0,
+            transition: theme.transitions.create('margin-left', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
             }),
-            overflow: 'auto',
-            maxHeight: 'calc(100vh - 64px)',
-            display: 'flex',
-            flexDirection: 'column',
-            width: shouldShowSidebar && sidebarOpen && !isMobile ? 'calc(100% - 170px)' : '100%', // Adjust width when sidebar is open
+            '&::-webkit-scrollbar': {
+              display: 'none',
+            },
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
           }}
         >
-          {children}
-        </Container>
+          {/* Main Content */}
+          <Box sx={{ flex: 1 }}>
+            <Container 
+              component="main" 
+              maxWidth="lg"
+              sx={{ 
+                py: 4, 
+                mt: 8,
+                minHeight: 'calc(100vh - 64px - 200px)', // Ensure minimum height minus navbar and footer space
+              }}
+            >
+              {children}
+            </Container>
+          </Box>
+          
+          {/* Footer - positioned at the end of content */}
+          <Footer />
+        </Box>
       </Box>
       
       {/* PWA Install Prompt */}
