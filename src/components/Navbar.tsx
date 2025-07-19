@@ -169,15 +169,15 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
         zIndex: muiTheme.zIndex.drawer + 1
       }}
     >
-      <Toolbar>
+      <Toolbar sx={{ position: 'relative' }}>
         <Typography
           variant="h6"
           component={Link}
           href="/"
           sx={{
             fontFamily: 'Arial, sans-serif',
-            paddingLeft: '90px',
-            paddingRight: '20px',
+            paddingLeft: '32px', // Increased from 16px to move more to the right
+            paddingRight: '16px',
             fontSize: '1.5rem',
             textDecoration: 'none',
             color: 'inherit'
@@ -186,23 +186,26 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
           सूत्रम्
         </Typography>
         
-        {/* Live Clock */}
-        <LiveClock color="green" fontSize="1.1rem" />
+        {/* Spacer to push right content to the right */}
+        <Box sx={{ flexGrow: 1 }} />
         
+        {/* Centered Navigation - Absolute positioned to center */}
         <Box sx={{ 
-          display: 'flex', 
-          flexGrow: 1,
-          justifyContent: 'space-between',
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
           alignItems: 'center'
         }}>
-          {/* Left side - Home and Deployment for authenticated users */}
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 2,
-            minWidth: 'fit-content'
-          }}>
-            {/* Home - Only show for authenticated users */}
-            {authStatus && (
+          {/* Center - Navigation items for authenticated users */}
+          {authStatus && (
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 4,
+              alignItems: 'center',
+              whiteSpace: 'nowrap'
+            }}>
+              {/* Home */}
               <Button 
                 color="inherit" 
                 component={Link} 
@@ -211,10 +214,18 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
               >
                 Home
               </Button>
-            )}
 
-            {/* Deployment - Only show for authenticated users */}
-            {authStatus && (
+              {/* Strategy */}
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/strategy"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Strategy
+              </Button>
+
+              {/* Deployment */}
               <Button 
                 color="inherit" 
                 component={Link} 
@@ -223,52 +234,62 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
               >
                 Deployment
               </Button>
-            )}
-          </Box>
 
-          {/* Center - Strategy and Docs always visible */}
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 4,
-            position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)'
-          }}>
-            {/* Strategy - Always visible */}
-            <Button 
-              color="inherit" 
-              component={Link} 
-              href="/strategy"
-              sx={{ fontSize: '1.1rem' }}
-            >
-              Strategy
-            </Button>
+              {/* Docs */}
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/docs"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Docs
+              </Button>
+            </Box>
+          )}
 
-            {/* Docs - Always visible */}
-            <Button 
-              color="inherit" 
-              component={Link} 
-              href="/docs"
-              sx={{ fontSize: '1.1rem' }}
-            >
-              Docs
-            </Button>
-          </Box>
+          {/* Center - Strategy and Docs for non-authenticated users */}
+          {!authStatus && (
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 4,
+              alignItems: 'center',
+              whiteSpace: 'nowrap'
+            }}>
+              {/* Strategy - Show for non-authenticated users */}
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/strategy"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Strategy
+              </Button>
 
-          {/* Right side - Empty for now, could add more items later */}
-          <Box sx={{ minWidth: 'fit-content' }}>
-            {/* Reserved for future navigation items */}
-          </Box>
+              {/* Docs - Show for non-authenticated users */}
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/docs"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Docs
+              </Button>
+            </Box>
+          )}
         </Box>
         
         <Box sx={{ 
-          paddingLeft: '72px',
-          paddingRight: '72px', 
+          paddingLeft: '8px',
+          paddingRight: '24px', 
           display: 'flex',
-          alignItems: 'center'
+          alignItems: 'center',
+          gap: 2 // Add gap between clock and other elements
         }}>
           {!loading && (authStatus ? (
             <>
+              {/* Live Clock - moved here to be before profile icon */}
+              <LiveClock color="green" fontSize="1.1rem" />
+              
               {/* Options - Coming Soon Banner */}
               {/* <Typography
                 variant="body2"
@@ -322,6 +343,9 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             </>
           ) : (
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              {/* Live Clock - also show for non-authenticated users */}
+              <LiveClock color="green" fontSize="1.1rem" />
+              
               <Tooltip title={isUsingSystemTheme ? `System theme (${mode})` : `${mode} mode`}>
                 <IconButton 
                   size="large"
