@@ -1,8 +1,7 @@
 // filepath: /Users/amit/workspace/mukham/src/components/MainLayout/index.tsx
-import { useState, useEffect } from 'react';
-import { Box, Container, IconButton, useMediaQuery, Tooltip } from '@mui/material';
+import { useEffect } from 'react';
+import { Box, Container, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Menu as MenuIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { Footer } from '../Footer';
 import Navbar from '../Navbar';
@@ -28,7 +27,6 @@ export const MainLayout = ({
   onChangeThemeColor,
   currentTheme 
 }: MainLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Changed to true to keep it open by default
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -36,12 +34,6 @@ export const MainLayout = ({
   
   // Initialize WebSocket connection for real-time updates
   const { connect, disconnect, connectionStatus } = useDeploymentContext();
-
-  // Effect to handle initial sidebar state based on screen size
-  useEffect(() => {
-    // Keep sidebar open by default on all screen sizes
-    setSidebarOpen(true);
-  }, [isMobile]);
 
   // Connect to WebSocket when component mounts
   useEffect(() => {
@@ -59,20 +51,8 @@ export const MainLayout = ({
     console.log(`🔗 MainLayout: WebSocket connection status: ${connectionStatus}`);
   }, [connectionStatus]);
 
-  const handleSidebarToggle = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const handleSidebarClose = () => {
-    setSidebarOpen(false);
-  };
-
   // Determine if we should show the sidebar based on route and authentication
-  const shouldShowSidebar = isLoggedIn && 
-                           !router.pathname.startsWith('/docs') && 
-                           !router.pathname.startsWith('/chat') &&
-                           !router.pathname.startsWith('/login') &&
-                           !router.pathname.startsWith('/user/login');
+  const shouldShowSidebar = false; // Hidden for all pages
 
   return (
     <Box sx={{ 
@@ -90,46 +70,12 @@ export const MainLayout = ({
         {/* Deployment Sidebar */}
         {shouldShowSidebar && (
           <DeploymentSidebar
-            open={sidebarOpen}
-            onClose={handleSidebarClose}
-            onToggle={handleSidebarToggle}
-            variant={isMobile ? 'temporary' : 'persistent'}
+            open={true}
+            onClose={() => {}}
+            onToggle={() => {}}
+            variant="persistent"
             anchor="left"
           />
-        )}
-
-        {/* Floating Burger Menu - positioned just outside the left nav */}
-        {shouldShowSidebar && (
-          <Box
-            sx={{
-              position: 'fixed',
-              top: 76,
-              left: sidebarOpen && !isMobile ? 352 : 16, // Position just outside the sidebar (340px + 12px margin)
-              zIndex: theme.zIndex.drawer + 2,
-              transition: theme.transitions.create('left', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
-            }}
-          >
-            <Tooltip title={sidebarOpen ? "Hide Deployments" : "Show Active Deployments"}>
-              <IconButton
-                onClick={handleSidebarToggle}
-                sx={{
-                  backgroundColor: theme.palette.background.paper,
-                  boxShadow: theme.shadows[3],
-                  width: 40,
-                  height: 40,
-                  '&:hover': {
-                    backgroundColor: theme.palette.action.hover,
-                  },
-                  border: `1px solid ${theme.palette.divider}`,
-                }}
-              >
-                <MenuIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
         )}
 
         {/* Main Content with Scroll */}
@@ -139,7 +85,7 @@ export const MainLayout = ({
             display: 'flex',
             flexDirection: 'column',
             overflow: 'auto',
-            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '340px' : 0,
+            ml: shouldShowSidebar && !isMobile ? '80px' : 0,
             transition: theme.transitions.create('margin-left', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,

@@ -108,7 +108,7 @@ export default function Docs() {
               fontWeight: 400,
             }}
           >
-            Everything you need to know about using सूत्रम् - Your algo trading companion
+            Everything you need to know about using Sutram - Your algo trading companion
           </Typography>
         </Box>
       </Paper>
