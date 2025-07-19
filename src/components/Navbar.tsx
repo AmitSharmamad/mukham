@@ -148,11 +148,14 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
   };
 
   const handleLoginClick = () => {
-    // Store the current URL to redirect back after login
+    // Store the current URL to redirect back after login, default to /home
     if (typeof window !== 'undefined') {
       const currentPath = Router.pathname;
       if (currentPath !== '/login') {
         sessionStorage.setItem('redirectAfterLogin', currentPath);
+      } else {
+        // If already on login page, set home as redirect
+        sessionStorage.setItem('redirectAfterLogin', '/home');
       }
     }
     Router.push('/login');

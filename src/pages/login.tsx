@@ -40,7 +40,9 @@ export default function LoginPage() {
       try {
         // If we're already logged in according to our state, just redirect
         if (isLoggedIn) {
-          const returnUrl = router.query.returnUrl as string || '/home';
+          const redirectAfterLogin = sessionStorage.getItem('redirectAfterLogin');
+          const returnUrl = router.query.returnUrl as string || redirectAfterLogin || '/home';
+          sessionStorage.removeItem('redirectAfterLogin'); // Clean up
           router.replace(returnUrl);
           return; // Exit early after redirect
         }
@@ -50,7 +52,9 @@ export default function LoginPage() {
           
         if (isAuth) {
           // Redirect to home if user is already logged in
-          const returnUrl = router.query.returnUrl as string || '/home';
+          const redirectAfterLogin = sessionStorage.getItem('redirectAfterLogin');
+          const returnUrl = router.query.returnUrl as string || redirectAfterLogin || '/home';
+          sessionStorage.removeItem('redirectAfterLogin'); // Clean up
           router.replace(returnUrl);
         }
       } finally {
@@ -65,8 +69,11 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     // Store the return URL if available
     const returnUrl = router.query.returnUrl as string;
-    if (returnUrl) {
-      localStorage.setItem('returnUrl', returnUrl);
+    const redirectAfterLogin = sessionStorage.getItem('redirectAfterLogin');
+    const finalRedirectUrl = returnUrl || redirectAfterLogin || '/home';
+    
+    if (finalRedirectUrl) {
+      localStorage.setItem('returnUrl', finalRedirectUrl);
     }
     
     window.location.href = '/api/auth/google/login';
