@@ -312,7 +312,7 @@ export default function Index() {
                       color: 'text.primary'
                     }}
                   >
-                    Sutram - Algo Trading
+                    Sutram - Algo Trading 
                   </Typography>
                 </motion.div>
                 
@@ -367,7 +367,7 @@ export default function Index() {
                           borderRadius: 3
                         }}
                       >
-                        Join Waitlist
+                        Join Waitlist 🚀
                       </Button>
                     </motion.div>
                     
@@ -415,7 +415,7 @@ export default function Index() {
                   color: 'primary.main'
                 }}
               >
-                Why Algo Trading?
+                Key Benefits
               </Typography>
             </motion.div>
             
@@ -522,7 +522,7 @@ export default function Index() {
                   color: 'primary.main'
                 }}
               >
-                Why Sutram?
+                Unleash your potential with
               </Typography>
             </motion.div>
             
@@ -648,7 +648,7 @@ export default function Index() {
                   color: 'primary.main'
                 }}
               >
-                Trade Across All Markets
+                Multiple Segments
               </Typography>
             </motion.div>
             
@@ -927,7 +927,6 @@ export default function Index() {
                         lineHeight: 1.6
                       }}
                     >
-                      Join thousands of traders who are already using Sutram to automate their trading strategies. 
                       Get early access to our revolutionary platform and start building your financial future today.
                     </Typography>
                   </motion.div>
@@ -967,7 +966,7 @@ export default function Index() {
                             borderRadius: 3
                           }}
                         >
-                          🚀 Join Waitlist Now 🚀
+                          Join Waitlist Now 🚀
                         </Button>
                       </motion.div>
                       
