@@ -1,0 +1,237 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Sutram Mukham Service on ECS'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+  ProjectName:
+    Type: String
+    Default: sutram
+  CPU:
+    Type: Number
+    Default: 512
+  Memory:
+    Type: Number
+    Default: 1024
+  MukhamPort:
+    Type: Number
+    Default: 3000
+  ImageTag:
+    Type: String
+    Default: latest
+  NodeEnv:
+    Type: String
+    Default: production
+    AllowedValues: [development, production]
+
+Resources:
+  # Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-mukham-alb"
+      Scheme: internet-facing
+      Type: application
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Subnets:
+        - Fn::ImportValue: !Sub "${ProjectName}-${Environment}-public-subnet-1-id"
+        - Fn::ImportValue: !Sub "${ProjectName}-${Environment}-public-subnet-2-id"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-mukham-alb"
+
+  # Security Group for ALB
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Mukham Application Load Balancer
+      VpcId:
+        Fn::ImportValue: !Sub "${ProjectName}-${Environment}-vpc-id"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-mukham-alb-sg"
+
+  # Target Group
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-mukham-tg"
+      Port: !Ref MukhamPort
+      Protocol: HTTP
+      TargetType: ip
+      VpcId:
+        Fn::ImportValue: !Sub "${ProjectName}-${Environment}-vpc-id"
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 30
+
+  # Listener
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  # Update ECS Security Group to allow ALB traffic
+  ECSSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId:
+        Fn::ImportValue: !Sub "${ProjectName}-${Environment}-ecs-sg-id"
+      IpProtocol: tcp
+      FromPort: !Ref MukhamPort
+      ToPort: !Ref MukhamPort
+      SourceSecurityGroupId: !Ref ALBSecurityGroup
+
+  # CloudWatch Log Group
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${ProjectName}-${Environment}-mukham"
+      RetentionInDays: !If [IsProd, 30, 7]
+
+  # ECS Task Definition
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-${Environment}-mukham"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: !Ref CPU
+      Memory: !Ref Memory
+      ExecutionRoleArn:
+        Fn::ImportValue: !Sub "${ProjectName}-${Environment}-ecs-execution-role-arn"
+      TaskRoleArn:
+        Fn::ImportValue: !Sub "${ProjectName}-${Environment}-ecs-task-role-arn"
+      ContainerDefinitions:
+        - Name: mukham
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ProjectName}-${Environment}-mukham:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: !Ref MukhamPort
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: !Ref NodeEnv
+            - Name: PORT
+              Value: !Ref MukhamPort
+            - Name: ENVIRONMENT
+              Value: !Ref Environment
+            - Name: NEXT_PUBLIC_API_URL
+              Value: !Sub "http://${ApplicationLoadBalancer.DNSName}"
+            - Name: DB_HOST
+              Value:
+                Fn::ImportValue: !Sub "${ProjectName}-${Environment}-db-endpoint"
+            - Name: DB_PORT
+              Value:
+                Fn::ImportValue: !Sub "${ProjectName}-${Environment}-db-port"
+            - Name: DATABASE_URL
+              Value: !Sub 
+                - "postgresql://${DBUsername}:${DBPassword}@${DBEndpoint}:${DBPort}/${DBName}?sslmode=require"
+                - DBUsername: 
+                    Fn::ImportValue: !Sub "${ProjectName}-${Environment}-db-username"
+                  DBPassword: 
+                    Fn::ImportValue: !Sub "${ProjectName}-${Environment}-db-password"
+                  DBEndpoint: 
+                    Fn::ImportValue: !Sub "${ProjectName}-${Environment}-db-endpoint"
+                  DBPort: 
+                    Fn::ImportValue: !Sub "${ProjectName}-${Environment}-db-port"
+                  DBName: 
+                    Fn::ImportValue: !Sub "${ProjectName}-${Environment}-db-name"
+            - Name: CH_URL
+              Value: !Sub 
+                - "clickhouse://sutram_user:REDACTED_PASSWORD@${ClickHouseEndpoint}:9000/sutram"
+                - ClickHouseEndpoint: 
+                    Fn::ImportValue: !Sub "${ProjectName}-${Environment}-clickhouse-endpoint"
+            - Name: NEXTAUTH_SECRET
+              Value: !Sub "${ProjectName}-${Environment}-nextauth-secret-change-me"
+            - Name: NEXTAUTH_URL
+              Value: !Sub "http://${ApplicationLoadBalancer.DNSName}"
+            - Name: GOOGLE_CLIENT_ID
+              Value: "REDACTED_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com"
+            - Name: GOOGLE_CLIENT_SECRET
+              Value: "REDACTED_GOOGLE_OAUTH_CLIENT_SECRET"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+
+  # ECS Service
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: Listener
+    Properties:
+      ServiceName: !Sub "${ProjectName}-${Environment}-mukham"
+      Cluster:
+        Fn::ImportValue: !Sub "${ProjectName}-${Environment}-ecs-cluster"
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !If [IsProd, 2, 1]
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 50
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      LoadBalancers:
+        - ContainerName: mukham
+          ContainerPort: !Ref MukhamPort
+          TargetGroupArn: !Ref TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          SecurityGroups:
+            - Fn::ImportValue: !Sub "${ProjectName}-${Environment}-ecs-sg-id"
+          Subnets:
+            - Fn::ImportValue: !Sub "${ProjectName}-${Environment}-private-subnet-1-id"
+            - Fn::ImportValue: !Sub "${ProjectName}-${Environment}-private-subnet-2-id"
+          AssignPublicIp: DISABLED
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-mukham"
+        - Key: Environment
+          Value: !Ref Environment
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+Outputs:
+  LoadBalancerDNS:
+    Description: Mukham Application Load Balancer DNS Name
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-mukham-alb-dns"
+
+  LoadBalancerURL:
+    Description: Mukham Application Load Balancer URL
+    Value: !Sub "http://${ApplicationLoadBalancer.DNSName}"
+
+  ServiceArn:
+    Description: ECS Service ARN
+    Value: !Ref Service
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-mukham-service-arn"
+
+  TaskDefinitionArn:
+    Description: ECS Task Definition ARN
+    Value: !Ref TaskDefinition
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-mukham-task-definition-arn"

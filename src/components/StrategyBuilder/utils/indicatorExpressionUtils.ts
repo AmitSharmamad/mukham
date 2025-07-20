@@ -58,7 +58,7 @@ export const isIndicatorComplete = (indicator: Indicator): boolean => {
   }
   
   if (indicator.name === 'Number') {
-    return indicator.config?.value !== undefined && indicator.config?.value !== null && indicator.config?.value !== '';
+    return indicator.config?.value !== undefined && indicator.config?.value !== null;
   }
   
   // Use the isIndicatorConfigComplete from the service

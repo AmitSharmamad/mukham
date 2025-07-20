@@ -1,210 +1,164 @@
-# Sutram AWS Deployment
+# Mukham ECS Deployment
 
-This directory contains all the necessary files and scripts to deploy the Sutram application to AWS using CloudFormation and ECS.
+This directory contains CloudFormation templates and scripts to deploy the Mukham application to AWS ECS.
 
 ## Architecture Overview
 
-The deployment creates the following AWS resources:
+The Mukham deployment creates:
 
-### 1. Infrastructure (VPC)
-- VPC with public and private subnets across 2 AZs
-- Internet Gateway and NAT Gateway
-- Route tables and security groups
-
-### 2. PostgreSQL (RDS)
-- PostgreSQL RDS instance in private subnets
-- Security groups for database access
-- Automated backups and encryption
-
-### 3. ClickHouse (ECS + EFS)
-- ClickHouse running on ECS Fargate
-- EFS for persistent data storage
-- CloudWatch logging
-
-### 4. Application Services (ECS)
-- **Web Service**: Main application with load balancer
-- **Live Service**: Real-time data processing
-- **Deployment Service**: Deployment management
+- **ECS Fargate Service**: Running Mukham application in containers
+- **Application Load Balancer**: Public-facing load balancer for the Mukham app
+- **Target Group**: Health checks and traffic routing
+- **CloudWatch Logs**: Application logging
+- **Security Groups**: Network security for ALB and ECS tasks
 
 ## Prerequisites
 
-1. **AWS CLI**: Install and configure AWS CLI with appropriate credentials
-   ```bash
-   aws configure
-   ```
+1. **Base Infrastructure**: The following stacks must be deployed first:
+   - Infrastructure (VPC, subnets, etc.)
+   - PostgreSQL database
+   - ClickHouse database
+   - ECS cluster (deployed with ClickHouse stack)
 
-2. **Permissions**: Ensure your AWS user/role has permissions for:
-   - CloudFormation
-   - ECS, ECR
-   - RDS, EFS
-   - VPC, EC2
-   - IAM (for service roles)
-   - CloudWatch Logs
-
-3. **Docker Images**: Build and push your application images to ECR before deploying services
+2. **Docker Image**: Build and push the Mukham Docker image to ECR
 
 ## Quick Start
 
-### Deploy Everything
+### 1. Build and Push Docker Image
 
-For development environment:
 ```bash
-make deploy-dev
+# For development environment
+./aws/scripts/build-mukham.sh dev latest
+
+# For production environment
+./aws/scripts/build-mukham.sh prod latest
 ```
 
-For production environment:
+### 2. Deploy Mukham Service Only
+
 ```bash
-make deploy-prod TAG=v1.0.0
+# For development environment
+./aws/scripts/deploy-mukham.sh dev latest
+
+# For production environment
+./aws/scripts/deploy-mukham.sh prod latest
 ```
 
-### Deploy Individual Services
+### 3. Deploy All Services Including Mukham
 
 ```bash
-# Deploy infrastructure first
-make deploy-infra ENV=dev
+# For development environment with Mukham
+./aws/scripts/deploy-all-with-mukham.sh dev latest --include-mukham
 
-# Deploy databases
-make deploy-postgres ENV=dev
-make deploy-clickhouse ENV=dev
-
-# Deploy application services
-make deploy-web ENV=dev TAG=latest
-make deploy-live ENV=dev TAG=latest
-make deploy-deployment ENV=dev TAG=latest
+# For production environment with Mukham
+./aws/scripts/deploy-all-with-mukham.sh prod latest --include-mukham
 ```
 
 ## Configuration
 
-Environment-specific configurations are stored in:
-- `config/dev.env` - Development environment
-- `config/prod.env` - Production environment
+### Environment Variables
 
-### Key Configuration Parameters
+The Mukham service uses the following environment variables:
 
-- **AWS_REGION**: AWS region for deployment
-- **VPC_CIDR**: VPC CIDR block
-- **DB_INSTANCE_CLASS**: RDS instance type
-- **CPU/MEMORY**: ECS task resources
-- **DB_PASSWORD**: Database password (change these!)
+- `NODE_ENV`: Node environment (development/production)
+- `PORT`: Port number (default: 3000)
+- `ENVIRONMENT`: Deployment environment (dev/prod)
+- `NEXT_PUBLIC_API_URL`: Public API URL for client-side requests
+- `DATABASE_URL`: PostgreSQL connection string
+- `CH_URL`: ClickHouse connection string
+- `NEXTAUTH_SECRET`: NextAuth.js secret for session encryption
+- `NEXTAUTH_URL`: Base URL for NextAuth.js
+- `GOOGLE_CLIENT_ID`: Google OAuth client ID
+- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
 
-## Scripts
+### Configuration Files
 
-All deployment scripts are in the `scripts/` directory:
+- `aws/config/mukham-dev.env`: Development-specific Mukham configuration
+- `aws/config/mukham-prod.env`: Production-specific Mukham configuration
 
-- `common.sh` - Common functions and utilities
-- `deploy-infra.sh` - Deploy VPC and networking
-- `deploy-postgres.sh` - Deploy PostgreSQL RDS
-- `deploy-clickhouse.sh` - Deploy ClickHouse on ECS
-- `deploy-web.sh` - Deploy web service
-- `deploy-live.sh` - Deploy live service
-- `deploy-deployment.sh` - Deploy deployment service
-- `deploy-all.sh` - Deploy everything in order
-- `destroy-all.sh` - Remove all resources
+### Resource Allocation
 
-## Deployment Order
+#### Development
+- CPU: 512 (0.5 vCPU)
+- Memory: 1024 MB
+- Desired Count: 1
 
-Services must be deployed in this order due to dependencies:
+#### Production
+- CPU: 1024 (1 vCPU)
+- Memory: 2048 MB
+- Desired Count: 2
 
-1. **Infrastructure** (VPC, subnets)
-2. **PostgreSQL** (creates ECS security group)
-3. **ClickHouse** (creates ECS cluster and IAM roles)
-4. **Application Services** (web, live, deployment)
+## Health Checks
 
-## Docker Images
+The service includes multiple health check layers:
 
-Before deploying application services, ensure Docker images are available in ECR:
+1. **Container Health Check**: Built into the Docker container
+2. **ECS Health Check**: Performed by ECS service
+3. **ALB Health Check**: Load balancer target group health check
 
-```bash
-# Create ECR repositories (one-time setup)
-aws ecr create-repository --repository-name sutram-dev-web
-aws ecr create-repository --repository-name sutram-dev-live
-aws ecr create-repository --repository-name sutram-dev-deployment
-
-# Build and push images
-docker build -t sutram-dev-web:latest -f docker/web/Dockerfile .
-docker tag sutram-dev-web:latest 123456789012.dkr.ecr.us-east-1.amazonaws.com/sutram-dev-web:latest
-docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/sutram-dev-web:latest
-```
-
-## Environment Differences
-
-### Development (dev)
-- Smaller instance sizes
-- Single AZ for some services
-- Shorter log retention
-- No deletion protection
-
-### Production (prod)
-- Larger instance sizes
-- Multi-AZ deployment
-- Longer log retention
-- Deletion protection enabled
-
-## Monitoring and Logs
-
-- **CloudWatch Logs**: All services log to CloudWatch
-- **ECS Console**: Monitor service health and tasks
-- **RDS Console**: Database metrics and performance
+Health check endpoint: `/api/health`
 
 ## Security
 
-- All databases are in private subnets
-- Security groups follow least privilege principle
-- Encryption enabled for RDS and EFS
-- No public access to databases
+- **Network Security**: ECS tasks run in private subnets
+- **Load Balancer**: Only the ALB is internet-facing
+- **Security Groups**: Restrict traffic between components
+- **Secrets**: Environment variables for sensitive configuration
 
-## Cleanup
+## Monitoring
 
-To remove all resources:
-
-```bash
-make destroy-dev    # For dev environment
-make destroy-prod   # For prod environment
-```
-
-**Warning**: This will permanently delete all data and resources!
+- **CloudWatch Logs**: Application logs are sent to CloudWatch
+- **ECS Service Metrics**: CPU, memory, and task metrics
+- **ALB Metrics**: Request count, latency, and error rates
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Stack deployment fails**: Check CloudFormation events in AWS Console
-2. **Permission denied**: Ensure AWS credentials have required permissions
-3. **Resource conflicts**: Make sure resource names are unique
-4. **Image not found**: Ensure Docker images are pushed to ECR
+1. **Service fails to start**:
+   - Check CloudWatch logs for application errors
+   - Verify environment variables are set correctly
+   - Ensure database connections are working
+
+2. **Health checks failing**:
+   - Verify `/health` endpoint is responding
+   - Check if application is binding to correct port (3000)
+   - Review security group rules
+
+3. **Image pull errors**:
+   - Ensure ECR repository exists and image is pushed
+   - Verify ECS execution role has ECR permissions
+   - Check image tag matches deployment parameter
 
 ### Useful Commands
 
 ```bash
-# Check AWS configuration
-aws sts get-caller-identity
+# View service status
+aws ecs describe-services --cluster sutram-dev-ecs-cluster --services sutram-dev-mukham
 
-# Validate CloudFormation templates
-make validate-templates
+# View service logs
+aws logs tail /ecs/sutram-dev-mukham --follow
 
-# View stack events
-aws cloudformation describe-stack-events --stack-name sutram-dev-web
+# Force new deployment
+aws ecs update-service --cluster sutram-dev-ecs-cluster --service sutram-dev-mukham --force-new-deployment
 
-# View ECS service logs
-aws logs tail /ecs/sutram-dev-web --follow
+# Get ALB DNS name
+aws cloudformation describe-stacks --stack-name sutram-dev-mukham --query 'Stacks[0].Outputs[?OutputKey==`LoadBalancerDNS`].OutputValue' --output text
 ```
 
-## Cost Optimization
+## URLs
 
-For development:
-- Use t3.micro instances
-- Scale down when not in use
-- Use GP3 storage with lower provisioned IOPS
+After successful deployment:
 
-For production:
-- Monitor costs with AWS Cost Explorer
-- Use Reserved Instances for predictable workloads
-- Set up billing alerts
+- **Development**: http://[ALB-DNS-NAME]
+- **Production**: http://[ALB-DNS-NAME]
 
-## Support
+The ALB DNS name is output at the end of the deployment.
 
-If you encounter issues:
-1. Check CloudFormation stack events
-2. Review CloudWatch logs
-3. Verify security group rules
-4. Ensure all dependencies are deployed
+## Next Steps
+
+1. **SSL/TLS**: Add HTTPS listener with ACM certificate
+2. **Custom Domain**: Route53 hosted zone and custom domain
+3. **CDN**: CloudFront for static asset caching
+4. **Auto Scaling**: Configure ECS service auto scaling
+5. **Monitoring**: Enhanced monitoring with custom CloudWatch dashboards
