@@ -1,21 +1,22 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function VolumeIndicators() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Volume Indicators
-        </Typography>
-        <Divider sx={{ my: 2 }} />
+      <DocContent
+        title="Volume Indicators"
+        subtitle="Technical indicators that use trading volume to confirm price movements and identify potential reversal points."
+        tags={["Volume Indicators","Trading Volume","Technical Analysis","Market Strength"]}
+      >
         
         <Typography variant="body1" paragraph>
           Volume indicators measure the intensity of market activity by analyzing trading volume.
           These indicators help confirm price movements, identify potential reversals, and assess the strength of market trends.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Understanding Volume Analysis
         </Typography>
         <Typography variant="body1" paragraph>
@@ -40,7 +41,7 @@ export default function VolumeIndicators() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Key Volume Indicators
         </Typography>
         
@@ -205,7 +206,7 @@ export default function VolumeIndicators() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Combining Volume Indicators
         </Typography>
         <Typography variant="body1" paragraph>
@@ -223,7 +224,7 @@ export default function VolumeIndicators() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Best Practices for Using Volume Indicators
         </Typography>
         <Box component="ul" sx={{ pl: 4 }}>
@@ -243,7 +244,7 @@ export default function VolumeIndicators() {
             <strong>Confirm Breakouts with Volume:</strong> Valid breakouts should be accompanied by increased volume to indicate conviction.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

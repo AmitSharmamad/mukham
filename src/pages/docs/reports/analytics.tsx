@@ -1,22 +1,22 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function ReportsAnalytics() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Strategy Analytics
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
+      <DocContent
+        title="Strategy Analytics"
+        subtitle="Powerful tools for deep analysis of your trading strategies. Understand not just how your strategies perform, but why they perform the way they do."
+        tags={["Analytics", "Deep Analysis", "Strategy Insights", "Performance"]}
+      >
         <Typography variant="body1" paragraph>
           The Analytics section of सूत्रम् (Sutram) provides powerful tools for deep analysis of your trading strategies.
           These analytics help you understand not just how your strategies are performing, but why they perform the way they do,
           giving you insights to make data-driven improvements.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
           Analytics Dashboard Overview
         </Typography>
         <Typography variant="body1" paragraph>
@@ -24,7 +24,7 @@ export default function ReportsAnalytics() {
           This dashboard helps you identify patterns, strengths, weaknesses, and opportunities for improvement in your trading approach.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
           Key Analytical Tools
         </Typography>
         
@@ -261,7 +261,7 @@ export default function ReportsAnalytics() {
             <strong>Export and Share:</strong> Export analytics reports for offline analysis or to share with team members.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

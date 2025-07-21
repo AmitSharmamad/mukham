@@ -1,15 +1,16 @@
 import { Box, Typography, Paper, Divider, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 export default function Troubleshooting() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Troubleshooting Guide
-        </Typography>
-        <Divider sx={{ my: 2 }} />
+      <DocContent
+        title="Troubleshooting"
+        subtitle="Common issues and solutions when using सूत्रम्. Find answers to frequently asked questions and debug problems."
+        tags={["Troubleshooting","FAQ","Common Issues","Debug"]}
+      >
         
         <Typography variant="body1" paragraph>
           This guide addresses common issues you might encounter when using सूत्रम् (Sutram) for algorithmic trading.
@@ -17,7 +18,7 @@ export default function Troubleshooting() {
           guide can help you identify and resolve the issues.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Strategy Builder Issues
         </Typography>
         
@@ -110,7 +111,7 @@ export default function Troubleshooting() {
           </Accordion>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Backtesting Problems
         </Typography>
         
@@ -204,7 +205,7 @@ export default function Troubleshooting() {
           </Accordion>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Deployment and Execution Issues
         </Typography>
         
@@ -298,7 +299,7 @@ export default function Troubleshooting() {
           </Accordion>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Data and Reporting Issues
         </Typography>
         
@@ -392,7 +393,7 @@ export default function Troubleshooting() {
           </Accordion>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Getting Additional Help
         </Typography>
         <Typography variant="body1" paragraph>
@@ -429,7 +430,7 @@ export default function Troubleshooting() {
             When the issue started occurring
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

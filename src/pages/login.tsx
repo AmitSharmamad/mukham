@@ -120,7 +120,7 @@ export default function LoginPage() {
         }}
       >
         <Typography variant="h5" component="h1" gutterBottom align="center">
-          Welcome to सूत्रम्
+          Welcome to Sutram
         </Typography>
         
         <Box sx={{ 

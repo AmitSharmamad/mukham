@@ -1,14 +1,15 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function ExitConditions() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Exit Conditions
-        </Typography>
-        <Divider sx={{ my: 2 }} />
+      <DocContent
+        title="Exit Conditions"
+        subtitle="Define when and how your trading strategy will close positions. Set up stop losses, take profits, and trailing stops."
+        tags={["Exit Conditions","Stop Loss","Take Profit","Risk Management"]}
+      >
         
         <Typography variant="body1" paragraph>
           Exit conditions determine when your strategy will close an open position. In सूत्रम् (Sutram), you can 
@@ -16,7 +17,7 @@ export default function ExitConditions() {
           along with risk management parameters like stop loss and take profit levels.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Importance of Exit Conditions
         </Typography>
         <Typography variant="body1" paragraph>
@@ -38,7 +39,7 @@ export default function ExitConditions() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Types of Exit Conditions in सूत्रम्
         </Typography>
         <Typography variant="body1" paragraph>
@@ -142,7 +143,7 @@ export default function ExitConditions() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Exit Condition Patterns and Strategies
         </Typography>
         <Typography variant="body1" paragraph>
@@ -239,7 +240,7 @@ export default function ExitConditions() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Best Practices for Exit Conditions
         </Typography>
         <Box component="ul" sx={{ pl: 4 }}>
@@ -268,7 +269,7 @@ export default function ExitConditions() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Common Exit Mistakes to Avoid
         </Typography>
         <Box component="ul" sx={{ pl: 4 }}>
@@ -290,7 +291,7 @@ export default function ExitConditions() {
             <strong>Emotional Decision-Making:</strong> Stick to your predefined exit rules rather than making emotional decisions in the heat of trading.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

@@ -1,15 +1,16 @@
 import { Box, Typography, Paper, Divider, Grid, Link as MUILink } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 import Link from 'next/link';
 
 export default function ApiReference() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          API Reference
-        </Typography>
-        <Divider sx={{ my: 2 }} />
+      <DocContent
+        title="API Reference"
+        subtitle="Complete reference for the सूत्रम् API. Access programmatic interfaces for advanced users and integrations."
+        tags={["API Reference","Documentation","Integration","Advanced"]}
+      >
         
         <Typography variant="body1" paragraph>
           सूत्रम् (Sutram) provides a comprehensive API for developers who want to programmatically 
@@ -17,7 +18,7 @@ export default function ApiReference() {
           authentication methods, and example requests and responses.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           API Overview
         </Typography>
         <Typography variant="body1" paragraph>
@@ -42,7 +43,7 @@ export default function ApiReference() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Authentication
         </Typography>
         <Typography variant="body1" paragraph>
@@ -123,7 +124,7 @@ export default function ApiReference() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           API Endpoints
         </Typography>
         
@@ -493,7 +494,7 @@ export default function ApiReference() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Response Formats
         </Typography>
         <Typography variant="body1" paragraph>
@@ -512,7 +513,7 @@ export default function ApiReference() {
           </pre>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Rate Limiting
         </Typography>
         <Typography variant="body1" paragraph>
@@ -544,7 +545,7 @@ export default function ApiReference() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Error Codes
         </Typography>
         <Typography variant="body1" paragraph>
@@ -571,7 +572,7 @@ export default function ApiReference() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           SDKs and Client Libraries
         </Typography>
         <Typography variant="body1" paragraph>
@@ -589,7 +590,7 @@ export default function ApiReference() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Getting Help
         </Typography>
         <Typography variant="body1" paragraph>
@@ -610,7 +611,7 @@ export default function ApiReference() {
             </Link>
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

@@ -24,7 +24,7 @@ export const Footer = () => {
           {/* Company Info */}
           <Grid item xs={12} md={4}>
             <Typography variant="h6" component="div" gutterBottom>
-              सूत्रम् (Sutram)
+              Sutram
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Revolutionizing trading with intelligent automation. Build, test, and deploy sophisticated algorithmic trading strategies across all markets.
@@ -144,7 +144,7 @@ export const Footer = () => {
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            © {currentYear} सूत्रम् (Sutram). All rights reserved.
+            © {currentYear} Sutram. All rights reserved.
           </Typography>
           <Stack direction="row" spacing={3}>
             <Link href="/status" color="text.secondary" underline="hover">

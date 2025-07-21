@@ -58,7 +58,7 @@ export default function Docs() {
   }, [router]);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 6 }}>
+    <Box sx={{ py: 6, px: { xs: 2, md: 4 } }}>
       {/* Hero Section */}
       <Paper 
         elevation={0}
@@ -186,6 +186,6 @@ export default function Docs() {
           );
         })}
       </Grid>
-    </Container>
+    </Box>
   );
 }
