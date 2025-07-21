@@ -51,14 +51,22 @@ print_info "Step 6: Deploying Deployment Service..."
 "$SCRIPT_DIR/deploy-deployment.sh" "$ENVIRONMENT" "$IMAGE_TAG"
 
 echo ""
+print_info "Step 7: Deploying CDN (CloudFront)..."
+"$SCRIPT_DIR/deploy-cdn.sh" "$ENVIRONMENT"
+
+echo ""
 print_success "All services deployed successfully for $ENVIRONMENT environment!"
 
 # Show important URLs and endpoints
 echo ""
 print_info "=== Deployment Summary ==="
 WEB_ALB_DNS=$(get_stack_output "${PROJECT_NAME}-${ENVIRONMENT}-web" "LoadBalancerDNS" 2>/dev/null || echo "Not available")
+MUKHAM_ALB_DNS=$(get_stack_output "${PROJECT_NAME}-${ENVIRONMENT}-mukham" "LoadBalancerDNS" 2>/dev/null || echo "Not available")
 DB_ENDPOINT=$(get_stack_output "${PROJECT_NAME}-${ENVIRONMENT}-postgres" "DatabaseEndpoint" 2>/dev/null || echo "Not available")
+CLOUDFRONT_DOMAIN=$(get_stack_output "${PROJECT_NAME}-${ENVIRONMENT}-cdn" "CloudFrontDomainName" 2>/dev/null || echo "Not available")
 
+print_info "CDN URL (sutram.co): https://$CLOUDFRONT_DOMAIN"
 print_info "Web Application URL: http://$WEB_ALB_DNS"
+print_info "Mukham Service URL: http://$MUKHAM_ALB_DNS"
 print_info "Database Endpoint: $DB_ENDPOINT"
 print_info "Check AWS Console for service logs and monitoring"
