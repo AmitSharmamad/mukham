@@ -1,15 +1,15 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function ReportsOverview() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Reports Overview
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
+      <DocContent
+        title="Reports Overview"
+        subtitle="Comprehensive analytics and performance metrics for your trading strategies. Evaluate performance, identify strengths and weaknesses, and make data-driven decisions."
+        tags={["Reports", "Analytics", "Performance", "Metrics"]}
+      >
         <Typography variant="body1" paragraph>
           The Reports section of सूत्रम् (Sutram) provides comprehensive analytics and performance metrics 
           for your trading strategies. This enables you to evaluate strategy performance, identify strengths 
@@ -191,7 +191,7 @@ export default function ReportsOverview() {
             <strong>Strategy Comparison:</strong> Compare different strategies to allocate capital efficiently.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

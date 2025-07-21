@@ -53,6 +53,9 @@ export const MainLayout = ({
 
   // Determine if we should show the sidebar based on route and authentication
   const shouldShowSidebar = false; // Hidden for all pages
+  
+  // Check if current page is a docs page
+  const isDocsPage = router.pathname.startsWith('/docs');
 
   return (
     <Box sx={{ 
@@ -99,17 +102,28 @@ export const MainLayout = ({
         >
           {/* Main Content */}
           <Box sx={{ flex: 1 }}>
-            <Container 
-              component="main" 
-              maxWidth="lg"
-              sx={{ 
-                py: 4, 
+            {isDocsPage ? (
+              // For docs pages, don't use Container to allow full width
+              <Box sx={{ 
+                py: 0, 
                 mt: 8,
                 minHeight: 'calc(100vh - 64px - 200px)', // Ensure minimum height minus navbar and footer space
-              }}
-            >
-              {children}
-            </Container>
+              }}>
+                {children}
+              </Box>
+            ) : (
+              <Container 
+                component="main" 
+                maxWidth="lg"
+                sx={{ 
+                  py: 4, 
+                  mt: 8,
+                  minHeight: 'calc(100vh - 64px - 200px)', // Ensure minimum height minus navbar and footer space
+                }}
+              >
+                {children}
+              </Container>
+            )}
           </Box>
           
           {/* Footer - positioned at the end of content */}

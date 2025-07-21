@@ -1,21 +1,22 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function VolatilityIndicators() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Volatility Indicators
-        </Typography>
-        <Divider sx={{ my: 2 }} />
+      <DocContent
+        title="Volatility Indicators"
+        subtitle="Indicators that measure market volatility and price fluctuations to assess market uncertainty and risk."
+        tags={["Volatility","Bollinger Bands","ATR","Market Risk"]}
+      >
         
         <Typography variant="body1" paragraph>
           Volatility indicators measure the rate and magnitude of price changes, regardless of direction.
           These indicators help traders assess market risk, potential trading ranges, and optimal position sizing.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Understanding Volatility Analysis
         </Typography>
         <Typography variant="body1" paragraph>
@@ -40,7 +41,7 @@ export default function VolatilityIndicators() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Key Volatility Indicators
         </Typography>
         
@@ -241,7 +242,7 @@ export default function VolatilityIndicators() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Combining Volatility Indicators
         </Typography>
         <Typography variant="body1" paragraph>
@@ -259,7 +260,7 @@ export default function VolatilityIndicators() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Best Practices for Using Volatility Indicators
         </Typography>
         <Box component="ul" sx={{ pl: 4 }}>
@@ -279,7 +280,7 @@ export default function VolatilityIndicators() {
             <strong>Watch for Volatility Contraction:</strong> Periods of extremely low volatility often precede significant price moves.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }
