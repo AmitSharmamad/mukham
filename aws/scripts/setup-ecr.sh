@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Setup ECR repositories for Docker images
+# ECR Repository Setup Script
+# Creates ECR repositories needed for the Mukham service
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
@@ -29,39 +30,45 @@ check_aws
 
 print_info "Setting up ECR repositories for $ENVIRONMENT environment"
 
-# List of services that need ECR repositories
-SERVICES=("web" "live" "deployment")
+# Get AWS Account ID if not set
+if [[ -z "$AWS_ACCOUNT_ID" ]]; then
+    AWS_ACCOUNT_ID=$(get_aws_account_id)
+fi
 
-for service in "${SERVICES[@]}"; do
-    REPO_NAME="${PROJECT_NAME}-${ENVIRONMENT}-${service}"
+# Create Mukham ECR repository
+MUKHAM_REPO_NAME="${PROJECT_NAME}-${ENVIRONMENT}-mukham"
+
+if ! aws ecr describe-repositories --repository-names "$MUKHAM_REPO_NAME" --region "$AWS_REGION" >/dev/null 2>&1; then
+    print_info "Creating ECR repository: $MUKHAM_REPO_NAME"
+    aws ecr create-repository \
+        --repository-name "$MUKHAM_REPO_NAME" \
+        --region "$AWS_REGION" \
+        --image-scanning-configuration scanOnPush=true
     
-    # Check if repository already exists
-    if aws ecr describe-repositories --repository-names "$REPO_NAME" &> /dev/null; then
-        print_info "ECR repository $REPO_NAME already exists"
-    else
-        print_info "Creating ECR repository: $REPO_NAME"
-        aws ecr create-repository --repository-name "$REPO_NAME" --region "$AWS_REGION"
-        
-        if [[ $? -eq 0 ]]; then
-            print_success "Created ECR repository: $REPO_NAME"
-        else
-            print_error "Failed to create ECR repository: $REPO_NAME"
-            exit 1
-        fi
-    fi
-done
+    # Set lifecycle policy
+    aws ecr put-lifecycle-policy \
+        --repository-name "$MUKHAM_REPO_NAME" \
+        --region "$AWS_REGION" \
+        --lifecycle-policy-text '{
+            "rules": [
+                {
+                    "rulePriority": 1,
+                    "selection": {
+                        "tagStatus": "untagged",
+                        "countType": "sinceImagePushed",
+                        "countUnit": "days",
+                        "countNumber": 7
+                    },
+                    "action": {
+                        "type": "expire"
+                    }
+                }
+            ]
+        }'
+    
+    print_success "ECR repository created: $MUKHAM_REPO_NAME"
+else
+    print_info "ECR repository already exists: $MUKHAM_REPO_NAME"
+fi
 
-# Get ECR login command
-print_info "ECR repositories setup complete!"
-print_info "To push images, first login to ECR:"
-echo ""
-echo "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_REGION.amazonaws.com"
-echo ""
-print_info "Then build and push your images:"
-for service in "${SERVICES[@]}"; do
-    REPO_NAME="${PROJECT_NAME}-${ENVIRONMENT}-${service}"
-    echo "docker build -t $REPO_NAME:latest -f docker/$service/Dockerfile ."
-    echo "docker tag $REPO_NAME:latest \$(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:latest"
-    echo "docker push \$(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:latest"
-    echo ""
-done
+print_success "ECR setup completed successfully!"

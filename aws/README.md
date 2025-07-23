@@ -14,13 +14,9 @@ The Mukham deployment creates:
 
 ## Prerequisites
 
-1. **Base Infrastructure**: The following stacks must be deployed first:
-   - Infrastructure (VPC, subnets, etc.)
-   - PostgreSQL database
-   - ClickHouse database
-   - ECS cluster (deployed with ClickHouse stack)
-
-2. **Docker Image**: Build and push the Mukham Docker image to ECR
+1. **AWS Configuration**: Make sure you have AWS CLI configured with appropriate permissions
+2. **Docker**: Docker must be installed for building and pushing images
+3. **ECR Repository**: The ECR repository for the project must exist (created automatically by deployment scripts)
 
 ## Quick Start
 
@@ -68,8 +64,6 @@ The Mukham service uses the following environment variables:
 - `CH_URL`: ClickHouse connection string
 - `NEXTAUTH_SECRET`: NextAuth.js secret for session encryption
 - `NEXTAUTH_URL`: Base URL for NextAuth.js
-- `GOOGLE_CLIENT_ID`: Google OAuth client ID
-- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
 
 ### Configuration Files
 
