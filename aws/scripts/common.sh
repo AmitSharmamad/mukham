@@ -57,6 +57,11 @@ check_aws() {
     print_success "AWS CLI is configured"
 }
 
+# Function to get AWS account ID
+get_aws_account_id() {
+    aws sts get-caller-identity --query Account --output text
+}
+
 # Function to check if CloudFormation stack exists
 stack_exists() {
     local stack_name="$1"
