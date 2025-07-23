@@ -20,6 +20,7 @@ export interface FormData {
   name: string;
   description: string;
   instrumentType: 'equity' | 'futures' | 'options';
+  strategyType: 'expression' | 'time-based' | ''; // New field for strategy type
   buyOrSell: 'buy' | 'sell';
   instruments: number[];
   candlestickType: string;
@@ -161,6 +162,7 @@ export const getInitialFormData = (): FormData => ({
   name: '',
   description: '',
   instrumentType: 'equity',
+  strategyType: '', // Initialize with empty string (no selection)
   buyOrSell: 'buy',
   instruments: [],
   candlestickType: 'CANDLESTICK',

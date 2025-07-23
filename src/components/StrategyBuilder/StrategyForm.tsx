@@ -3,9 +3,6 @@ import { useRouter } from 'next/router';
 import { useToastContext } from '../../context/ToastContext';
 import { parseExpressions, stringifyConditions, Indicator, IndicatorExpression } from './utils/indicatorExpressionUtils';
 import { 
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Box,
   Chip,
   FormControl,
@@ -17,17 +14,31 @@ import {
   RadioGroup,
   Typography,
   Tooltip,
-  Switch
+  Switch,
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent,
+  Paper,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  ToggleButton,
+  ToggleButtonGroup,
+  Modal,
+  Checkbox
 } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import Add from '@mui/icons-material/Add';
-import ExpandMore from '@mui/icons-material/ExpandMore';
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import Cancel from '@mui/icons-material/Cancel';
 import Refresh from '@mui/icons-material/Refresh';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import LinearScaleIcon from '@mui/icons-material/LinearScale';
 import dayjs, { Dayjs } from 'dayjs';
 import { Button } from '../Button';
 import { Select } from '../Select';
@@ -46,7 +57,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   CircularProgress,
 } from '@mui/material';
 import { BacktestResult } from '../../types/strategy';
@@ -85,6 +95,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     name: initialData?.name || '',
     description: initialData?.description || '',
     instrumentType: initialData?.instrumentType || 'equity',
+    strategyType: initialData?.strategyType || '', // Initialize with empty string (no selection)
     buyOrSell: initialData?.buyOrSell || 'buy',
     instruments: initialData?.instruments || [],
     candlestickType: initialData?.candlestickType || 'CANDLESTICK',
@@ -117,9 +128,9 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     slippage: initialData?.slippage || '0.5',
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
-  const [expandedSections, setExpandedSections] = useState<string[]>([]);
-  const [isAllExpanded, setIsAllExpanded] = useState(false);
+  const [activeStep, setActiveStep] = useState<number>(0);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [viewMode, setViewMode] = useState<'stepper' | 'list'>('stepper');
   const [isInstrumentSelectorOpen, setInstrumentSelectorOpen] = useState(false);
   const [selectedInstruments, setSelectedInstruments] = useState<Instrument[]>(initialInstruments);
   const [backtestResults, setBacktestResults] = useState<BacktestResult | null>(null);
@@ -135,6 +146,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showBacktestResults, setShowBacktestResults] = useState(false);
   const [deploymentStatuses, setDeploymentStatuses] = useState<Map<number, boolean>>(new Map());
+  const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -147,6 +160,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         name: initialData?.name || '',
         description: initialData?.description || '',
         instrumentType: initialData?.instrumentType || 'equity',
+        strategyType: initialData?.strategyType || '', // Initialize with empty string
         buyOrSell: initialData?.buyOrSell || 'buy',
         instruments: initialData?.instruments || [],
         candlestickType: initialData?.candlestickType || 'CANDLESTICK',
@@ -237,6 +251,33 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     setHasUnsavedChanges(true);
 
     // Note: Backtest results are kept during editing and only cleared after successful save
+  };
+
+  // Custom handler for instrument type change to show disclaimer modal
+  const handleInstrumentTypeChange = (value: string) => {
+    if (value === 'options') {
+      setShowDisclaimerModal(true);
+      // Don't change the form data yet, wait for user confirmation
+    } else {
+      // For equity, directly update the form data
+      handleChange('instrumentType')(value);
+    }
+  };
+
+  const handleDisclaimerModalClose = () => {
+    // If user closes modal without accepting, revert to equity
+    setShowDisclaimerModal(false);
+    setDisclaimerAccepted(false);
+    // Keep the radio selection as equity
+  };
+
+  const handleDisclaimerAccept = () => {
+    if (disclaimerAccepted) {
+      // User has accepted the disclaimer, now update the form data
+      handleChange('instrumentType')('options');
+      setShowDisclaimerModal(false);
+      setDisclaimerAccepted(false); // Reset for next time
+    }
   };
 
   // Using imported validation functions from strategyFormValidation.ts
@@ -795,27 +836,22 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     },
   ];
 
-  const handleAccordionChange = (sectionId: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpandedSections(prev => 
-      isExpanded 
-        ? [...prev, sectionId]
-        : prev.filter(id => id !== sectionId)
-    );
+  const handleNext = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
-  const toggleExpandAll = () => {
-    setExpandedSections(prev => 
-      prev.length === sections.length 
-        ? [] 
-        : sections.map(section => section.id)
-    );
-    setIsAllExpanded(prev => !prev);
+  const handleBack = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
-  const expandFirstIncompleteSection = () => {
-    const firstIncompleteSection = sections.find(section => !isSectionComplete(section.id, formData, selectedInstruments));
-    if (firstIncompleteSection && !expandedSections.includes(firstIncompleteSection.id)) {
-      setExpandedSections(prev => [...prev, firstIncompleteSection.id]);
+  const handleStepClick = (step: number) => {
+    setActiveStep(step);
+  };
+
+  const navigateToFirstIncompleteSection = () => {
+    const firstIncompleteSection = sections.findIndex(section => !isSectionComplete(section.id, formData, selectedInstruments));
+    if (firstIncompleteSection !== -1) {
+      setActiveStep(firstIncompleteSection);
     }
   };
 
@@ -823,8 +859,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     setAttemptedSubmit(true);
     
     if (!isFormValid(formData, selectedInstruments)) {
-      // If form is not valid, expand the first incomplete section to guide the user
-      expandFirstIncompleteSection();
+      // If form is not valid, navigate to the first incomplete section to guide the user
+      navigateToFirstIncompleteSection();
       return;
     }
     
@@ -918,8 +954,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const handleBacktest = async () => {
     setAttemptedSubmit(true);
     if (!isFormValid(formData, selectedInstruments)) {
-      // If form is not valid, expand the first incomplete section to guide the user
-      expandFirstIncompleteSection();
+      // If form is not valid, navigate to the first incomplete section to guide the user
+      navigateToFirstIncompleteSection();
       return;
     }
     
@@ -1319,6 +1355,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           name: strategyData.name,
           description: strategyData.description,
           instrumentType: strategyData.instrument_type || 'equity',
+          strategyType: strategyData.strategyType || 'expression', // Default to expression for existing strategies
           buyOrSell: strategyData.position_type === 'LONG' ? 'buy' : 'sell',
           instruments: strategyData.instruments || [],
           candlestickType: strategyData.chart_type || 'CANDLESTICK',
@@ -1377,88 +1414,218 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             </Typography>
           )}
         </Box>
-        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }}>
           <FormControl component="fieldset">
             <RadioGroup
               row
               name="instrumentTypeRadio"
               value={formData.instrumentType === 'options' ? 'options' : 'equity'}
-              onChange={(e) => handleChange('instrumentType')(e.target.value)}
+              onChange={(e) => handleInstrumentTypeChange(e.target.value)}
             >
-              <FormControlLabel value="equity" control={<Radio />} label="Equity / Futures" />
-              <FormControlLabel value="options" control={<Radio />} label="Options" />
+              <FormControlLabel value="equity" control={<Radio />} label="Equity" />
+              <FormControlLabel value="options" control={<Radio />} label="F&O" />
+            </RadioGroup>
+          </FormControl>
+          
+          <FormControl component="fieldset">
+            <RadioGroup
+              row
+              name="strategyTypeRadio"
+              value={formData.strategyType}
+              onChange={(e) => handleChange('strategyType')(e.target.value)}
+            >
+              <FormControlLabel value="expression" control={<Radio />} label="Expression" />
+              <FormControlLabel value="time-based" control={<Radio />} label="Time based" />
             </RadioGroup>
           </FormControl>
         </Box>
-        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end', mr: 2 }}>
-          <Button 
-            variant="text" 
-            onClick={toggleExpandAll}
+        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end', mr: 2, alignItems: 'center', gap: 2 }}>
+          {/* View Toggle */}
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(event, newViewMode) => {
+              if (newViewMode !== null) {
+                setViewMode(newViewMode);
+              }
+            }}
             size="small"
+            aria-label="view mode"
           >
-            {isAllExpanded ? 'Collapse All' : 'Expand All'}
-          </Button>
+            <ToggleButton value="list" aria-label="list view">
+              <Tooltip title="List (Accordion)">
+                <ViewListIcon />
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton value="stepper" aria-label="stepper view">
+              <Tooltip title="Stepper">
+                <LinearScaleIcon />
+              </Tooltip>
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Box>
       </Box>
 
-      {sections.map((section) => (
-        <Accordion
-          key={section.id}
-          expanded={expandedSections.includes(section.id)}
-          onChange={handleAccordionChange(section.id)}
-          sx={{
-            mb: 2,
-            '&:before': { display: 'none' },
-            boxShadow: 'none',
-            border: (theme) => `1px solid ${theme.palette.divider}`,
-            borderRadius: '8px !important',
-            overflow: 'hidden',
-            '&.Mui-expanded': {
-              margin: '0 0 16px 0',
-            },
-          }}
-        >
-          <AccordionSummary 
-            expandIcon={<ExpandMore />}
-            sx={{
-              borderBottom: (theme) => 
-                expandedSections.includes(section.id) 
-                  ? `1px solid ${theme.palette.divider}` 
-                  : 'none',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-              <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                {section.title}
+      {/* Strategy Type Selection Required Message - Only show for F&O when no strategy type is selected */}
+      {formData.instrumentType === 'options' && !formData.strategyType && (
+        <Box sx={{ 
+          p: 3, 
+          mb: 3, 
+          textAlign: 'center', 
+          backgroundColor: 'action.hover',
+          borderRadius: 2,
+          border: '1px dashed',
+          borderColor: 'divider'
+        }}>
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            Please select a strategy type to continue
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Choose between "Expression" or "Time based" strategy above to enable the strategy builder.
+          </Typography>
+        </Box>
+      )}
+
+      {/* Conditional Rendering based on viewMode - Show for equity always, for F&O only when strategy type is selected */}
+      {(formData.instrumentType === 'equity' || (formData.instrumentType === 'options' && formData.strategyType)) && viewMode === 'stepper' ? (
+        <>
+          {/* Horizontal Stepper */}
+          <Box sx={{ width: '100%', mb: 4 }}>
+            <Stepper activeStep={activeStep} orientation="horizontal">
+              {sections.map((section, index) => (
+                <Step key={section.id} completed={isSectionComplete(section.id, formData, selectedInstruments)}>
+                  <StepLabel 
+                    onClick={() => handleStepClick(index)}
+                    sx={{ 
+                      cursor: 'pointer',
+                      '& .MuiStepLabel-label': {
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }
+                    }}
+                    error={!isSectionComplete(section.id, formData, selectedInstruments)}
+                    icon={
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {isSectionComplete(section.id, formData, selectedInstruments) ? (
+                          <CheckCircle color="success" sx={{ fontSize: 20 }} />
+                        ) : (
+                          <Cancel color="error" sx={{ fontSize: 20 }} />
+                        )}
+                      </Box>
+                    }
+                  >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <Typography variant="body2" component="span">
+                        {section.title}
+                      </Typography>
+                      {!isSectionComplete(section.id, formData, selectedInstruments) && (
+                        <Typography variant="caption" color="error" sx={{ fontSize: '0.7rem' }}>
+                          Missing: {getMissingSectionFields(section.id, formData, selectedInstruments).slice(0, 2).join(', ')}
+                          {getMissingSectionFields(section.id, formData, selectedInstruments).length > 2 && '...'}
+                        </Typography>
+                      )}
+                    </Box>
+                  </StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </Box>
+
+          {/* Step Content */}
+          <Box sx={{ mt: 3 }}>
+            <Paper sx={{ p: 3, mb: 3, border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                {sections[activeStep]?.title}
+                <Tooltip 
+                  title={isSectionComplete(sections[activeStep]?.id, formData, selectedInstruments) 
+                    ? "Section is complete" 
+                    : `Section is incomplete. Missing: ${getMissingSectionFields(sections[activeStep]?.id, formData, selectedInstruments).join(', ')}`}
+                  arrow
+                >
+                  {isSectionComplete(sections[activeStep]?.id, formData, selectedInstruments) ? (
+                    <CheckCircle color="success" sx={{ fontSize: 20 }} />
+                  ) : (
+                    <Cancel color="error" sx={{ fontSize: 20 }} />
+                  )}
+                </Tooltip>
               </Typography>
-              {/* Show missing fields if any */}
-              {!isSectionComplete(section.id, formData, selectedInstruments) && (
-                <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-                  <Typography variant="caption" color="error" sx={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    Missing: {getMissingSectionFields(section.id, formData, selectedInstruments).join(', ')}
-                  </Typography>
-                </Box>
-              )}
-              <Tooltip 
-                title={isSectionComplete(section.id, formData, selectedInstruments) 
-                  
-                  ? "Section is complete" 
-                  : `Section is incomplete. Missing: ${getMissingSectionFields(section.id, formData, selectedInstruments).join(', ')}`}
-                arrow
+              {sections[activeStep]?.component}
+            </Paper>
+
+            {/* Step Navigation */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+              <Button
+                disabled={activeStep === 0}
+                onClick={handleBack}
+                variant="outlined"
               >
-                {isSectionComplete(section.id, formData, selectedInstruments) ? (
-                  <CheckCircle color="success" sx={{ fontSize: 20 }} />
-                ) : (
-                  <Cancel color="error" sx={{ fontSize: 20 }} />
-                )}
-              </Tooltip>
+                Back
+              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Typography variant="body2" sx={{ alignSelf: 'center', color: 'text.secondary' }}>
+                  Step {activeStep + 1} of {sections.length}
+                </Typography>
+              </Box>
+              <Button
+                onClick={handleNext}
+                variant="outlined"
+                disabled={activeStep === sections.length - 1}
+              >
+                Next
+              </Button>
             </Box>
-                   </AccordionSummary>
-          <AccordionDetails sx={{ p: 3 }}>
-            {section.component}
-          </AccordionDetails>
-               </Accordion>
-      ))}
+          </Box>
+        </>
+      ) : (formData.instrumentType === 'equity' || (formData.instrumentType === 'options' && formData.strategyType)) ? (
+        <>
+          {/* Accordion View */}
+          <Box sx={{ mt: 3 }}>
+            {sections.map((section, index) => (
+              <Accordion 
+                key={section.id} 
+                defaultExpanded={index === 0}
+                sx={{ 
+                  mb: 2, 
+                  border: (theme) => `1px solid ${theme.palette.divider}`,
+                  '&:before': { display: 'none' },
+                  '&.Mui-expanded': {
+                    margin: '0 0 16px 0',
+                  }
+                }}
+              >
+                <AccordionSummary 
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{
+                    '& .MuiAccordionSummary-content': {
+                      alignItems: 'center',
+                      gap: 2
+                    }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {isSectionComplete(section.id, formData, selectedInstruments) ? (
+                      <CheckCircle color="success" sx={{ fontSize: 20 }} />
+                    ) : (
+                      <Cancel color="error" sx={{ fontSize: 20 }} />
+                    )}
+                    <Typography variant="h6">{section.title}</Typography>
+                  </Box>
+                  {!isSectionComplete(section.id, formData, selectedInstruments) && (
+                    <Typography variant="caption" color="error" sx={{ ml: 'auto', fontSize: '0.75rem' }}>
+                      Missing: {getMissingSectionFields(section.id, formData, selectedInstruments).slice(0, 2).join(', ')}
+                      {getMissingSectionFields(section.id, formData, selectedInstruments).length > 2 && '...'}
+                    </Typography>
+                  )}
+                </AccordionSummary>
+                <AccordionDetails sx={{ pt: 0 }}>
+                  {section.component}
+                </AccordionDetails>
+              </Accordion>
+            ))}
+          </Box>
+        </>
+      ) : null}
       
       <InstrumentSelector
         open={isInstrumentSelectorOpen}
@@ -1468,18 +1635,22 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       />
       
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
-        <Tooltip title={!isFormValid(formData, selectedInstruments) ? "Please fill in all required fields to save" : ""} arrow>
+        <Tooltip title={
+          (formData.instrumentType === 'options' && !formData.strategyType) ? "Please select a strategy type first" :
+          !isFormValid(formData, selectedInstruments) ? "Please fill in all required fields to save" : ""
+        } arrow>
           <span>
             <Button 
               variant="contained" 
               onClick={() => handleSave()}
-              disabled={loading || (initialData && !hasUnsavedChanges) || !isFormValid(formData, selectedInstruments)}
+              disabled={(formData.instrumentType === 'options' && !formData.strategyType) || loading || (initialData && !hasUnsavedChanges) || !isFormValid(formData, selectedInstruments)}
             >
               {loading ? <CircularProgress size={24} /> : 'Save'}
             </Button>
           </span>
         </Tooltip>
         <Tooltip title={
+          !formData.strategyType ? "Please select a strategy type first" :
           !isFormValid(formData, selectedInstruments) ? "Please fill in all required fields to run backtest" :
           hasUnsavedChanges ? "Please save your changes before running backtest" : ""
         } arrow>
@@ -1487,7 +1658,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             <Button 
               variant="contained" 
               onClick={handleBacktest}
-              disabled={isBacktesting || hasUnsavedChanges || !isFormValid(formData, selectedInstruments)}
+              disabled={!formData.strategyType || isBacktesting || hasUnsavedChanges || !isFormValid(formData, selectedInstruments)}
             >
               {isBacktesting ? <CircularProgress size={24} /> : 'Backtest'}
             </Button>
@@ -1514,6 +1685,61 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           backtestResultsRef={backtestResultsRef}
         />
       )}
+
+      {/* Disclaimer Modal for F&O */}
+      <Modal
+        open={showDisclaimerModal}
+        onClose={handleDisclaimerModalClose}
+        aria-labelledby="disclaimer-modal-title"
+        aria-describedby="disclaimer-modal-description"
+      >
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 500,
+          bgcolor: 'background.paper',
+          border: '2px solid #000',
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 2
+        }}>
+          <Typography id="disclaimer-modal-title" variant="h6" component="h2" sx={{ mb: 2 }}>
+            Disclaimer
+          </Typography>
+          <Typography id="disclaimer-modal-description" sx={{ mb: 3 }}>
+            1. Options are evaluated on the Spot and the orders are executed on the configured contracts.
+            <br />
+            2. Read this carefully and consent before you proceed.
+          </Typography>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={disclaimerAccepted}
+                onChange={(e) => setDisclaimerAccepted(e.target.checked)}
+              />
+            }
+            label="I understand how Options works in Sutram"
+            sx={{ mb: 3 }}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={handleDisclaimerModalClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleDisclaimerAccept}
+              disabled={!disclaimerAccepted}
+            >
+              OK
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 };
