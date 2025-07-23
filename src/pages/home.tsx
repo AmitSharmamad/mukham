@@ -97,7 +97,7 @@ export default function Home() {
 
   if (error) {
     return (
-      <Box sx={{ padding: 3 }}>
+      <Box sx={{ pt: 2 }}>
         <Alert severity="error" action={
           <Button color="inherit" size="small" onClick={fetchDashboardData}>
             Retry
@@ -133,7 +133,7 @@ export default function Home() {
   };
 
   return (
-    <Box sx={{ padding: 3 }}>
+    <Box sx={{ pt: 2 }}>
       <Typography variant="h4" gutterBottom>
         Trading Dashboard
       </Typography>
