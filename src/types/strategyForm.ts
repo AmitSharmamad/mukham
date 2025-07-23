@@ -42,6 +42,7 @@ export interface FormData {
   trailingStopLossType: 'ABSOLUTE' | 'PERCENTAGE';
   entryStartTime: Dayjs | null;
   entryEndTime: Dayjs | null;
+  tradingDays: string[];
   startDate: Dayjs | null;
   endDate: Dayjs | null;
   brickSize: string;
@@ -183,6 +184,7 @@ export const getInitialFormData = (): FormData => ({
   trailingStopLossType: 'PERCENTAGE',
   entryStartTime: null,
   entryEndTime: null,
+  tradingDays: [],
   startDate: null,
   endDate: null,
   brickSize: '',
