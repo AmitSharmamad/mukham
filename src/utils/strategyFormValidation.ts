@@ -187,6 +187,42 @@ export const isSectionComplete = (sectionId: string, formData: FormData, selecte
     case 'name':
       return !!formData.name.trim();
     
+    case 'name-positions':
+      // Check name completion
+      const isNameComplete = !!formData.name.trim();
+      
+      // Check positions completion based on strategy type
+      let isPositionsComplete = false;
+      if (formData.instrumentType === 'options' && formData.strategyType === 'expression') {
+        // For F&O Expression: Only need instruments, chart settings, no max allocation/quantity
+        isPositionsComplete = (
+          selectedInstruments.length > 0 &&
+          !!formData.candlestickType &&
+          !!formData.timeframe &&
+          !!formData.tradeType
+        );
+      } else if (formData.instrumentType === 'options' && formData.strategyType === 'time-based') {
+        // For F&O Time-based: Only need instruments, no other fields
+        isPositionsComplete = selectedInstruments.length > 0;
+      } else {
+        // For Equity: Need all fields including position type and max allocation/quantity
+        isPositionsComplete = (
+          !!formData.buyOrSell &&
+          selectedInstruments.length > 0 &&
+          !!formData.candlestickType &&
+          !!formData.timeframe &&
+          !!formData.tradeType &&
+          !!formData.maxAllocation &&
+          formData.maxAllocation !== '' &&
+          parseFloat(formData.maxAllocation) > 0 &&
+          !!formData.maxQuantity &&
+          formData.maxQuantity !== '' &&
+          parseFloat(formData.maxQuantity) > 0
+        );
+      }
+      
+      return isNameComplete && isPositionsComplete;
+    
     case 'positions':
       return (
         !!formData.instrumentType &&
