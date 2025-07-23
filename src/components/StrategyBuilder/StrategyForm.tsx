@@ -2212,21 +2212,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
               >
                 Back
               </Button>
-              <Box sx={{ 
-                display: 'flex', 
-                gap: 1, 
-                alignItems: 'center',
-                px: 3,
-                py: 1,
-                borderRadius: 2,
-                backgroundColor: 'primary.main',
-                color: 'primary.contrastText',
-                boxShadow: 2,
-              }}>
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                  Step {activeStep + 1} of {sections.length}
-                </Typography>
-              </Box>
               <Button
                 onClick={handleNext}
                 variant="outlined"
