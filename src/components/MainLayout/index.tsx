@@ -114,10 +114,13 @@ export const MainLayout = ({
             ) : (
               <Container 
                 component="main" 
-                maxWidth="lg"
+                maxWidth={false}
                 sx={{ 
-                  py: 4, 
+                  py: 2, 
                   mt: 8,
+                  px: { xs: 1, sm: 2, md: 3, lg: 4 }, // Custom horizontal padding - half of default Container margins
+                  maxWidth: { xs: '100%', sm: '600px', md: '900px', lg: '1400px', xl: '1600px' }, // Wider than default 'lg' (1200px)
+                  mx: 'auto', // Center the container
                   minHeight: 'calc(100vh - 64px - 200px)', // Ensure minimum height minus navbar and footer space
                 }}
               >

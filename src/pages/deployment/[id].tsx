@@ -220,17 +220,17 @@ const DeploymentDetail = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
+      <Box sx={{ pt: 2 }}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
           <CircularProgress />
         </Box>
-      </Container>
+      </Box>
     );
   }
 
   if (error || !deployment) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
+      <Box sx={{ pt: 2 }}>
         <Box>
           <Button 
             startIcon={<ArrowBackIcon />} 
@@ -243,12 +243,12 @@ const DeploymentDetail = () => {
             {error || 'Deployment not found'}
           </Alert>
         </Box>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
+    <Box sx={{ pt: 2 }}>
       {/* Header with back button and actions */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Button 
@@ -579,7 +579,7 @@ const DeploymentDetail = () => {
           })()}
         </>
       )}
-    </Container>
+    </Box>
   );
 };
 

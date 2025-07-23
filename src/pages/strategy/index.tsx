@@ -378,26 +378,14 @@ export default function StrategyList() {
   }
 
   return (
-    <Box sx={{ 
-      width: '100%', 
-      height: '100%', 
-      display: 'flex', 
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      overflow: 'hidden',
-      px: 3
-    }}>
+    <Box sx={{ pt: 2 }}>
       {/* Page Header */}
       <Box 
         sx={{
-          width: '100%',
-          maxWidth: 'lg',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          mb: 4,
-          pt: 2
+          mb: 4
         }}
       >
         <Typography variant="h4" component="h1">
@@ -414,8 +402,6 @@ export default function StrategyList() {
       </Box>
       
       <Box sx={{ 
-        width: '100%', 
-        maxWidth: 'lg',
         mb: 3 
       }}>
         <TextField
@@ -442,8 +428,6 @@ export default function StrategyList() {
 
       {error && (
         <Box sx={{ 
-          width: '100%', 
-          maxWidth: 'lg',
           mb: 2 
         }}>
           <Typography color="error">{error}</Typography>
@@ -452,8 +436,6 @@ export default function StrategyList() {
 
       {/* Content Area */}
       <Box sx={{ 
-        width: '100%', 
-        maxWidth: 'lg',
         flex: 1,
         overflow: 'auto',
         display: 'flex',
