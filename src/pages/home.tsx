@@ -133,7 +133,7 @@ export default function Home() {
   };
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <>
       <Typography variant="h4" gutterBottom>
         Trading Dashboard
       </Typography>
@@ -426,6 +426,6 @@ export default function Home() {
           </Box>
         </Grid>
       </Grid>
-    </Box>
+    </>
   );
 }
