@@ -11,6 +11,7 @@ interface RiskManagementProps {
   errors: any;
   attemptedSubmit: boolean;
   onFieldChange: (field: keyof FormData) => (value: any) => void;
+  readOnly?: boolean;
 }
 
 export const RiskManagement: React.FC<RiskManagementProps> = ({
@@ -18,6 +19,7 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
   errors,
   attemptedSubmit,
   onFieldChange,
+  readOnly = false,
 }) => {
   return (
     <Box sx={{ mb: 3 }}>
@@ -26,9 +28,10 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
         <Box sx={{ mb: 3 }}>
           <IndicatorExpressionBuilder
             value={formData.exitConditions}
-            onChange={onFieldChange('exitConditions')}
+            onChange={readOnly ? () => {} : onFieldChange('exitConditions')}
             label="Exit Conditions"
             isOptional={true}
+            readOnly={readOnly}
           />
         </Box>
       )}
@@ -46,6 +49,7 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
               error={!!(attemptedSubmit && errors.stopLoss)}
               helperText={attemptedSubmit && errors.stopLoss ? errors.stopLoss : undefined}
               inputProps={{ min: 0 }}
+              disabled={readOnly}
             />
           </Box>
         </Grid>
@@ -58,6 +62,7 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
               options={PROFIT_LOSS_TYPES}
               value={formData.stopLossType}
               onChange={onFieldChange('stopLossType')}
+              disabled={readOnly}
             />
           </Box>
         </Grid>
@@ -73,6 +78,7 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
               error={!!(attemptedSubmit && errors.targetProfit)}
               helperText={attemptedSubmit && errors.targetProfit ? errors.targetProfit : undefined}
               inputProps={{ min: 0 }}
+              disabled={readOnly}
             />
           </Box>
         </Grid>
@@ -85,6 +91,7 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
               options={PROFIT_LOSS_TYPES}
               value={formData.targetProfitType}
               onChange={onFieldChange('targetProfitType')}
+              disabled={readOnly}
             />
           </Box>
         </Grid>
@@ -98,6 +105,7 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
               value={formData.trailingStopLoss}
               onChange={(e) => onFieldChange('trailingStopLoss')(e.target.value)}
               inputProps={{ min: 0 }}
+              disabled={readOnly}
             />
           </Box>
         </Grid>
@@ -110,6 +118,7 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
               options={PROFIT_LOSS_TYPES}
               value={formData.trailingStopLossType}
               onChange={onFieldChange('trailingStopLossType')}
+              disabled={readOnly}
             />
           </Box>
         </Grid>

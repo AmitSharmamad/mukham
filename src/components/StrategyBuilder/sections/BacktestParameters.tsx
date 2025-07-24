@@ -13,6 +13,7 @@ interface BacktestParametersProps {
   attemptedSubmit: boolean;
   onFieldChange: (field: keyof FormData) => (value: any) => void;
   onDateChange: (field: 'startDate' | 'endDate') => (value: Dayjs | null) => void;
+  readOnly?: boolean;
 }
 
 export const BacktestParameters: React.FC<BacktestParametersProps> = ({
@@ -21,6 +22,7 @@ export const BacktestParameters: React.FC<BacktestParametersProps> = ({
   attemptedSubmit,
   onFieldChange,
   onDateChange,
+  readOnly = false,
 }) => {
   return (
     <Box sx={{ mb: 3 }}>
@@ -31,7 +33,8 @@ export const BacktestParameters: React.FC<BacktestParametersProps> = ({
               <DatePicker
                 label="Start Date"
                 value={formData.startDate}
-                onChange={onDateChange('startDate')}
+                onChange={readOnly ? () => {} : onDateChange('startDate')}
+                disabled={readOnly}
                 sx={{ width: '100%' }}
                 maxDate={formData.endDate || undefined}
                 slotProps={{
@@ -40,6 +43,7 @@ export const BacktestParameters: React.FC<BacktestParametersProps> = ({
                     required: true,
                     error: !!(errors.startDate),
                     helperText: errors.startDate || undefined,
+                    disabled: readOnly,
                   }
                 }}
               />
@@ -50,7 +54,8 @@ export const BacktestParameters: React.FC<BacktestParametersProps> = ({
               <DatePicker
                 label="End Date"
                 value={formData.endDate}
-                onChange={onDateChange('endDate')}
+                onChange={readOnly ? () => {} : onDateChange('endDate')}
+                disabled={readOnly}
                 sx={{ width: '100%' }}
                 minDate={formData.startDate || undefined}
                 slotProps={{
@@ -59,6 +64,7 @@ export const BacktestParameters: React.FC<BacktestParametersProps> = ({
                     required: true,
                     error: !!(errors.endDate),
                     helperText: errors.endDate || undefined,
+                    disabled: readOnly,
                   }
                 }}
               />
@@ -66,7 +72,7 @@ export const BacktestParameters: React.FC<BacktestParametersProps> = ({
           </Grid>
           <Grid item xs={12} md={6}>
             <Box sx={{ mb: 3 }}>
-              <TextField
+                            <TextField
                 fullWidth
                 label="Brokerage (Rs.)"
                 type="number"
@@ -74,8 +80,9 @@ export const BacktestParameters: React.FC<BacktestParametersProps> = ({
                 onChange={(e) => onFieldChange('brokerage')(e.target.value)}
                 required
                 error={!!(attemptedSubmit && errors.brokerage)}
-                helperText={errors.brokerage || 'Brokerage cost per trade in rupees'}
-                inputProps={{ min: 0, step: 1 }}
+                helperText={attemptedSubmit && errors.brokerage ? errors.brokerage : undefined}
+                inputProps={{ min: 0, step: 0.01 }}
+                disabled={readOnly}
               />
             </Box>
           </Grid>
@@ -91,6 +98,7 @@ export const BacktestParameters: React.FC<BacktestParametersProps> = ({
                 error={!!(attemptedSubmit && errors.slippage)}
                 helperText={errors.slippage || 'Slippage as decimal (e.g., 0.1 for 0.1%)'}
                 inputProps={{ min: 0, step: 0.01 }}
+                disabled={readOnly}
               />
             </Box>
           </Grid>

@@ -13,6 +13,7 @@ interface EntryEndTimeProps {
   onClearTime: (field: 'entryStartTime' | 'entryEndTime') => () => null;
   label?: string;
   required?: boolean;
+  readOnly?: boolean;
 }
 
 export const EntryEndTime: React.FC<EntryEndTimeProps> = ({
@@ -20,8 +21,9 @@ export const EntryEndTime: React.FC<EntryEndTimeProps> = ({
   errors,
   onTimeChange,
   onClearTime,
-  label = "Entry End Time", 
+  label = "Entry End Time",
   required = false,
+  readOnly = false,
 }) => {
   return (
     <Grid item xs={12} md={6}>
@@ -30,7 +32,8 @@ export const EntryEndTime: React.FC<EntryEndTimeProps> = ({
           <TimePicker
             label={label}
             value={formData.entryEndTime}
-            onChange={onTimeChange('entryEndTime')}
+            onChange={readOnly ? () => {} : onTimeChange('entryEndTime')}
+            disabled={readOnly}
             sx={{ width: '100%' }}
             slotProps={{
               textField: {
@@ -38,10 +41,11 @@ export const EntryEndTime: React.FC<EntryEndTimeProps> = ({
                 error: !!errors.entryEndTime,
                 helperText: errors.entryEndTime,
                 required,
+                disabled: readOnly,
               },
               field: {
-                clearable: true,
-                onClear: onClearTime('entryEndTime'),
+                clearable: !readOnly,
+                onClear: readOnly ? undefined : onClearTime('entryEndTime'),
               }
             }}
           />

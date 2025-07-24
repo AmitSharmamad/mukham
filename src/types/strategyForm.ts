@@ -48,6 +48,7 @@ export interface FormData {
   brickSize: string;
   brokerage: string;
   slippage: string;
+  is_readonly?: boolean; // Add the is_readonly property
 }
 
 export interface ApiFormData {

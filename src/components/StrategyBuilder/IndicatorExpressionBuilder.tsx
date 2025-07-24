@@ -108,6 +108,7 @@ interface IndicatorComponentProps {
   onChange: (value: IndicatorExpression) => void;
   onDelete?: () => void;
   showDelete?: boolean;
+  readOnly?: boolean;
 }
 
 interface IndicatorExpressionBuilderProps {
@@ -118,6 +119,7 @@ interface IndicatorExpressionBuilderProps {
   error?: boolean;
   helperText?: string;
   isOptional?: boolean;
+  readOnly?: boolean;
 }
 
 // Use the isIndicatorComplete function from utils
@@ -146,7 +148,7 @@ const getExpressionText = (conditions: IndicatorExpression[]): string => {
     .join(` ${conditions[0]?.logicalOperator || 'AND'} `);
 };
 
-const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: IndicatorComponentProps) => {
+const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false, readOnly = false }: IndicatorComponentProps) => {
   const [showIndicator1Select, setShowIndicator1Select] = useState(!value.indicator1.name);
   const [showIndicator2Select, setShowIndicator2Select] = useState(!value.indicator2.name);
   const [showOperatorSelect, setShowOperatorSelect] = useState(!value.operator);
@@ -383,8 +385,10 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
           fullWidth
           label="Indicator"
           value={searchQuery}
-          onChange={handleSearchChange(field)}
-          onFocus={() => setShowIndicatorList(true)}            placeholder="Search indicators..."
+          onChange={readOnly ? () => {} : handleSearchChange(field)}
+          onFocus={readOnly ? () => {} : () => setShowIndicatorList(true)}
+          placeholder="Search indicators..."
+          disabled={readOnly}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -413,12 +417,13 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
                   <ListItem 
                     key={indicator.value} 
                     button 
-                    onClick={() => handleIndicatorSelect(field, indicator.value)}
+                    onClick={readOnly ? undefined : () => handleIndicatorSelect(field, indicator.value)}
+                    disabled={readOnly}
                     sx={{ 
                       py: 1,
                       '&:hover': { 
-                        bgcolor: 'action.hover',
-                        borderLeft: '3px solid',
+                        bgcolor: readOnly ? 'transparent' : 'action.hover',
+                        borderLeft: readOnly ? 'none' : '3px solid',
                         borderColor: 'primary.main',
                       },
                       transition: 'all 0.2s ease'
@@ -457,8 +462,9 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
       label="Operator"
       options={OPERATORS}
       value={value.operator}
-      onChange={handleChange('operator')}
+      onChange={readOnly ? () => {} : handleChange('operator')}
       sx={{ width: '100%', minWidth: 150 }}
+      disabled={readOnly}
     />
   );
 
@@ -472,8 +478,8 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
       <Tooltip title={`Formula: ${formula}`} arrow placement="top">
         <Chip
           label={label}
-          onDelete={() => handleIndicatorDelete(field)}
-          onClick={() => handleIndicatorClick(indicator, field)}
+          onDelete={readOnly ? undefined : () => handleIndicatorDelete(field)}
+          onClick={readOnly ? undefined : () => handleIndicatorClick(indicator, field)}
           color="primary"
           sx={{
             width: '100%',
@@ -513,7 +519,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
     return (
       <Chip
         label={label}
-        onDelete={handleOperatorDelete}
+        onDelete={readOnly ? undefined : handleOperatorDelete}
         color="secondary"
         sx={{
           width: '100%',
@@ -573,13 +579,14 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
               label={`${param.name.charAt(0).toUpperCase() + param.name.slice(1)}${isRequiredParam ? ' *' : ''}`}
               options={options}
               value={paramValue}
-              onChange={(value) => {
+              onChange={readOnly ? () => {} : (value) => {
                 setModalConfig(prev => ({
                   ...prev,
                   [param.name]: value
                 }));
               }}
               sx={{ width: '100%' }}
+              disabled={readOnly}
             />
           </Grid>
         );
@@ -600,8 +607,9 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
             label={`${param.name.charAt(0).toUpperCase() + param.name.slice(1)}${isRequiredParam ? ' *' : ''}`}
             type={isNumber ? "number" : "text"}
             value={paramValue ?? ''}
-            onChange={handleConfigChange(param.name)}
+            onChange={readOnly ? () => {} : handleConfigChange(param.name)}
             required={isRequiredParam}
+            disabled={readOnly}
             inputProps={isNumber ? { 
               min: 0, 
               step: getStepValue() 
@@ -621,9 +629,10 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
               label="Value *"
               type="number"
               value={modalConfig.value ?? ''}
-              onChange={handleConfigChange('value')}
+              onChange={readOnly ? () => {} : handleConfigChange('value')}
               inputProps={{ step: 'any' }}
               required
+              disabled={readOnly}
             />
           </Grid>
         );
@@ -637,9 +646,10 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
               label="Offset *"
               type="number"
               value={modalConfig.hasOwnProperty('offset') ? modalConfig.offset : ''}
-              onChange={handleConfigChange('offset')}
+              onChange={readOnly ? () => {} : handleConfigChange('offset')}
               inputProps={{ min: 0 }}
               required
+              disabled={readOnly}
             />
           </Grid>
         );
@@ -703,7 +713,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
               <Button 
                 onClick={handleEditSave} 
                 variant="contained"
-                disabled={!isFormValidMemo}
+                disabled={readOnly || !isFormValidMemo}
               >
                 Save
               </Button>
@@ -770,7 +780,7 @@ const IndicatorComponent = ({ value, onChange, onDelete, showDelete = false }: I
           </Box>
         </Grid>
 
-        {showDelete && (
+        {showDelete && !readOnly && (
           <Grid item xs={12} sm="auto">
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <IconButton onClick={onDelete} color="error" size="small">
@@ -790,6 +800,7 @@ const DraggableIndicatorComponent = ({
   onChange, 
   onDelete, 
   showDelete, 
+  readOnly,
   index,
   parentLevel,
   moveExpression 
@@ -823,6 +834,7 @@ const DraggableIndicatorComponent = ({
           onChange={onChange}
           onDelete={onDelete}
           showDelete={showDelete}
+          readOnly={readOnly}
         />
       </Box>
     </div>
@@ -1031,6 +1043,7 @@ export const IndicatorExpressionBuilder = ({
   error,
   helperText,
   isOptional = false,
+  readOnly = false,
   level = 0,
 }: IndicatorExpressionBuilderProps & { level?: number }) => {
   const conditions = Array.isArray(value) ? value : [];
@@ -1237,87 +1250,89 @@ export const IndicatorExpressionBuilder = ({
               )}
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Tooltip title="Generate Expression with AI">
-                <IconButton onClick={handleAiModalOpen} size="small" color="primary">
-                  <Box sx={{ 
-                    position: 'relative', 
-                    width: 28, 
-                    height: 28, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
-                  }}>
-                    {/* Gemini-like orbiting particles */}
-                    {[...Array(6)].map((_, index) => (
+              {!readOnly && (
+                <Tooltip title="Generate Expression with AI">
+                  <IconButton onClick={handleAiModalOpen} size="small" color="primary">
+                    <Box sx={{ 
+                      position: 'relative', 
+                      width: 28, 
+                      height: 28, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      {/* Gemini-like orbiting particles */}
+                      {[...Array(6)].map((_, index) => (
+                        <Box
+                          key={index}
+                          sx={{
+                            position: 'absolute',
+                            width: 3.5,
+                            height: 3.5,
+                            borderRadius: '50%',
+                            backgroundColor: (theme) => theme.palette.primary.main,
+                            animation: `spin 3s linear infinite`,
+                            animationDelay: `${index * 0.2}s`,
+                            opacity: ({ palette }) => palette.mode === 'dark' ? 0.8 : 0.7,
+                            transform: `rotate(${index * 60}deg) translateX(12px)`,
+                            '@keyframes spin': {
+                              '0%': {
+                                transform: `rotate(${index * 60}deg) translateX(12px) rotate(0deg)`,
+                              },
+                              '100%': {
+                                transform: `rotate(${index * 60 + 360}deg) translateX(12px) rotate(-360deg)`,
+                              },
+                            },
+                          }}
+                        />
+                      ))}
+                      {/* Secondary orbit */}
+                      {[...Array(4)].map((_, index) => (
+                        <Box
+                          key={`inner-${index}`}
+                          sx={{
+                            position: 'absolute',
+                            width: 2.5,
+                            height: 2.5,
+                            borderRadius: '50%',
+                            backgroundColor: (theme) => theme.palette.primary.light,
+                            animation: `spinReverse 4s linear infinite`,
+                            animationDelay: `${index * 0.3}s`,
+                            opacity: 0.6,
+                            transform: `rotate(${index * 90}deg) translateX(8px)`,
+                            '@keyframes spinReverse': {
+                              '0%': {
+                                transform: `rotate(${index * 90}deg) translateX(8px) rotate(0deg)`,
+                              },
+                              '100%': {
+                                transform: `rotate(${index * 90 - 360}deg) translateX(8px) rotate(360deg)`,
+                              },
+                            },
+                          }}
+                        />
+                      ))}
+                      {/* Central icon with enhanced pulse effect */}
                       <Box
-                        key={index}
                         sx={{
-                          position: 'absolute',
-                          width: 3.5,
-                          height: 3.5,
-                          borderRadius: '50%',
-                          backgroundColor: (theme) => theme.palette.primary.main,
-                          animation: `spin 3s linear infinite`,
-                          animationDelay: `${index * 0.2}s`,
-                          opacity: ({ palette }) => palette.mode === 'dark' ? 0.8 : 0.7,
-                          transform: `rotate(${index * 60}deg) translateX(12px)`,
-                          '@keyframes spin': {
-                            '0%': {
-                              transform: `rotate(${index * 60}deg) translateX(12px) rotate(0deg)`,
-                            },
-                            '100%': {
-                              transform: `rotate(${index * 60 + 360}deg) translateX(12px) rotate(-360deg)`,
-                            },
+                          animation: `enhancedPulse 2.5s ease-in-out infinite`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 1,
+                          '@keyframes enhancedPulse': {
+                            '0%': { transform: 'scale(1)', opacity: 0.8 },
+                            '50%': { transform: 'scale(1.3)', opacity: 1, filter: 'drop-shadow(0 0 2px currentColor)' },
+                            '100%': { transform: 'scale(1)', opacity: 0.8 },
                           },
                         }}
-                      />
-                    ))}
-                    {/* Secondary orbit */}
-                    {[...Array(4)].map((_, index) => (
-                      <Box
-                        key={`inner-${index}`}
-                        sx={{
-                          position: 'absolute',
-                          width: 2.5,
-                          height: 2.5,
-                          borderRadius: '50%',
-                          backgroundColor: (theme) => theme.palette.primary.light,
-                          animation: `spinReverse 4s linear infinite`,
-                          animationDelay: `${index * 0.3}s`,
-                          opacity: 0.6,
-                          transform: `rotate(${index * 90}deg) translateX(8px)`,
-                          '@keyframes spinReverse': {
-                            '0%': {
-                              transform: `rotate(${index * 90}deg) translateX(8px) rotate(0deg)`,
-                            },
-                            '100%': {
-                              transform: `rotate(${index * 90 - 360}deg) translateX(8px) rotate(360deg)`,
-                            },
-                          },
-                        }}
-                      />
-                    ))}
-                    {/* Central icon with enhanced pulse effect */}
-                    <Box
-                      sx={{
-                        animation: `enhancedPulse 2.5s ease-in-out infinite`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 1,
-                        '@keyframes enhancedPulse': {
-                          '0%': { transform: 'scale(1)', opacity: 0.8 },
-                          '50%': { transform: 'scale(1.3)', opacity: 1, filter: 'drop-shadow(0 0 2px currentColor)' },
-                          '100%': { transform: 'scale(1)', opacity: 0.8 },
-                        },
-                      }}
-                    >
-                      <AutoAwesomeIcon fontSize="small" color="primary" />
+                      >
+                        <AutoAwesomeIcon fontSize="small" color="primary" />
+                      </Box>
                     </Box>
-                  </Box>
-                </IconButton>
-              </Tooltip>
-              {isOptional && conditions.length > 0 && (
+                  </IconButton>
+                </Tooltip>
+              )}
+              {!readOnly && isOptional && conditions.length > 0 && (
                 <Tooltip title="Clear all expressions">
                   <IconButton onClick={handleClearAll} size="small" color="error">
                     <ClearIcon />
@@ -1333,8 +1348,9 @@ export const IndicatorExpressionBuilder = ({
             <Select
               options={LOGICAL_OPERATORS}
               value={conditions[0]?.logicalOperator || 'AND'}
-              onChange={(value: string | number) => handleLogicalOperatorChange(value.toString())}
+              onChange={readOnly ? () => {} : (value: string | number) => handleLogicalOperatorChange(value.toString())}
               sx={{ width: 150 }}
+              disabled={readOnly}
             />
           </Box>
         )}
@@ -1363,8 +1379,9 @@ export const IndicatorExpressionBuilder = ({
                   value={condition.nestedConditions || []}
                   onChange={handleNestedChange(index)}
                   level={level + 1}
+                  readOnly={readOnly}
                 />
-                {conditions.length > 1 && (
+                {!readOnly && conditions.length > 1 && (
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
                     <IconButton onClick={handleDeleteCondition(index)} color="error" size="small">
                       <DeleteIcon />
@@ -1376,8 +1393,9 @@ export const IndicatorExpressionBuilder = ({
               <DraggableIndicatorComponent
                 value={condition}
                 onChange={handleConditionChange(index)}
-                onDelete={conditions.length > 1 ? handleDeleteCondition(index) : undefined}
-                showDelete={conditions.length > 1}
+                onDelete={!readOnly && conditions.length > 1 ? handleDeleteCondition(index) : undefined}
+                showDelete={!readOnly && conditions.length > 1}
+                readOnly={readOnly}
                 index={index}
                 parentLevel={level}
                 moveExpression={moveExpression}
@@ -1386,53 +1404,55 @@ export const IndicatorExpressionBuilder = ({
           </DroppableBlock>
         ))}
 
-        <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-              <Tooltip title="Add condition">
-                <IconButton onClick={() => handleAddCondition(false)} color="primary">
-                  <AddIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Add nested block">
-                <IconButton onClick={() => handleAddCondition(true)} color="secondary">
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        {!readOnly && (
+          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+                <Tooltip title="Add condition">
+                  <IconButton onClick={() => handleAddCondition(false)} color="primary">
                     <AddIcon />
-                    <Box component="span" sx={{ 
-                      border: '1px dashed',
-                      borderColor: 'secondary.main',
-                      width: 16,
-                      height: 16,
-                      borderRadius: 0.5,
-                      ml: -0.5
-                    }} />
-                  </Box>
-                </IconButton>
-              </Tooltip>
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Add nested block">
+                  <IconButton onClick={() => handleAddCondition(true)} color="secondary">
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <AddIcon />
+                      <Box component="span" sx={{ 
+                        border: '1px dashed',
+                        borderColor: 'secondary.main',
+                        width: 16,
+                        height: 16,
+                        borderRadius: 0.5,
+                        ml: -0.5
+                      }} />
+                    </Box>
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </Box>
           </Box>
+        )}
 
-          {conditions.length > 0 && (
-            <Typography
-              variant="body2"
-              sx={{
-                p: 2,
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-                border: (theme) => `1px solid ${theme.palette.divider}`,
-                fontSize: '0.875rem'
-              }}
-            >
-              Expression: {getExpressionText(conditions)}
-            </Typography>
-          )}
+        {conditions.length > 0 && (
+          <Typography
+            variant="body2"
+            sx={{
+              p: 2,
+              borderRadius: 1,
+              bgcolor: 'background.paper',
+              border: (theme) => `1px solid ${theme.palette.divider}`,
+              fontSize: '0.875rem'
+            }}
+          >
+            Expression: {getExpressionText(conditions)}
+          </Typography>
+        )}
 
-          {error && helperText && (
-            <FormHelperText error sx={{ ml: 2 }}>
-              {helperText}
-            </FormHelperText>
-          )}
-        </Box>
+        {error && helperText && (
+          <FormHelperText error sx={{ ml: 2 }}>
+            {helperText}
+          </FormHelperText>
+        )}
       </Box>
       
       {/* AI Prompt Modal */}

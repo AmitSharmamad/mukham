@@ -43,6 +43,7 @@ interface FormattedStrategy {
   endDate: string;
   brokerage: string;
   slippage: string;
+  is_readonly?: boolean; // Add the is_readonly property
 }
 
 export default function EditStrategy() {
@@ -113,6 +114,7 @@ export default function EditStrategy() {
           brickSize: strategyData.brick_size?.toString() || '',
           brokerage: strategyData.brokerage?.toString() || '20',
           slippage: strategyData.slippage?.toString() || '0.5',
+          is_readonly: strategyData.is_readonly, // Add the is_readonly property
         };
         
         setStrategy(formData);
