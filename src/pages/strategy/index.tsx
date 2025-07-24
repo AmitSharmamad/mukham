@@ -380,7 +380,7 @@ export default function StrategyList() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          mb: 4
+          mb: 3
         }}
       >
         <Typography variant="h4" component="h1">
