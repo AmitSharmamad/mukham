@@ -21,11 +21,7 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio
+  ButtonGroup
 } from '@mui/material';
 import StopIcon from '@mui/icons-material/Stop';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -188,8 +184,8 @@ const DeploymentPage = () => {
     }
   };
 
-  const handlePositionFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPositionFilter(event.target.value);
+  const handlePositionFilterChange = (filter: string) => {
+    setPositionFilter(filter);
   };
 
   const handleToggleDeployment = async (deployment: Deployment) => {
@@ -388,24 +384,47 @@ const DeploymentPage = () => {
   return (
     <>
       {/* Page Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="h4" component="h1">
-              Deployments
-            </Typography>
-            <Chip 
-              label={connectionStatus === 'connected' ? 'Connected' : connectionStatus}
-              size="small"
-              color={connectionStatus === 'connected' ? 'success' : 
-                     connectionStatus === 'connecting' ? 'warning' : 'error'}
-              variant="outlined"
-              sx={{ fontWeight: 500 }}
-            />
-          </Box>
-          <Typography variant="body2" color="text.secondary">
-            Manage and monitor your trading strategies
+      <Box position="relative" display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Typography variant="h4" component="h1">
+            Deployments
           </Typography>
+          <Chip 
+            label={connectionStatus === 'connected' ? 'Connected' : connectionStatus}
+            size="small"
+            color={connectionStatus === 'connected' ? 'success' : 
+                   connectionStatus === 'connecting' ? 'warning' : 'error'}
+            variant="outlined"
+            sx={{ fontWeight: 500 }}
+          />
+        </Box>
+        
+        {/* Position Status Filter - Button Group (Absolutely Centered) */}
+        <Box 
+          position="absolute" 
+          left="50%" 
+          sx={{ transform: 'translateX(-50%)' }}
+        >
+          <ButtonGroup variant="outlined">
+            <Button
+              variant={positionFilter === 'all' ? 'contained' : 'outlined'}
+              onClick={() => handlePositionFilterChange('all')}
+            >
+              All
+            </Button>
+            <Button
+              variant={positionFilter === 'waiting' ? 'contained' : 'outlined'}
+              onClick={() => handlePositionFilterChange('waiting')}
+            >
+              Waiting
+            </Button>
+            <Button
+              variant={positionFilter === 'entered' ? 'contained' : 'outlined'}
+              onClick={() => handlePositionFilterChange('entered')}
+            >
+              Entered
+            </Button>
+          </ButtonGroup>
         </Box>
         
         {/* Action Buttons */}
@@ -439,27 +458,6 @@ const DeploymentPage = () => {
           </Button>
         </Box>
       </Box>
-
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={4} alignItems="center" justifyContent="center">
-          <Grid item>
-            <FormControl component="fieldset">
-              <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1, textAlign: 'center', display: 'block' }}>Position Status</FormLabel>
-              <RadioGroup
-                row
-                value={positionFilter}
-                onChange={handlePositionFilterChange}
-                sx={{ gap: 3 }}
-              >
-                <FormControlLabel value="all" control={<Radio />} label="All" />
-                <FormControlLabel value="waiting" control={<Radio />} label="Waiting" />
-                <FormControlLabel value="entered" control={<Radio />} label="Entered" />
-              </RadioGroup>
-            </FormControl>
-          </Grid>
-        </Grid>
-      </Paper>
 
       {/* Deployments Table */}
       {loading ? (
