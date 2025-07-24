@@ -16,7 +16,7 @@ export default function Careers() {
         💼 Coming Soon
       </Typography>
       <Typography variant="h5" color="text.secondary">
-        Career opportunities are under development
+        We will open our careers page soon. Stay tuned!
       </Typography>
     </Box>
   );
