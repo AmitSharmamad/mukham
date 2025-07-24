@@ -104,7 +104,7 @@ export const MainLayout = ({
               maxWidth={false}
               sx={{ 
                 py: 2, 
-                mt: 8,
+                mt: 12, // Increased from mt: 10 to add even more top margin
                 px: { xs: 1, sm: 2, md: 3, lg: 4 }, // Custom horizontal padding - half of default Container margins
                 maxWidth: { xs: '100%', sm: '600px', md: '900px', lg: '1400px', xl: '1600px' }, // Wider than default 'lg' (1200px)
                 mx: 'auto', // Center the container
