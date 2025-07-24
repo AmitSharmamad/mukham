@@ -32,7 +32,6 @@ import {
 import { useRouter } from 'next/router';
 import { useToastContext } from '../../context/ToastContext';
 import type { Strategy } from '../../types/strategy';
-import { checkPageAuth } from '../../utils/pageAuthUtils';
 
 export default function StrategyList() {
   const router = useRouter();
@@ -111,14 +110,10 @@ export default function StrategyList() {
 
   useEffect(() => {
     const initPage = async () => {
-      // Check authentication once when the page loads
-      const isAuthed = await checkPageAuth(router);
-      
-      // If authenticated, fetch strategies
-      if (isAuthed) {
-        await fetchUserStrategies();
-        await fetchDefaultStrategies();
-      }
+      // AuthGuard handles authentication for this protected route
+      // Fetch strategies directly since user is already authenticated
+      await fetchUserStrategies();
+      await fetchDefaultStrategies();
     };
     
     initPage();

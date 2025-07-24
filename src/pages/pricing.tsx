@@ -43,7 +43,7 @@ const pricingPlans: PricingPlan[] = [
   },
   {
     name: 'Pro',
-    price: '₹29',
+    price: '₹999',
     period: 'month',
     description: 'Ideal for serious traders and small teams',
     features: [
@@ -60,7 +60,7 @@ const pricingPlans: PricingPlan[] = [
   },
   {
     name: 'Advanced',
-    price: '₹99',
+    price: '₹1899',
     period: 'month',
     description: 'For professional traders and growing teams',
     features: [
