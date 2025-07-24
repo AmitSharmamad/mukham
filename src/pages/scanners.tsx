@@ -40,6 +40,26 @@ interface Scanner {
 }
 
 const ScannersPage = () => {
+  return (
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '60vh',
+        textAlign: 'center'
+      }}
+    >
+      <Typography variant="h2" component="h1" sx={{ mb: 2, fontWeight: 600 }}>
+        📊 Coming Soon
+      </Typography>
+      <Typography variant="h5" color="text.secondary">
+        Scanner features are under development
+      </Typography>
+    </Box>
+  );
+  
   const router = useRouter();
   const [scanners, setScanners] = useState<Scanner[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
