@@ -606,45 +606,32 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             alignItems: 'center',
             gap: 2
           }}>
-            {!loading && !isMobile && (authStatus ? (
-              <>
-                {/* Live Clock - moved here to be before profile icon */}
-                <LiveClock color="green" fontSize="1.1rem" />
-                
-                <IconButton 
-                  size="large" 
-                  onClick={handleProfileMenu} 
-                  color="inherit"
-                  sx={{ 
-                    fontSize: '1.75rem',
-                    width: 48,
-                    height: 48
-                  }}
-                >
-                  <AccountCircle sx={{ fontSize: '1.75rem' }} />
-                </IconButton>
-                
-                <Menu
-                  anchorEl={profileAnchorEl}
-                  open={Boolean(profileAnchorEl)}
-                  onClose={handleProfileMenuClose}
-                >
-                  <MenuItem component={Link} href="/profile" onClick={handleProfileMenuClose}>Profile</MenuItem>
-                  <MenuItem component={Link} href="/support" onClick={handleProfileMenuClose}>Support</MenuItem>
-                  <Divider />
-                  <MenuItem onClick={handleLogout}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
-                      Logout
-                    </Box>
-                  </MenuItem>
-                </Menu>
-              </>
-            ) : (
+            {!loading && !isMobile && (
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                {/* Live Clock - also show for non-authenticated users */}
+                {/* Join Waitlist - only for non-authenticated users (leftmost) */}
+                {!authStatus && (
+                  <Button 
+                    variant="contained"
+                    size="medium"
+                    component={Link}
+                    href="/waitlist"
+                    sx={{ 
+                      py: 0.8,
+                      px: 2.5,
+                      borderRadius: '20px',
+                      fontWeight: 500,
+                      textTransform: 'none',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    🚀 Join Waitlist 🚀
+                  </Button>
+                )}
+                
+                {/* Live Clock - show for both authenticated and non-authenticated users */}
                 <LiveClock color="green" fontSize="1.1rem" />
                 
+                {/* Theme button - show for both authenticated and non-authenticated users */}
                 <Tooltip title={isUsingSystemTheme ? `System theme (${mode})` : `${mode} mode`}>
                   <IconButton 
                     size="large"
@@ -665,32 +652,54 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                     }
                   </IconButton>
                 </Tooltip>
-                <Button 
-                  variant="contained"
-                  size="medium"
-                  component={Link}
-                  href="/waitlist"
-                  sx={{ 
-                    py: 0.8,
-                    px: 2.5,
-                    borderRadius: '20px',
-                    fontWeight: 500,
-                    textTransform: 'none',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  🚀 Join Waitlist 🚀
-                </Button>
-                <Button 
-                  color="inherit"
-                  onClick={handleLoginClick}
-                  sx={{ fontSize: '1.1rem' }}
-                  startIcon={<LoginIcon />}
-                >
-                  Login
-                </Button>
+
+                {authStatus ? (
+                  <>
+                    {/* Profile icon for authenticated users (rightmost) */}
+                    <IconButton 
+                      size="large" 
+                      onClick={handleProfileMenu} 
+                      color="inherit"
+                      sx={{ 
+                        fontSize: '1.75rem',
+                        width: 48,
+                        height: 48
+                      }}
+                    >
+                      <AccountCircle sx={{ fontSize: '1.75rem' }} />
+                    </IconButton>
+                    
+                    <Menu
+                      anchorEl={profileAnchorEl}
+                      open={Boolean(profileAnchorEl)}
+                      onClose={handleProfileMenuClose}
+                    >
+                      <MenuItem component={Link} href="/profile" onClick={handleProfileMenuClose}>Profile</MenuItem>
+                      <MenuItem component={Link} href="/support" onClick={handleProfileMenuClose}>Support</MenuItem>
+                      <Divider />
+                      <MenuItem onClick={handleLogout}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
+                          Logout
+                        </Box>
+                      </MenuItem>
+                    </Menu>
+                  </>
+                ) : (
+                  <>
+                    {/* Login button for non-authenticated users (rightmost) */}
+                    <Button 
+                      color="inherit"
+                      onClick={handleLoginClick}
+                      sx={{ fontSize: '1.1rem' }}
+                      startIcon={<LoginIcon />}
+                    >
+                      Login
+                    </Button>
+                  </>
+                )}
               </Box>
-            ))}
+            )}
             
             {/* Theme menu for desktop non-authenticated users */}
             {!isMobile && (
