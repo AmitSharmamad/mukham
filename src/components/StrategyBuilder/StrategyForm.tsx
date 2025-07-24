@@ -28,7 +28,8 @@ import {
   ToggleButtonGroup,
   ButtonGroup,
   Modal,
-  Checkbox
+  Checkbox,
+  CircularProgress,
 } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -55,6 +56,16 @@ import { EntryExpressionBuilder } from './EntryExpressionBuilder';
 import { LegsBuilder } from './LegsBuilder';
 import MetricsSection from './MetricsSection';
 import { BacktestResultsDisplay } from './BacktestResultsDisplay';
+import { 
+  Name, 
+  Entry, 
+  Expression, 
+  TradeDayAndTime, 
+  EntryStartTime, 
+  EntryEndTime, 
+  RiskManagement, 
+  BacktestParameters 
+} from './sections';
 import { PROFIT_LOSS_TYPES, TIMEFRAME_OPTIONS } from '../../constants';
 import {
   Table,
@@ -63,7 +74,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  CircularProgress,
 } from '@mui/material';
 import { BacktestResult } from '../../types/strategy';
 import { createDeployment, ApiResponse } from '../../services/deploymentService';
@@ -384,951 +394,70 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   // Using imported isSectionComplete function from utils
 
   // Define sections based on instrument type and strategy type
+  // Helper function to handle instrument deletion
+  const handleInstrumentDelete = (instrumentId: number) => {
+    const newInstruments = selectedInstruments.filter(i => i.exchange_security_id !== instrumentId);
+    setSelectedInstruments(newInstruments);
+    handleChange('instruments')(newInstruments.map(i => i.exchange_security_id));
+  };
+
   const getSections = () => {
-    // Merged Name & Positions section - different for F&O Expression vs others
-    const getNameAndPositionsSection = () => {
-      if (formData.instrumentType === 'options' && formData.strategyType === 'expression') {
-        // For F&O Expression: Remove Position Type, Max Allocation, and Max Quantity
-        return {
-          id: 'name-positions',
-          title: 'Name & Positions',
-          component: (
-            <Grid container spacing={3}>
-              {/* Name and Description */}
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  id="name"
-                  label="Strategy Name"
-                  value={formData.name}
-                  onChange={(e) => handleChange('name')(e.target.value)}
-                  
-                  
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  id="description"
-                  label="Description"
-                  multiline
-                  rows={4}
-                  value={formData.description}
-                  onChange={(e) => handleChange('description')(e.target.value)}
-                />
-              </Grid>
-              
-              {/* Positions Section */}
-              <Grid item xs={12}>
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 2,
-                  justifyContent: 'center',
-                  mt: 2
-                }}>
-                  <Button
-                    variant="outlined"
-                    startIcon={<Add />}
-                    onClick={() => setInstrumentSelectorOpen(true)}
-                  >
-                    Add Instrument
-                  </Button>
-                  
-                  <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                    {selectedInstruments.map((instrument) => (
-                      <Chip
-                        key={instrument.exchange_security_id}
-                        label={instrument.symbol}
-                        onDelete={() => {
-                          const newInstruments = selectedInstruments.filter(i => i.exchange_security_id !== instrument.exchange_security_id);
-                          setSelectedInstruments(newInstruments);
-                          handleChange('instruments')(newInstruments.map(i => i.exchange_security_id));
-                        }}
-                      />
-                    ))}
-                  </Box>
-                </Box>
-              </Grid>
-              <Grid item xs={12}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={3}>
-                    <Select
-                      fullWidth
-                      id="chart_type"
-                      label="Candlestick Type"
-                      options={[
-                        { label: 'Candlestick', value: 'CANDLESTICK' },
-                        { label: 'Renko', value: 'RENKO' }
-                      ]}
-                      value={formData.candlestickType}
-                      onChange={handleChange('candlestickType')}
-                      
-                    />
-                    {attemptedSubmit && errors.candlestickType && (
-                      <Typography color="error" variant="caption" sx={{ display: 'block', mt: 1 }}>
-                        {errors.candlestickType}
-                      </Typography>
-                    )}
-                  </Grid>
-                  {formData.candlestickType === 'RENKO' && (
-                    <Grid item xs={12} md={3}>
-                      <TextField
-                        fullWidth
-                        id="brick_size"
-                        label="Brick Size"
-                        type="number"
-                        value={formData.brickSize || ''}
-                        onChange={(e) => handleChange('brickSize')(e.target.value)}
-                        
-                        
-                        inputProps={{ min: 0.1, step: 0.1 }}
-                      />
-                    </Grid>
-                  )}
-                  <Grid item xs={12} md={formData.candlestickType === 'RENKO' ? 3 : 3}>
-                    <Select
-                      fullWidth
-                      id="chart_timeframe"
-                      label="Timeframe"
-                      options={TIMEFRAME_OPTIONS}
-                      value={formData.timeframe}
-                      onChange={handleChange('timeframe')}
-                      
-                    />
-                    {attemptedSubmit && errors.timeframe && (
-                      <Typography color="error" variant="caption" sx={{ display: 'block', mt: 1 }}>
-                        {errors.timeframe}
-                      </Typography>
-                    )}
-                  </Grid>
-                  <Grid item xs={12} md={3}>
-                    <Select
-                      fullWidth
-                      id="chart_unknown"
-                      label="Trade Type"
-                      options={[
-                        { label: 'MIS', value: 'MIS' },
-                        { label: 'CNC/NRML', value: 'CNC/NRML' }
-                      ]}
-                      value={formData.tradeType}
-                      onChange={handleChange('tradeType')}
-                      
-                    />
-                    {attemptedSubmit && errors.tradeType && (
-                      <Typography color="error" variant="caption" sx={{ display: 'block', mt: 1 }}>
-                        {errors.tradeType}
-                      </Typography>
-                    )}
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-          ),
-        };
-      } else if (formData.instrumentType === 'options' && formData.strategyType === 'time-based') {
-        // For F&O Time-based: Keep only Add Instrument, remove the rest
-        return {
-          id: 'name-positions',
-          title: 'Name & Positions',
-          component: (
-            <Grid container spacing={3}>
-              {/* Name and Description */}
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  id="name"
-                  label="Strategy Name"
-                  value={formData.name}
-                  onChange={(e) => handleChange('name')(e.target.value)}
-                  
-                  
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  id="description"
-                  label="Description"
-                  multiline
-                  rows={4}
-                  value={formData.description}
-                  onChange={(e) => handleChange('description')(e.target.value)}
-                />
-              </Grid>
-              
-              {/* Positions Section */}
-              <Grid item xs={12}>
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 2,
-                  justifyContent: 'center',
-                  mt: 2
-                }}>
-                  <Button
-                    variant="outlined"
-                    startIcon={<Add />}
-                    onClick={() => setInstrumentSelectorOpen(true)}
-                  >
-                    Add Instrument
-                  </Button>
-                  
-                  <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                    {selectedInstruments.map((instrument) => (
-                      <Chip
-                        key={instrument.exchange_security_id}
-                        label={instrument.symbol}
-                        onDelete={() => {
-                          const newInstruments = selectedInstruments.filter(i => i.exchange_security_id !== instrument.exchange_security_id);
-                          setSelectedInstruments(newInstruments);
-                          handleChange('instruments')(newInstruments.map(i => i.exchange_security_id));
-                        }}
-                      />
-                    ))}
-                  </Box>
-                </Box>
-              </Grid>
-            </Grid>
-          ),
-        };
-      } else {
-        // For Equity and F&O Time-based: Keep existing structure with Position Type
-        return {
-          id: 'name-positions',
-          title: 'Name & Positions',
-          component: (
-            <Grid container spacing={3}>
-              {/* Name and Description */}
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  id="name"
-                  label="Strategy Name"
-                  value={formData.name}
-                  onChange={(e) => handleChange('name')(e.target.value)}
-                  
-                  
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  id="description"
-                  label="Description"
-                  multiline
-                  rows={4}
-                  value={formData.description}
-                  onChange={(e) => handleChange('description')(e.target.value)}
-                />
-              </Grid>
-              
-              {/* Positions Section */}
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 4, mt: 2 }}>
-                  <FormControl component="fieldset">
-                    <FormLabel component="legend">Position Type</FormLabel>
-                    <RadioGroup
-                      row
-                      name="position_type"
-                      id="position_type"
-                      value={formData.buyOrSell}
-                      onChange={(e) => handleChange('buyOrSell')(e.target.value)}
-                    >
-                      <FormControlLabel value="buy" control={<Radio />} label="Buy" />
-                      <FormControlLabel value="sell" control={<Radio />} label="Sell" />
-                    </RadioGroup>
-                  </FormControl>
-
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 2,
-                    flex: 1,
-                    justifyContent: 'center'
-                  }}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Add />}
-                      onClick={() => setInstrumentSelectorOpen(true)}
-                    >
-                      Add Instrument
-                    </Button>
-                    
-                    <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                      {selectedInstruments.map((instrument) => (
-                        <Chip
-                          key={instrument.exchange_security_id}
-                          label={instrument.symbol}
-                          onDelete={() => {
-                            const newInstruments = selectedInstruments.filter(i => i.exchange_security_id !== instrument.exchange_security_id);
-                            setSelectedInstruments(newInstruments);
-                            handleChange('instruments')(newInstruments.map(i => i.exchange_security_id));
-                          }}
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-                </Box>
-              </Grid>
-              <Grid item xs={12}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={3}>
-                    <Select
-                      fullWidth
-                      id="chart_type"
-                      label="Candlestick Type"
-                      options={[
-                        { label: 'Candlestick', value: 'CANDLESTICK' },
-                        { label: 'Renko', value: 'RENKO' }
-                      ]}
-                      value={formData.candlestickType}
-                      onChange={handleChange('candlestickType')}
-                      
-                    />
-                    {attemptedSubmit && errors.candlestickType && (
-                      <Typography color="error" variant="caption" sx={{ display: 'block', mt: 1 }}>
-                        {errors.candlestickType}
-                      </Typography>
-                    )}
-                  </Grid>
-                  {formData.candlestickType === 'RENKO' && (
-                    <Grid item xs={12} md={3}>
-                      <TextField
-                        fullWidth
-                        id="brick_size"
-                        label="Brick Size"
-                        type="number"
-                        value={formData.brickSize || ''}
-                        onChange={(e) => handleChange('brickSize')(e.target.value)}
-                        
-                        
-                        inputProps={{ min: 0.1, step: 0.1 }}
-                      />
-                    </Grid>
-                  )}
-                  <Grid item xs={12} md={formData.candlestickType === 'RENKO' ? 3 : 3}>
-                    <Select
-                      fullWidth
-                      id="chart_timeframe"
-                      label="Timeframe"
-                      options={TIMEFRAME_OPTIONS}
-                      value={formData.timeframe}
-                      onChange={handleChange('timeframe')}
-                      
-                    />
-                    {attemptedSubmit && errors.timeframe && (
-                      <Typography color="error" variant="caption" sx={{ display: 'block', mt: 1 }}>
-                        {errors.timeframe}
-                      </Typography>
-                    )}
-                  </Grid>
-                  <Grid item xs={12} md={3}>
-                    <Select
-                      fullWidth
-                      id="chart_unknown"
-                      label="Trade Type"
-                      options={[
-                        { label: 'MIS', value: 'MIS' },
-                        { label: 'CNC/NRML', value: 'CNC/NRML' }
-                      ]}
-                      value={formData.tradeType}
-                      onChange={handleChange('tradeType')}
-                      
-                    />
-                    {attemptedSubmit && errors.tradeType && (
-                      <Typography color="error" variant="caption" sx={{ display: 'block', mt: 1 }}>
-                        {errors.tradeType}
-                      </Typography>
-                    )}
-                  </Grid>
-                </Grid>
-              </Grid>
-              
-              {/* Max Allocation and Max Quantity for Equity */}
-              <Grid item xs={12}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      id="max_allocation"
-                      label="Max Allocation (%)"
-                      type="number"
-                      value={formData.maxAllocation}
-                      onChange={(e) => handleChange('maxAllocation')(e.target.value)}
-                      
-                      
-                      inputProps={{ min: 0, max: 100 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      id="max_quantity"
-                      label="Max Quantity"
-                      type="number"
-                      value={formData.maxQuantity}
-                      onChange={(e) => handleChange('maxQuantity')(e.target.value)}
-                      
-                      
-                      inputProps={{ min: 1, step: 1 }}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-          ),
-        };
-      }
-    };
-
-    // Entry Conditions section - different for F&O Expression vs others
-    const getEntrySection = () => {
-      if (formData.instrumentType === 'options' && formData.strategyType === 'expression') {
-        // For F&O Expression: Add Entry Expression Builder and Legs Builder
-        return {
-          id: 'entry',
-          title: 'Entry Conditions',
-          component: (
-            <Box>
-              <EntryExpressionBuilder
-                value={formData.entryConditions}
-                onChange={handleChange('entryConditions')}
-                
-                
-              />
-              
-              <Box sx={{ mt: 3 }}>
-                <LegsBuilder
-                  value={formData.entryOptionLegs}
-                  onChange={handleChange('entryOptionLegs')}
-                  
-                  
-                />
-              </Box>
-
-              {/* Trade Day and Time Subsection - Only for Options */}
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Trade Day and Time
-                </Typography>
-                
-                <Grid container spacing={3}>
-                  {/* Day of Week */}
-                  <Grid item xs={12} md={4}>
-                    <Box>
-                      <ButtonGroup 
-                        variant="outlined" 
-                        size="medium" 
-                        sx={{ 
-                          flexWrap: 'wrap',
-                          height: '56px',
-                          '& .MuiButton-root': {
-                            minWidth: '48px',
-                            height: '56px',
-                            fontSize: '0.875rem',
-                          }
-                        }}
-                      >
-                        {[
-                          { label: 'M', value: 'MON' },
-                          { label: 'T', value: 'TUE' },
-                          { label: 'W', value: 'WED' },
-                          { label: 'T', value: 'THU' },
-                          { label: 'F', value: 'FRI' }
-                        ].map((day) => (
-                          <MuiButton
-                            key={day.value}
-                            variant={formData.tradingDays.includes(day.value) ? 'contained' : 'outlined'}
-                            onClick={() => {
-                              const currentDays = formData.tradingDays;
-                              const updatedDays = currentDays.includes(day.value)
-                                ? currentDays.filter(d => d !== day.value)
-                                : [...currentDays, day.value];
-                              handleChange('tradingDays')(updatedDays);
-                            }}
-                          >
-                            {day.label}
-                          </MuiButton>
-                        ))}
-                      </ButtonGroup>
-                    </Box>
-                  </Grid>
-
-                  {/* Entry Start Time */}
-                  <Grid item xs={12} md={4}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                      <TimePicker
-                        label="Entry Start Time"
-                        value={formData.entryStartTime}
-                        onChange={handleTimeChange('entryStartTime')}
-                        sx={{ width: '100%' }}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            error: !!errors.entryStartTime,
-                            helperText: errors.entryStartTime,
-                          },
-                          field: {
-                            clearable: true,
-                            onClear: handleClearTime('entryStartTime'),
-                          }
-                        }}
-                      />
-                    </LocalizationProvider>
-                  </Grid>
-
-                  {/* Entry End Time */}
-                  <Grid item xs={12} md={4}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                      <TimePicker
-                        label="Entry End Time"
-                        value={formData.entryEndTime}
-                        onChange={handleTimeChange('entryEndTime')}
-                        sx={{ width: '100%' }}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            error: !!errors.entryEndTime,
-                            helperText: errors.entryEndTime,
-                          },
-                          field: {
-                            clearable: true,
-                            onClear: handleClearTime('entryEndTime'),
-                          }
-                        }}
-                      />
-                    </LocalizationProvider>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Box>
-          ),
-        };
-      } else if (formData.instrumentType === 'options' && formData.strategyType === 'time-based') {
-        // For F&O Time-based: Add Entry Time, Exit Time and Legs Builder
-        return {
-          id: 'entry',
-          title: 'Conditions',
-          component: (
-            <Box>
-              <Grid container spacing={3}>
-                {/* Entry Time */}
-                <Grid item xs={12} md={6}>
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <TimePicker
-                      label="Entry Time"
-                      value={formData.entryStartTime}
-                      onChange={handleTimeChange('entryStartTime')}
-                      sx={{ width: '100%' }}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.entryStartTime,
-                          helperText: errors.entryStartTime,
-                          
-                        },
-                        field: {
-                          clearable: true,
-                          onClear: handleClearTime('entryStartTime'),
-                        }
-                      }}
-                    />
-                  </LocalizationProvider>
-                </Grid>
-                
-                {/* Exit Time */}
-                <Grid item xs={12} md={6}>
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <TimePicker
-                      label="Exit Time"
-                      value={formData.entryEndTime}
-                      onChange={handleTimeChange('entryEndTime')}
-                      sx={{ width: '100%' }}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.entryEndTime,
-                          helperText: errors.entryEndTime,
-                          
-                        },
-                        field: {
-                          clearable: true,
-                          onClear: handleClearTime('entryEndTime'),
-                        }
-                      }}
-                    />
-                  </LocalizationProvider>
-                </Grid>
-              </Grid>
-              
-              {/* Legs Builder */}
-              <Box sx={{ mt: 3 }}>
-                <OptionsLegBuilder
-                  value={formData.entryOptionLegs}
-                  onChange={handleChange('entryOptionLegs')}
-                  label="Legs"
-                  
-                  
-                />
-              </Box>
-            </Box>
-          ),
-        };
-      } else if (formData.instrumentType === 'options') {
-        // For F&O Time-based: Keep existing structure with Trade Day and Time subsection
-        return {
-          id: 'entry',
-          title: 'Entry Conditions',
-          component: (
-            <Box>
-              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                Design your options strategy by adding one or more option legs. For complex strategies like spreads or 
-                condors, add multiple legs with different strike prices and option types.
-              </Typography>
-              <OptionsLegBuilder
-                value={formData.entryOptionLegs}
-                onChange={handleChange('entryOptionLegs')}
-                label="Legs"
-                
-                
-              />
-              
-              {/* Trade Day and Time Subsection - Only for Options */}
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Trade Day and Time
-                </Typography>
-                
-                <Grid container spacing={3}>
-                  {/* Day of Week */}
-                  <Grid item xs={12} md={4}>
-                    <Box>
-                      <ButtonGroup 
-                        variant="outlined" 
-                        size="medium" 
-                        sx={{ 
-                          flexWrap: 'wrap',
-                          height: '56px',
-                          '& .MuiButton-root': {
-                            minWidth: '48px',
-                            height: '56px',
-                            fontSize: '0.875rem',
-                          }
-                        }}
-                      >
-                        {[
-                          { label: 'M', value: 'MON' },
-                          { label: 'T', value: 'TUE' },
-                          { label: 'W', value: 'WED' },
-                          { label: 'T', value: 'THU' },
-                          { label: 'F', value: 'FRI' }
-                        ].map((day) => (
-                          <MuiButton
-                            key={day.value}
-                            variant={formData.tradingDays.includes(day.value) ? 'contained' : 'outlined'}
-                            onClick={() => {
-                              const currentDays = formData.tradingDays;
-                              const updatedDays = currentDays.includes(day.value)
-                                ? currentDays.filter(d => d !== day.value)
-                                : [...currentDays, day.value];
-                              handleChange('tradingDays')(updatedDays);
-                            }}
-                          >
-                            {day.label}
-                          </MuiButton>
-                        ))}
-                      </ButtonGroup>
-                    </Box>
-                  </Grid>
-
-                  {/* Entry Start Time */}
-                  <Grid item xs={12} md={4}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                      <TimePicker
-                        label="Entry Start Time"
-                        value={formData.entryStartTime}
-                        onChange={handleTimeChange('entryStartTime')}
-                        sx={{ width: '100%' }}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            error: !!errors.entryStartTime,
-                            helperText: errors.entryStartTime,
-                          },
-                          field: {
-                            clearable: true,
-                            onClear: handleClearTime('entryStartTime'),
-                          }
-                        }}
-                      />
-                    </LocalizationProvider>
-                  </Grid>
-
-                  {/* Entry End Time */}
-                  <Grid item xs={12} md={4}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                      <TimePicker
-                        label="Entry End Time"
-                        value={formData.entryEndTime}
-                        onChange={handleTimeChange('entryEndTime')}
-                        sx={{ width: '100%' }}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            error: !!errors.entryEndTime,
-                            helperText: errors.entryEndTime,
-                          },
-                          field: {
-                            clearable: true,
-                            onClear: handleClearTime('entryEndTime'),
-                          }
-                        }}
-                      />
-                    </LocalizationProvider>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Box>
-          ),
-        };
-      } else {
-        // For Equity: Keep original structure without Trade Day and Time subsection
-        return {
-          id: 'entry',
-          title: 'Entry Conditions',
-          component: (
-            <Box>
-              <IndicatorExpressionBuilder
-                value={formData.entryConditions}
-                onChange={handleChange('entryConditions')}
-                label="Entry Conditions"
-                
-                
-                isOptional={false}
-              />
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <Grid container spacing={3} sx={{ mt: 2 }}>
-                  <Grid item xs={12} md={6}>
-                    <TimePicker
-                      label="Entry Start Time"
-                      value={formData.entryStartTime}
-                      onChange={handleTimeChange('entryStartTime')}
-                      sx={{ width: '100%' }}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.entryStartTime,
-                          helperText: errors.entryStartTime,
-                        },
-                        field: {
-                          clearable: true,
-                          onClear: handleClearTime('entryStartTime'),
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TimePicker
-                      label="Entry End Time"
-                      value={formData.entryEndTime}
-                      onChange={handleTimeChange('entryEndTime')}
-                      sx={{ width: '100%' }}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.entryEndTime,
-                          helperText: errors.entryEndTime,
-                        },
-                        field: {
-                          clearable: true,
-                          onClear: handleClearTime('entryEndTime'),
-                        }
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-              </LocalizationProvider>
-            </Box>
-          ),
-        };
-      }
-    };
-
-    // Risk Management section (renamed from Exit Conditions)
-    const getRiskManagementSection = () => {
-      return {
+    // Build sections array based on instrument type and strategy type
+    return [
+      {
+        id: 'name-positions',
+        title: 'Name & Positions',
+        component: (
+          <Name
+            formData={formData}
+            selectedInstruments={selectedInstruments}
+            errors={errors}
+            attemptedSubmit={attemptedSubmit}
+            onFieldChange={handleChange}
+            onInstrumentSelectorOpen={() => setInstrumentSelectorOpen(true)}
+            onInstrumentDelete={handleInstrumentDelete}
+          />
+        ),
+      },
+      {
+        id: 'entry',
+        title: formData.instrumentType === 'options' && formData.strategyType === 'time-based' ? 'Conditions' : 'Entry Conditions',
+        component: (
+          <Entry
+            formData={formData}
+            errors={errors}
+            attemptedSubmit={attemptedSubmit}
+            onFieldChange={handleChange}
+            onTimeChange={handleTimeChange}
+            onClearTime={handleClearTime}
+          />
+        ),
+      },
+      {
         id: 'exit',
         title: 'Risk Management',
         component: (
-          <Box>
-            {/* Exit Expression Builder - Only for Equity */}
-            {formData.instrumentType === 'equity' && (
-              <Box sx={{ mb: 3 }}>
-                <IndicatorExpressionBuilder
-                  value={formData.exitConditions}
-                  onChange={handleChange('exitConditions')}
-                  label="Exit Conditions"
-                  
-                  
-                  
-                  isOptional={true}
-                />
-              </Box>
-            )}
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  id="stop_loss"
-                  label="Stop Loss"
-                  type="number"
-                  value={formData.stopLoss}
-                  onChange={(e) => handleChange('stopLoss')(e.target.value)}
-                  
-                  
-                  inputProps={{ min: 0 }}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <Select
-                  fullWidth 
-                  id="stop_loss_type"
-                  label="Stop Loss Type"
-                  options={PROFIT_LOSS_TYPES}
-                  value={formData.stopLossType}
-                  onChange={handleChange('stopLossType')}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  id="target_profit"
-                  label="Target Profit"
-                  type="number"
-                  value={formData.targetProfit}
-                  onChange={(e) => handleChange('targetProfit')(e.target.value)}
-                  
-                  
-                  inputProps={{ min: 0 }}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <Select
-                  fullWidth
-                  id="target_profit_type"
-                  label="Target Profit Type"
-                  options={PROFIT_LOSS_TYPES}
-                  value={formData.targetProfitType}
-                  onChange={handleChange('targetProfitType')}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  id="trailing_stop_loss"
-                  label="Trailing Stop Loss"
-                  type="number"
-                  value={formData.trailingStopLoss}
-                  onChange={(e) => handleChange('trailingStopLoss')(e.target.value)}
-                  inputProps={{ min: 0 }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Select
-                  fullWidth
-                  id="trailing_stop_loss_type"
-                  label="Trailing Stop Loss Type"
-                  options={PROFIT_LOSS_TYPES}
-                  value={formData.trailingStopLossType}
-                  onChange={handleChange('trailingStopLossType')}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+          <RiskManagement
+            formData={formData}
+            errors={errors}
+            attemptedSubmit={attemptedSubmit}
+            onFieldChange={handleChange}
+          />
         ),
-      };
-    };
-
-    // Backtest Parameters section
-    const getBacktestSection = () => {
-      return {
+      },
+      {
         id: 'backtest',
         title: 'Backtest Parameters',
         component: (
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <DatePicker
-                  label="Start Date"
-                  value={formData.startDate}
-                  onChange={handleDateChange('startDate')}
-                  sx={{ width: '100%' }}
-                  maxDate={formData.endDate || undefined}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      
-                      error: !!(errors.startDate),
-                      helperText: errors.startDate || undefined,
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <DatePicker
-                  label="End Date"
-                  value={formData.endDate}
-                  onChange={handleDateChange('endDate')}
-                  sx={{ width: '100%' }}
-                  minDate={formData.startDate || undefined}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      
-                      error: !!(errors.endDate),
-                      helperText: errors.endDate || undefined,
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Brokerage (Rs.)"
-                  type="number"
-                  value={formData.brokerage}
-                  onChange={(e) => handleChange('brokerage')(e.target.value)}
-                  
-                  helperText={errors.brokerage || 'Brokerage cost per trade in rupees'}
-                  inputProps={{ min: 0, step: 1 }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Slippage"
-                  type="number"
-                  value={formData.slippage}
-                  onChange={(e) => handleChange('slippage')(e.target.value)}
-                  
-                  helperText={errors.slippage || 'Slippage as decimal (e.g., 0.1 for 0.1%)'}
-                  inputProps={{ min: 0, step: 0.01 }}
-                />
-              </Grid>
-            </Grid>
-          </LocalizationProvider>
+          <BacktestParameters
+            formData={formData}
+            errors={errors}
+            attemptedSubmit={attemptedSubmit}
+            onFieldChange={handleChange}
+            onDateChange={handleDateChange}
+          />
         ),
-      };
-    };
-
-    // Build sections array based on instrument type and strategy type
-    return [
-      getNameAndPositionsSection(), // Name & Positions - merged section
-      getEntrySection(),
-      getRiskManagementSection(),
-      getBacktestSection(),
+      },
     ];
   };
 
@@ -2305,15 +1434,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           </span>
         </Tooltip>
         <Tooltip title={
-          !formData.strategyType ? "Please select a strategy type first" :
-          !isFormValid(formData, selectedInstruments) ? "Please fill in all required fields to run backtest" :
-          hasUnsavedChanges ? "Please save your changes before running backtest" : ""
+          (formData.instrumentType === 'options' && !formData.strategyType) ? "Please select a strategy type first" :
+          !isFormValid(formData, selectedInstruments) ? "Please fill in all required fields to run backtest" : ""
         } arrow>
           <span>
             <Button 
               variant="contained" 
               onClick={handleBacktest}
-              disabled={!formData.strategyType || isBacktesting || hasUnsavedChanges || !isFormValid(formData, selectedInstruments)}
+              disabled={(formData.instrumentType === 'options' && !formData.strategyType) || isBacktesting || !isFormValid(formData, selectedInstruments)}
             >
               {isBacktesting ? <CircularProgress size={24} /> : 'Backtest'}
             </Button>
