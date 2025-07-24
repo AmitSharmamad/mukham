@@ -235,7 +235,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
       <List sx={{ pt: 1 }}>
         {/* Live Clock at top */}
         <ListItem sx={{ justifyContent: 'center', pb: 2 }}>
-          <LiveClock color="green" fontSize="1.1rem" />
+          <LiveClock color="#90EE90" fontSize="1.1rem" />
         </ListItem>
 
         {authStatus ? (
@@ -629,7 +629,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                 )}
                 
                 {/* Live Clock - show for both authenticated and non-authenticated users */}
-                <LiveClock color="green" fontSize="1.1rem" />
+                <LiveClock color="#90EE90" fontSize="1.1rem" />
                 
                 {/* Theme button - show for both authenticated and non-authenticated users */}
                 <Tooltip title={isUsingSystemTheme ? `System theme (${mode})` : `${mode} mode`}>

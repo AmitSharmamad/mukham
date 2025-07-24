@@ -51,9 +51,6 @@ export const Footer = () => {
               Product
             </Typography>
             <Stack spacing={1}>
-              <Link href="/features" color="text.secondary" underline="hover">
-                Features
-              </Link>
               <Link href="/pricing" color="text.secondary" underline="hover">
                 Pricing
               </Link>
