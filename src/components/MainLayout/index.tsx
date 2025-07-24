@@ -53,9 +53,6 @@ export const MainLayout = ({
 
   // Determine if we should show the sidebar based on route and authentication
   const shouldShowSidebar = false; // Hidden for all pages
-  
-  // Check if current page is a docs page
-  const isDocsPage = router.pathname.startsWith('/docs');
 
   return (
     <Box sx={{ 
@@ -102,31 +99,20 @@ export const MainLayout = ({
         >
           {/* Main Content */}
           <Box sx={{ flex: 1 }}>
-            {isDocsPage ? (
-              // For docs pages, don't use Container to allow full width
-              <Box sx={{ 
-                py: 0, 
+            <Container 
+              component="main" 
+              maxWidth={false}
+              sx={{ 
+                py: 2, 
                 mt: 8,
+                px: { xs: 1, sm: 2, md: 3, lg: 4 }, // Custom horizontal padding - half of default Container margins
+                maxWidth: { xs: '100%', sm: '600px', md: '900px', lg: '1400px', xl: '1600px' }, // Wider than default 'lg' (1200px)
+                mx: 'auto', // Center the container
                 minHeight: 'calc(100vh - 64px - 200px)', // Ensure minimum height minus navbar and footer space
-              }}>
-                {children}
-              </Box>
-            ) : (
-              <Container 
-                component="main" 
-                maxWidth={false}
-                sx={{ 
-                  py: 2, 
-                  mt: 8,
-                  px: { xs: 1, sm: 2, md: 3, lg: 4 }, // Custom horizontal padding - half of default Container margins
-                  maxWidth: { xs: '100%', sm: '600px', md: '900px', lg: '1400px', xl: '1600px' }, // Wider than default 'lg' (1200px)
-                  mx: 'auto', // Center the container
-                  minHeight: 'calc(100vh - 64px - 200px)', // Ensure minimum height minus navbar and footer space
-                }}
-              >
-                {children}
-              </Container>
-            )}
+              }}
+            >
+              {children}
+            </Container>
           </Box>
           
           {/* Footer - positioned at the end of content */}

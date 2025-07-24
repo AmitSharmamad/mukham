@@ -378,7 +378,7 @@ export default function StrategyList() {
   }
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <>
       {/* Page Header */}
       <Box 
         sx={{
@@ -547,6 +547,6 @@ export default function StrategyList() {
       </Dialog>
 
       {/* Toast is now provided by ToastContext */}
-    </Box>
+    </>
   );
 }

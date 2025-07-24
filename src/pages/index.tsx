@@ -159,9 +159,9 @@ export default function Index() {
   const { mode, toggleMode } = useTheme();
 
   return (
-    <Box>
+    <>
       {/* Hero Section with Waitlist CTA */}
-      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+      <Box sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
           initial="initial"
           animate="animate"
@@ -393,10 +393,10 @@ export default function Index() {
             </Box>
           </motion.div>
         </motion.div>
-      </Container>
+      </Box>
 
       {/* Why Algo Trading Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+      <Box sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
             initial="initial"
             whileInView="animate"
@@ -500,10 +500,10 @@ export default function Index() {
               ))}
             </Grid>
           </motion.div>
-        </Container>
+        </Box>
 
       {/* Platform Features Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+      <Box sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
             initial="initial"
             whileInView="animate"
@@ -626,10 +626,10 @@ export default function Index() {
               ))}
             </Grid>
           </motion.div>
-        </Container>
+        </Box>
 
       {/* Trading Types Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+      <Box sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
             initial="initial"
             whileInView="animate"
@@ -750,10 +750,10 @@ export default function Index() {
               ))}
             </Grid>
           </motion.div>
-        </Container>
+        </Box>
 
       {/* Trade your favourite Options Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+      <Box sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
             initial="initial"
             whileInView="animate"
@@ -857,10 +857,10 @@ export default function Index() {
               ))}
             </Grid>
           </motion.div>
-        </Container>
+        </Box>
 
       {/* Call to Action Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+      <Box sx={{ py: { xs: 6, md: 8 } }}>
         <motion.div
             initial="initial"
             whileInView="animate"
@@ -992,7 +992,7 @@ export default function Index() {
               </Box>
             </motion.div>
           </motion.div>
-        </Container>
-    </Box>
+        </Box>
+    </>
   );
 }
