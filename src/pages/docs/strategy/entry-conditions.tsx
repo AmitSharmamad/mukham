@@ -1,22 +1,22 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function EntryConditions() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Entry Conditions
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
+      <DocContent
+        title="Entry Conditions"
+        subtitle="Rules that determine when your trading strategy will open a position. Create precise conditions using the Indicator Expression Builder."
+        tags={["Entry Conditions", "Trading Signals", "Indicators", "Strategy Logic"]}
+      >
         <Typography variant="body1" paragraph>
           Entry conditions are the rules that determine when your trading strategy will open a position. 
           सूत्रम् (Sutram) provides a powerful Indicator Expression Builder to help you create precise and 
           flexible entry conditions based on technical indicators and price action.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
           Understanding Entry Conditions
         </Typography>
         <Typography variant="body1" paragraph>
@@ -25,7 +25,7 @@ export default function EntryConditions() {
           crucial for identifying favorable trading opportunities and filtering out potential false signals.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
           Using the Indicator Expression Builder
         </Typography>
         <Typography variant="body1" paragraph>
@@ -251,7 +251,7 @@ export default function EntryConditions() {
             create a cohesive trading approach.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

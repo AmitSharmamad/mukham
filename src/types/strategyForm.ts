@@ -20,6 +20,7 @@ export interface FormData {
   name: string;
   description: string;
   instrumentType: 'equity' | 'futures' | 'options';
+  strategyType: 'expression' | 'time-based' | ''; // New field for strategy type
   buyOrSell: 'buy' | 'sell';
   instruments: number[];
   candlestickType: string;
@@ -41,6 +42,7 @@ export interface FormData {
   trailingStopLossType: 'ABSOLUTE' | 'PERCENTAGE';
   entryStartTime: Dayjs | null;
   entryEndTime: Dayjs | null;
+  tradingDays: string[];
   startDate: Dayjs | null;
   endDate: Dayjs | null;
   brickSize: string;
@@ -161,6 +163,7 @@ export const getInitialFormData = (): FormData => ({
   name: '',
   description: '',
   instrumentType: 'equity',
+  strategyType: '', // Initialize with empty string (no selection)
   buyOrSell: 'buy',
   instruments: [],
   candlestickType: 'CANDLESTICK',
@@ -181,6 +184,7 @@ export const getInitialFormData = (): FormData => ({
   trailingStopLossType: 'PERCENTAGE',
   entryStartTime: null,
   entryEndTime: null,
+  tradingDays: [],
   startDate: null,
   endDate: null,
   brickSize: '',

@@ -335,7 +335,6 @@ The application supports both light and dark mode. The theme is implemented usin
 You can toggle between light and dark mode using the theme toggle button in the top navigation bar.
    
 2. **OAuth Authentication**
-   - Google OAuth integration
    - OAuth callback handling
    
 3. **Route Protection**

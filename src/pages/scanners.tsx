@@ -146,7 +146,7 @@ const ScannersPage = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ mt: 4, mb: 4 }}>
       {/* Page Header */}
       <Box 
         display="flex" 
@@ -308,7 +308,7 @@ const ScannersPage = () => {
           <Button onClick={handleDeleteScanner} color="error">Delete</Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   );
 };
 

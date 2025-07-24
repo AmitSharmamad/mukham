@@ -97,12 +97,57 @@ const ScannerBuilder: React.FC<ScannerBuilderProps> = ({
         {editMode ? 'Edit Scanner' : 'Create New Scanner'}
       </Typography>
       
-      <Stepper activeStep={activeStep} sx={{ mb: 4, mt: 3 }}>
-        {steps.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
+      <Stepper 
+        activeStep={activeStep} 
+        sx={{ 
+          mb: 4, 
+          mt: 3,
+          '& .MuiStep-root': {
+            '& .MuiStepLabel-root': {
+              transition: 'all 0.3s ease-in-out',
+            },
+            '&.Mui-active': {
+              '& .MuiStepLabel-root': {
+                transform: 'scale(1.05)',
+                '& .MuiStepLabel-label': {
+                  fontWeight: 'bold',
+                  color: 'primary.main',
+                },
+              },
+              '& .MuiStepConnector-line': {
+                borderColor: 'primary.main',
+                borderWidth: 2,
+              },
+            },
+          },
+          '& .MuiStepConnector-root': {
+            '&.Mui-active .MuiStepConnector-line': {
+              borderColor: 'primary.main',
+              borderWidth: 2,
+            },
+          },
+        }}
+      >
+        {steps.map((label, index) => {
+          const isActive = activeStep === index;
+          return (
+            <Step key={label}>
+              <StepLabel
+                sx={{
+                  ...(isActive && {
+                    '& .MuiStepLabel-label': {
+                      fontWeight: 'bold',
+                      color: 'primary.main',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                    },
+                  }),
+                }}
+              >
+                {label}
+              </StepLabel>
+            </Step>
+          );
+        })}
       </Stepper>
 
       <Box>

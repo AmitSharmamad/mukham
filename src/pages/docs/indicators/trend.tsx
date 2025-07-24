@@ -1,14 +1,15 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function TrendIndicators() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Trend Indicators
-        </Typography>
-        <Divider sx={{ my: 2 }} />
+      <DocContent
+        title="Trend Indicators"
+        subtitle="Technical indicators designed to identify and follow market trends. Essential for trend-following strategies."
+        tags={["Trend Indicators","Moving Averages","Trend Following","Market Direction"]}
+      >
         
         <Typography variant="body1" paragraph>
           Trend indicators help traders identify the direction and strength of market trends. These indicators 
@@ -16,7 +17,7 @@ export default function TrendIndicators() {
           the presence of market trends.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Understanding Trend Analysis
         </Typography>
         <Typography variant="body1" paragraph>
@@ -42,7 +43,7 @@ export default function TrendIndicators() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Key Trend Indicators
         </Typography>
         
@@ -356,7 +357,7 @@ export default function TrendIndicators() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Combining Trend Indicators
         </Typography>
         <Typography variant="body1" paragraph>
@@ -376,7 +377,7 @@ export default function TrendIndicators() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Best Practices for Using Trend Indicators
         </Typography>
         <Box component="ul" sx={{ pl: 4 }}>
@@ -401,7 +402,7 @@ export default function TrendIndicators() {
             Plan your strategy accordingly.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

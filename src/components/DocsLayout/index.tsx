@@ -333,7 +333,7 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
           }),
           pt: { xs: 3, md: 4 },
           pb: { xs: 6, md: 8 },
-          px: { xs: 2, md: 4 },
+          px: 0, // Remove horizontal padding to use full width
           overflow: 'auto'
         }}
       >
@@ -342,7 +342,8 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
             display: 'flex', 
             alignItems: 'center', 
             mb: 3,
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            px: { xs: 2, md: 4 } // Add padding for breadcrumbs section
           }}
         >
           <Box>
@@ -407,12 +408,13 @@ export const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
           </Box>
         </Box>
         <Container 
-          maxWidth="lg" 
+          maxWidth={false} 
           disableGutters 
           sx={{ 
             mt: 2, 
-            mx: 'auto',
-            maxWidth: '900px'
+            mx: 0,
+            width: '100%',
+            px: { xs: 2, md: 4 } // Add minimal padding only for content readability
           }}
         >
           {children}

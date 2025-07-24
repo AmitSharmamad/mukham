@@ -163,7 +163,7 @@ export default function EditStrategy() {
 
   if (error) {
     return (
-      <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center', py: 4 }}>
+      <Box sx={{ textAlign: 'center', py: 4 }}>
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
@@ -176,7 +176,7 @@ export default function EditStrategy() {
 
   if (!strategy) {
     return (
-      <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center', py: 4 }}>
+      <Box sx={{ textAlign: 'center', py: 4 }}>
         <Alert severity="error" sx={{ mb: 3 }}>
           Strategy not found
         </Alert>
@@ -188,7 +188,7 @@ export default function EditStrategy() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <StrategyForm initialData={strategy} initialInstruments={instrumentDetails} pageTitle={`Edit Strategy: ${strategy.name}`} />
     </Box>
   );

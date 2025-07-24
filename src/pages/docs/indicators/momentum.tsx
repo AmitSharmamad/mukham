@@ -1,21 +1,22 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function MomentumIndicators() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Momentum Indicators
-        </Typography>
-        <Divider sx={{ my: 2 }} />
+      <DocContent
+        title="Momentum Indicators"
+        subtitle="Indicators that measure the speed and strength of price movements to identify overbought and oversold conditions."
+        tags={["Momentum Indicators","RSI","MACD","Oscillators"]}
+      >
         
         <Typography variant="body1" paragraph>
           Momentum indicators measure the rate of price change over time, helping traders identify the strength or weakness of a trend.
           These indicators are valuable for timing entries and exits and for detecting potential reversals in market trends.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Understanding Momentum Analysis
         </Typography>
         <Typography variant="body1" paragraph>
@@ -40,7 +41,7 @@ export default function MomentumIndicators() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Key Momentum Indicators
         </Typography>
         
@@ -201,7 +202,7 @@ export default function MomentumIndicators() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Combining Momentum Indicators
         </Typography>
         <Typography variant="body1" paragraph>
@@ -219,7 +220,7 @@ export default function MomentumIndicators() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Best Practices for Using Momentum Indicators
         </Typography>
         <Box component="ul" sx={{ pl: 4 }}>
@@ -243,7 +244,7 @@ export default function MomentumIndicators() {
             to avoid fighting against the prevailing direction.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

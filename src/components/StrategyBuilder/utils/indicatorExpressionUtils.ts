@@ -51,14 +51,14 @@ export const getIndicatorString = (indicator: Indicator): string => {
  * Validates if an indicator has all required configuration
  */
 export const isIndicatorComplete = (indicator: Indicator): boolean => {
-  if (!indicator.name) return false;
+  if (!indicator.name || indicator.name.trim() === '') return false;
   
   if (['HIGH', 'LOW', 'CLOSE', 'VOLUME', 'MARKET_POSITION'].includes(indicator.name)) {
     return true;
   }
   
   if (indicator.name === 'Number') {
-    return indicator.config?.value !== undefined;
+    return indicator.config?.value !== undefined && indicator.config?.value !== null;
   }
   
   // Use the isIndicatorConfigComplete from the service

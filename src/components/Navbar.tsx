@@ -23,6 +23,7 @@ import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { logout as logoutService, checkAPIServer } from '../services/authService';
@@ -35,8 +36,9 @@ interface NavbarProps {
 
 export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) {
   const [profileAnchorEl, setProfileAnchorEl] = useState<null | HTMLElement>(null);
+  const [themeAnchorEl, setThemeAnchorEl] = useState<null | HTMLElement>(null);
   const muiTheme = useMuiTheme();
-  const { mode, toggleMode } = useTheme();
+  const { mode, toggleMode, useSystemTheme, isUsingSystemTheme } = useTheme();
   const { user, logout, checkUserAuth } = useAuth();
   const [authStatus, setAuthStatus] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -121,6 +123,24 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
     setProfileAnchorEl(null);
   };
 
+  const handleThemeMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setThemeAnchorEl(event.currentTarget);
+  };
+
+  const handleThemeMenuClose = () => {
+    setThemeAnchorEl(null);
+  };
+
+  const handleUseSystemTheme = () => {
+    useSystemTheme();
+    handleThemeMenuClose();
+  };
+
+  const handleToggleThemeManual = () => {
+    toggleMode();
+    handleThemeMenuClose();
+  };
+
   const handleLogout = async () => {
     handleProfileMenuClose();
     await logoutService();
@@ -128,11 +148,14 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
   };
 
   const handleLoginClick = () => {
-    // Store the current URL to redirect back after login
+    // Store the current URL to redirect back after login, default to /home
     if (typeof window !== 'undefined') {
       const currentPath = Router.pathname;
       if (currentPath !== '/login') {
         sessionStorage.setItem('redirectAfterLogin', currentPath);
+      } else {
+        // If already on login page, set home as redirect
+        sessionStorage.setItem('redirectAfterLogin', '/home');
       }
     }
     Router.push('/login');
@@ -149,15 +172,15 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
         zIndex: muiTheme.zIndex.drawer + 1
       }}
     >
-      <Toolbar>
+      <Toolbar sx={{ position: 'relative' }}>
         <Typography
           variant="h6"
           component={Link}
-          href="/home"
+          href="/"
           sx={{
             fontFamily: 'Arial, sans-serif',
-            paddingLeft: '90px',
-            paddingRight: '20px',
+            paddingLeft: '32px', // Increased from 16px to move more to the right
+            paddingRight: '16px',
             fontSize: '1.5rem',
             textDecoration: 'none',
             color: 'inherit'
@@ -166,113 +189,110 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
           सूत्रम्
         </Typography>
         
-        {/* Live Clock */}
-        <LiveClock color="green" fontSize="1.1rem" />
+        {/* Spacer to push right content to the right */}
+        <Box sx={{ flexGrow: 1 }} />
         
+        {/* Centered Navigation - Absolute positioned to center */}
         <Box sx={{ 
-          display: 'flex', 
-          gap: 2,
-          flexGrow: 1,
-          justifyContent: 'center',
-          paddingLeft: '70px'
-        }}>
-          {/* Home */}
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/home"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Home
-          </Button>
-
-          {/* Strategy */}
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/strategy"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Strategy
-          </Button>
-
-          {/* Deployment */}
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/deployment"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Deployment
-          </Button>
-
-          {/* Scanners as a direct link */}
-          {/* <Button 
-            color="inherit" 
-            component={Link} 
-            href="/scanners"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Scanners
-          </Button> */}
-
-          {/* Community */}
-          {/* <Button 
-            color="inherit" 
-            component={Link} 
-            href="/community"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Community
-          </Button> */}
-
-          {/* Marketplace */}
-          {/* <Button 
-            color="inherit" 
-            component={Link} 
-            href="/marketplace"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Marketplace
-          </Button> */}
-
-          {/* Maruti (Chat) */}
-          {/* <Button 
-            color="inherit" 
-            component={Link} 
-            href="/chat"
-            sx={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <Avatar sx={{ width: 24, height: 24 }}>
-              <Image 
-                src="/hanuman.jpg" 
-                alt="Maruti" 
-                width={24} 
-                height={24} 
-              />
-            </Avatar>
-            Maruti
-          </Button> */}
-
-          {/* Docs */}
-          <Button 
-            color="inherit" 
-            component={Link} 
-            href="/docs"
-            sx={{ fontSize: '1.1rem' }}
-          >
-            Docs
-          </Button>
-        </Box>
-        
-        <Box sx={{ 
-          paddingLeft: '72px',
-          paddingRight: '72px', 
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
           display: 'flex',
           alignItems: 'center'
         }}>
+          {/* Center - Navigation items for authenticated users */}
+          {authStatus && (
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 4,
+              alignItems: 'center',
+              whiteSpace: 'nowrap'
+            }}>
+              {/* Home */}
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/home"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Home
+              </Button>
+
+              {/* Strategy */}
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/strategy"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Strategy
+              </Button>
+
+              {/* Deployment */}
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/deployment"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Deployment
+              </Button>
+
+              {/* Docs */}
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/docs"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Docs
+              </Button>
+            </Box>
+          )}
+
+          {/* Center - Strategy and Docs for non-authenticated users */}
+          {!authStatus && (
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 4,
+              alignItems: 'center',
+              whiteSpace: 'nowrap'
+            }}>
+              {/* Strategy - Show for non-authenticated users */}
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/strategy"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Strategy
+              </Button>
+
+              {/* Docs - Show for non-authenticated users */}
+              <Button 
+                color="inherit" 
+                component={Link} 
+                href="/docs"
+                sx={{ fontSize: '1.1rem' }}
+              >
+                Docs
+              </Button>
+            </Box>
+          )}
+        </Box>
+        
+        <Box sx={{ 
+          paddingLeft: '8px',
+          paddingRight: '24px', 
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2 // Add gap between clock and other elements
+        }}>
           {!loading && (authStatus ? (
             <>
+              {/* Live Clock - moved here to be before profile icon */}
+              <LiveClock color="green" fontSize="1.1rem" />
+              
               {/* Options - Coming Soon Banner */}
               {/* <Typography
                 variant="body2"
@@ -299,20 +319,15 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                 size="large" 
                 onClick={handleProfileMenu} 
                 color="inherit"
-                sx={{ fontSize: '1.75rem' }}
+                sx={{ 
+                  fontSize: '1.75rem',
+                  width: 48,
+                  height: 48
+                }}
               >
-                <AccountCircle />
+                <AccountCircle sx={{ fontSize: '1.75rem' }} />
               </IconButton>
               
-              <Tooltip title={`Switch to ${currentMode ? 'light' : 'dark'} mode`}>
-                <IconButton 
-                  color="inherit" 
-                  onClick={handleToggleTheme} 
-                  sx={{ ml: 1 }}
-                >
-                  {currentMode ? <Brightness7Icon /> : <Brightness4Icon />}
-                </IconButton>
-              </Tooltip>
               <Menu
                 anchorEl={profileAnchorEl}
                 open={Boolean(profileAnchorEl)}
@@ -331,6 +346,29 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             </>
           ) : (
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              {/* Live Clock - also show for non-authenticated users */}
+              <LiveClock color="green" fontSize="1.1rem" />
+              
+              <Tooltip title={isUsingSystemTheme ? `System theme (${mode})` : `${mode} mode`}>
+                <IconButton 
+                  size="large"
+                  color="inherit" 
+                  onClick={handleThemeMenuOpen} 
+                  sx={{ 
+                    fontSize: '1.75rem',
+                    width: 48,
+                    height: 48
+                  }}
+                >
+                  {isUsingSystemTheme ? 
+                    <SettingsSuggestIcon sx={{ fontSize: '1.75rem' }} /> : 
+                    (currentMode ? 
+                      <Brightness7Icon sx={{ fontSize: '1.75rem' }} /> : 
+                      <Brightness4Icon sx={{ fontSize: '1.75rem' }} />
+                    )
+                  }
+                </IconButton>
+              </Tooltip>
               <Button 
                 variant="contained"
                 size="medium"
@@ -345,7 +383,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                   fontSize: '0.9rem'
                 }}
               >
-                Join Waitlist
+                🚀 Join Waitlist 🚀
               </Button>
               <Button 
                 color="inherit"
@@ -357,6 +395,34 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
               </Button>
             </Box>
           ))}
+          
+          {/* Theme menu for all users */}
+          <Menu
+            anchorEl={themeAnchorEl}
+            open={Boolean(themeAnchorEl)}
+            onClose={handleThemeMenuClose}
+          >
+            <MenuItem 
+              onClick={handleUseSystemTheme}
+              sx={{ 
+                fontWeight: isUsingSystemTheme ? 'bold' : 'normal',
+                color: isUsingSystemTheme ? muiTheme.palette.primary.main : 'inherit'
+              }}
+            >
+              <SettingsSuggestIcon sx={{ mr: 1 }} />
+              Use System Theme
+            </MenuItem>
+            <MenuItem 
+              onClick={handleToggleThemeManual}
+              sx={{ 
+                fontWeight: !isUsingSystemTheme ? 'bold' : 'normal',
+                color: !isUsingSystemTheme ? muiTheme.palette.primary.main : 'inherit'
+              }}
+            >
+              {currentMode ? <Brightness7Icon sx={{ mr: 1 }} /> : <Brightness4Icon sx={{ mr: 1 }} />}
+              {currentMode ? 'Switch to Light' : 'Switch to Dark'}
+            </MenuItem>
+          </Menu>
         </Box>
       </Toolbar>
     </AppBar>

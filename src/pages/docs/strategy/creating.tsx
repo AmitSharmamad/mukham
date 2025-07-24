@@ -1,23 +1,23 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 import Image from 'next/image';
 
 export default function CreatingStrategy() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Creating a Strategy
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
+      <DocContent
+        title="Creating a Strategy"
+        subtitle="Step-by-step guide to creating trading strategies using the Strategy Builder. Define your trading logic without writing code."
+        tags={["Strategy Building", "Trading Logic", "No-Code", "Strategy Creation"]}
+      >
         <Typography variant="body1" paragraph>
           This guide walks you through the process of creating a trading strategy in सूत्रम् (Sutram) using the 
           Strategy Builder. The Strategy Builder provides a user-friendly interface to define your trading logic 
           without writing code.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
           Accessing the Strategy Builder
         </Typography>
         <Typography variant="body1" paragraph>
@@ -263,7 +263,7 @@ export default function CreatingStrategy() {
             <strong>Diversify:</strong> Consider running multiple uncorrelated strategies to spread risk.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

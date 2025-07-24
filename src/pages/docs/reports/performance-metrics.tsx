@@ -1,22 +1,22 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function PerformanceMetrics() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Performance Metrics
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
+      <DocContent
+        title="Performance Metrics"
+        subtitle="Comprehensive insights into trading strategy effectiveness. Evaluate performance, compare approaches, and make data-driven improvements to your trading systems."
+        tags={["Performance", "Metrics", "Analysis", "Trading Results"]}
+      >
         <Typography variant="body1" paragraph>
           Performance metrics in सूत्रम् (Sutram) provide comprehensive insights into trading strategy effectiveness.
           These metrics help you evaluate strategy performance, compare different approaches, and make data-driven
           improvements to your trading systems.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
           Understanding Performance Analysis
         </Typography>
         <Typography variant="body1" paragraph>
@@ -328,7 +328,7 @@ export default function PerformanceMetrics() {
             <strong>Include Transaction Costs:</strong> Always account for trading commissions, slippage, and other costs in performance calculations.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }
