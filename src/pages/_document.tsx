@@ -10,6 +10,9 @@ class MyDocument extends Document {
     return (
       <Html>
         <Head>
+          {/* Mobile viewport meta tag for responsive design */}
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+          
           {/* PWA meta tags */}
           <meta name="application-name" content="Mukham - Algo Trading Platform" />
           <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -8,7 +8,7 @@ export const Footer = () => {
     <Box
       component="footer"
       sx={{
-        py: 6,
+        py: { xs: 4, md: 6 }, // Smaller padding on mobile
         px: 2,
         backgroundColor: (theme) =>
           theme.palette.mode === 'light'
@@ -20,7 +20,7 @@ export const Footer = () => {
       }}
     >
       <Container maxWidth="lg">
-        <Grid container spacing={4}>
+        <Grid container spacing={{ xs: 3, md: 4 }}> {/* Responsive spacing */}
           {/* Company Info */}
           <Grid item xs={12} md={4}>
             <Typography variant="h6" component="div" gutterBottom>

@@ -78,46 +78,52 @@ export const MainLayout = ({
           />
         )}
 
-        {/* Main Content with Scroll */}
-        <Box
-          sx={{ 
-            flex: 1, 
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'auto',
-            ml: shouldShowSidebar && !isMobile ? '80px' : 0,
-            transition: theme.transitions.create('margin-left', {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
-            '&::-webkit-scrollbar': {
-              display: 'none',
-            },
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          {/* Main Content */}
-          <Box sx={{ flex: 1 }}>
-            <Container 
-              component="main" 
-              maxWidth={false}
-              sx={{ 
-                py: 2, 
-                mt: 12, // Increased from mt: 10 to add even more top margin
-                px: { xs: 1, sm: 2, md: 3, lg: 4 }, // Custom horizontal padding - half of default Container margins
-                maxWidth: { xs: '100%', sm: '600px', md: '900px', lg: '1400px', xl: '1600px' }, // Wider than default 'lg' (1200px)
-                mx: 'auto', // Center the container
-                minHeight: 'calc(100vh - 64px - 200px)', // Ensure minimum height minus navbar and footer space
-              }}
-            >
-              {children}
-            </Container>
+          {/* Main Content with Scroll */}
+          <Box
+            sx={{ 
+              flex: 1, 
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'auto',
+              ml: shouldShowSidebar && !isMobile ? '80px' : 0,
+              transition: theme.transitions.create('margin-left', {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
+              '&::-webkit-scrollbar': {
+                display: 'none',
+              },
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            {/* Main Content */}
+            <Box sx={{ flex: 1 }}>
+              <Container 
+                component="main" 
+                maxWidth={false}
+                sx={{ 
+                  py: 2, 
+                  mt: { xs: 8, sm: 10, md: 12 }, // Responsive top margin - smaller on mobile
+                  px: { xs: 1, sm: 2, md: 3, lg: 4 }, // Custom horizontal padding
+                  maxWidth: { 
+                    xs: '100%', 
+                    sm: '600px', 
+                    md: '900px', 
+                    lg: '1400px', 
+                    xl: '1600px' 
+                  },
+                  mx: 'auto', // Center the container
+                  minHeight: 'calc(100vh - 64px - 200px)', // Ensure minimum height minus navbar and footer space
+                }}
+              >
+                {children}
+              </Container>
+            </Box>
+            
+            {/* Footer - positioned at the end of content */}
+            <Footer />
           </Box>
-          
-          {/* Footer - positioned at the end of content */}
-          <Footer />
-        </Box>
       </Box>
       
       {/* PWA Install Prompt */}

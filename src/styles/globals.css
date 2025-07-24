@@ -88,3 +88,62 @@ main::-webkit-scrollbar {
 .MuiContainer-root::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Edge */
 }
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Ensure text is readable on mobile */
+  html {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  /* Mobile tap targets should be at least 44px */
+  button, .MuiIconButton-root, .MuiButton-root {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve text readability on mobile */
+  .MuiTypography-body1,
+  .MuiTypography-body2 {
+    line-height: 1.6;
+  }
+  
+  /* Ensure adequate spacing for touch interfaces */
+  .MuiListItemButton-root {
+    min-height: 48px;
+  }
+  
+  /* Prevent horizontal overflow */
+  * {
+    max-width: 100%;
+  }
+  
+  /* Mobile-friendly input fields */
+  .MuiTextField-root input,
+  .MuiOutlinedInput-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+
+/* Tablet and mobile landscape */
+@media (max-width: 1024px) {
+  /* Adjust container padding for medium screens */
+  .MuiContainer-root {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects on touch devices */
+  .MuiButton-root:hover,
+  .MuiIconButton-root:hover {
+    background-color: transparent;
+  }
+  
+  /* Increase touch targets */
+  .MuiIconButton-root {
+    padding: 12px;
+  }
+}
