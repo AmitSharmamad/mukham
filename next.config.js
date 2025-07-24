@@ -1,9 +1,10 @@
 /** @type {import('next').NextConfig} */
 const isDev = process.env.NODE_ENV === 'development';
+const isDocker = process.env.DOCKER_BUILD === 'true';
 
 const withPWA = require('next-pwa')({
   dest: 'public',
-  disable: false, // Enable PWA in both dev and production
+  disable: isDocker || false, // Disable PWA during Docker build to prevent hanging
   register: true,
   skipWaiting: true,
   buildExcludes: [/middleware-manifest\.json$/],
@@ -42,6 +43,8 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
   },
+  // Enable standalone output for containerization
+  output: 'standalone',
 }
 
 module.exports = withPWA(nextConfig);

@@ -251,7 +251,7 @@ export default function Marketplace() {
   };
 
   return (
-    <Container maxWidth="lg">
+    <Box>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           Strategy Marketplace
@@ -574,6 +574,6 @@ export default function Marketplace() {
           </Box>
         )}
       </TabPanel>
-    </Container>
+    </Box>
   );
 }

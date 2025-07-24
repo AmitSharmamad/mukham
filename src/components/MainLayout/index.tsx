@@ -1,8 +1,7 @@
 // filepath: /Users/amit/workspace/mukham/src/components/MainLayout/index.tsx
-import { useState, useEffect } from 'react';
-import { Box, Container, IconButton, useMediaQuery, Tooltip } from '@mui/material';
+import { useEffect } from 'react';
+import { Box, Container, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Menu as MenuIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { Footer } from '../Footer';
 import Navbar from '../Navbar';
@@ -28,7 +27,6 @@ export const MainLayout = ({
   onChangeThemeColor,
   currentTheme 
 }: MainLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Changed to true to keep it open by default
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -36,12 +34,6 @@ export const MainLayout = ({
   
   // Initialize WebSocket connection for real-time updates
   const { connect, disconnect, connectionStatus } = useDeploymentContext();
-
-  // Effect to handle initial sidebar state based on screen size
-  useEffect(() => {
-    // Keep sidebar open by default on all screen sizes
-    setSidebarOpen(true);
-  }, [isMobile]);
 
   // Connect to WebSocket when component mounts
   useEffect(() => {
@@ -59,32 +51,17 @@ export const MainLayout = ({
     console.log(`🔗 MainLayout: WebSocket connection status: ${connectionStatus}`);
   }, [connectionStatus]);
 
-  const handleSidebarToggle = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const handleSidebarClose = () => {
-    setSidebarOpen(false);
-  };
-
   // Determine if we should show the sidebar based on route and authentication
-  const shouldShowSidebar = isLoggedIn && 
-                           !router.pathname.startsWith('/docs') && 
-                           !router.pathname.startsWith('/chat') &&
-                           !router.pathname.startsWith('/login') &&
-                           !router.pathname.startsWith('/user/login');
+  const shouldShowSidebar = false; // Hidden for all pages
+  
+  // Check if current page is a docs page
+  const isDocsPage = router.pathname.startsWith('/docs');
 
   return (
     <Box sx={{ 
       display: 'flex', 
       flexDirection: 'column', 
-      minHeight: '100vh', 
-      overflow: 'hidden',
-      '&::-webkit-scrollbar': {
-        display: 'none',
-      },
-      scrollbarWidth: 'none',
-      msOverflowStyle: 'none',
+      minHeight: '100vh',
     }}>
       {/* Use the updated Navbar component */}
       <Navbar 
@@ -92,75 +69,69 @@ export const MainLayout = ({
         isDarkMode={isDarkMode}
       />
       
-      <Box sx={{ display: 'flex', flex: 1, position: 'relative' }}>
+      <Box sx={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden' }}>
         {/* Deployment Sidebar */}
         {shouldShowSidebar && (
           <DeploymentSidebar
-            open={sidebarOpen}
-            onClose={handleSidebarClose}
-            onToggle={handleSidebarToggle}
-            variant={isMobile ? 'temporary' : 'persistent'}
+            open={true}
+            onClose={() => {}}
+            onToggle={() => {}}
+            variant="persistent"
             anchor="left"
           />
         )}
 
-        {/* Floating Burger Menu - positioned just outside the left nav */}
-        {shouldShowSidebar && (
-          <Box
-            sx={{
-              position: 'fixed',
-              top: 76,
-              left: sidebarOpen && !isMobile ? 352 : 16, // Position just outside the sidebar (340px + 12px margin)
-              zIndex: theme.zIndex.drawer + 2,
-              transition: theme.transitions.create('left', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
-            }}
-          >
-            <Tooltip title={sidebarOpen ? "Hide Deployments" : "Show Active Deployments"}>
-              <IconButton
-                onClick={handleSidebarToggle}
-                sx={{
-                  backgroundColor: theme.palette.background.paper,
-                  boxShadow: theme.shadows[3],
-                  width: 40,
-                  height: 40,
-                  '&:hover': {
-                    backgroundColor: theme.palette.action.hover,
-                  },
-                  border: `1px solid ${theme.palette.divider}`,
-                }}
-              >
-                <MenuIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        )}
-
-        {/* Main Content */}
-        <Container 
-          component="main" 
-          maxWidth="lg"
+        {/* Main Content with Scroll */}
+        <Box
           sx={{ 
             flex: 1, 
-            py: 4, 
-            mt: 8, 
-            ml: shouldShowSidebar && sidebarOpen && !isMobile ? '85px' : 'auto',
-            mr: shouldShowSidebar && sidebarOpen && !isMobile ? '85px' : 'auto',
-            transition: theme.transitions.create(['margin-left', 'margin-right'], {
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'auto',
+            ml: shouldShowSidebar && !isMobile ? '80px' : 0,
+            transition: theme.transitions.create('margin-left', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
             }),
-            overflow: 'auto',
-            maxHeight: 'calc(100vh - 64px)',
-            display: 'flex',
-            flexDirection: 'column',
-            width: shouldShowSidebar && sidebarOpen && !isMobile ? 'calc(100% - 170px)' : '100%', // Adjust width when sidebar is open
+            '&::-webkit-scrollbar': {
+              display: 'none',
+            },
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
           }}
         >
-          {children}
-        </Container>
+          {/* Main Content */}
+          <Box sx={{ flex: 1 }}>
+            {isDocsPage ? (
+              // For docs pages, don't use Container to allow full width
+              <Box sx={{ 
+                py: 0, 
+                mt: 8,
+                minHeight: 'calc(100vh - 64px - 200px)', // Ensure minimum height minus navbar and footer space
+              }}>
+                {children}
+              </Box>
+            ) : (
+              <Container 
+                component="main" 
+                maxWidth={false}
+                sx={{ 
+                  py: 2, 
+                  mt: 8,
+                  px: { xs: 1, sm: 2, md: 3, lg: 4 }, // Custom horizontal padding - half of default Container margins
+                  maxWidth: { xs: '100%', sm: '600px', md: '900px', lg: '1400px', xl: '1600px' }, // Wider than default 'lg' (1200px)
+                  mx: 'auto', // Center the container
+                  minHeight: 'calc(100vh - 64px - 200px)', // Ensure minimum height minus navbar and footer space
+                }}
+              >
+                {children}
+              </Container>
+            )}
+          </Box>
+          
+          {/* Footer - positioned at the end of content */}
+          <Footer />
+        </Box>
       </Box>
       
       {/* PWA Install Prompt */}

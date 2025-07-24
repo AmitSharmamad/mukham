@@ -1,14 +1,15 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function Backtesting() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Backtesting Your Strategy
-        </Typography>
-        <Divider sx={{ my: 2 }} />
+      <DocContent
+        title="Backtesting"
+        subtitle="Test your trading strategies against historical market data to evaluate performance before deploying with real capital."
+        tags={["Backtesting","Historical Data","Strategy Testing","Performance Analysis"]}
+      >
         
         <Typography variant="body1" paragraph>
           Backtesting is the process of testing a trading strategy against historical data to evaluate its performance. 
@@ -16,7 +17,7 @@ export default function Backtesting() {
           strategy would have performed in past market conditions.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Why Backtest?
         </Typography>
         <Typography variant="body1" paragraph>
@@ -41,7 +42,7 @@ export default function Backtesting() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Configuring Backtest Parameters
         </Typography>
         <Typography variant="body1" paragraph>
@@ -100,7 +101,7 @@ export default function Backtesting() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Running the Backtest
         </Typography>
         <Typography variant="body1" paragraph>
@@ -122,7 +123,7 @@ export default function Backtesting() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Interpreting Backtest Results
         </Typography>
         <Typography variant="body1" paragraph>
@@ -235,7 +236,7 @@ export default function Backtesting() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Trade List and Analysis
         </Typography>
         <Typography variant="body1" paragraph>
@@ -260,7 +261,7 @@ export default function Backtesting() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Best Practices for Backtesting
         </Typography>
         <Box component="ul" sx={{ pl: 4 }}>
@@ -290,7 +291,7 @@ export default function Backtesting() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           From Backtesting to Live Trading
         </Typography>
         <Typography variant="body1" paragraph>
@@ -318,7 +319,7 @@ export default function Backtesting() {
             any adjustments made, and lessons learned.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

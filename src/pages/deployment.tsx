@@ -386,7 +386,7 @@ const DeploymentPage = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
+    <Box sx={{ pt: 2 }}>
       {/* Page Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
@@ -823,7 +823,7 @@ const DeploymentPage = () => {
           )}
         </DialogContent>
       </Dialog>
-    </Container>
+    </Box>
   );
 };
 

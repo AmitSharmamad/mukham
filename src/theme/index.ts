@@ -139,6 +139,16 @@ const commonProperties: ThemeOptions = {
         },
       },
     },
+    MuiAppBar: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          ...(theme.palette.mode === 'light' && {
+            backgroundColor: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
+          }),
+        }),
+      },
+    },
   },
 };
 
@@ -146,9 +156,9 @@ const themeColors = {
   default: {
     light: {
       primary: {
-        main: '#1976d2',
-        light: '#42a5f5',
-        dark: '#1565c0',
+        main: '#42a5f5',
+        light: '#90caf9',
+        dark: '#1976d2',
         contrastText: '#ffffff',
       },
       secondary: {

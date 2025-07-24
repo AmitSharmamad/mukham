@@ -296,18 +296,13 @@ export default function StrategyList() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {strategy.description || 'No description provided.'}
                 </Typography>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography variant="caption" color="text.secondary">
-                    Last updated: {new Date(strategy.updated_at).toLocaleString()}
-                  </Typography>
-                  {isDefault && (
-                    <Chip 
-                      label="Default" 
-                      color="secondary"
-                      size="small"
-                    />
-                  )}
-                </Box>
+                {!isDefault && (
+                  <Box display="flex" justifyContent="flex-start" alignItems="center">
+                    <Typography variant="caption" color="text.secondary">
+                      Last updated: {new Date(strategy.updated_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                )}
               </CardContent>
               <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
                 <Box>
@@ -359,6 +354,13 @@ export default function StrategyList() {
                     </Tooltip>
                   )}
                 </Box>
+                {isDefault && (
+                  <Chip 
+                    label="Default" 
+                    color="secondary"
+                    size="small"
+                  />
+                )}
               </CardActions>
             </Card>
           </Grid>
@@ -376,26 +378,14 @@ export default function StrategyList() {
   }
 
   return (
-    <Box sx={{ 
-      width: '100%', 
-      height: '100%', 
-      display: 'flex', 
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      overflow: 'hidden',
-      px: 3
-    }}>
+    <Box sx={{ pt: 2 }}>
       {/* Page Header */}
       <Box 
         sx={{
-          width: '100%',
-          maxWidth: 'lg',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          mb: 4,
-          pt: 2
+          mb: 4
         }}
       >
         <Typography variant="h4" component="h1">
@@ -412,8 +402,6 @@ export default function StrategyList() {
       </Box>
       
       <Box sx={{ 
-        width: '100%', 
-        maxWidth: 'lg',
         mb: 3 
       }}>
         <TextField
@@ -440,8 +428,6 @@ export default function StrategyList() {
 
       {error && (
         <Box sx={{ 
-          width: '100%', 
-          maxWidth: 'lg',
           mb: 2 
         }}>
           <Typography color="error">{error}</Typography>
@@ -450,8 +436,6 @@ export default function StrategyList() {
 
       {/* Content Area */}
       <Box sx={{ 
-        width: '100%', 
-        maxWidth: 'lg',
         flex: 1,
         overflow: 'auto',
         display: 'flex',

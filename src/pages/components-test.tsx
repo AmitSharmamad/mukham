@@ -1,13 +1,14 @@
 import React from 'react';
-import { Grid, Typography, Box, useTheme as useMuiTheme, IconButton } from '@mui/material';
+import { Grid, Typography, Box, useTheme as useMuiTheme, IconButton, Chip } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import { Paper, Button, TextField, Card, Select } from '../components';
 import { useTheme } from '../context/ThemeContext';
 
 const ComponentsTest = () => {
   const muiTheme = useMuiTheme();
-  const { mode, toggleMode } = useTheme();
+  const { mode, toggleMode, useSystemTheme, isUsingSystemTheme } = useTheme();
   
   return (
     <Box sx={{ p: 4 }}>
@@ -15,12 +16,27 @@ const ComponentsTest = () => {
         <Typography variant="h4">
           Component Test Page
         </Typography>
-        <IconButton onClick={toggleMode} color="inherit">
-          {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Chip 
+            label={isUsingSystemTheme ? "System Theme" : "Manual Theme"}
+            color={isUsingSystemTheme ? "primary" : "default"}
+            icon={isUsingSystemTheme ? <SettingsSuggestIcon /> : (mode === 'dark' ? <Brightness4Icon /> : <Brightness7Icon />)}
+          />
+          <IconButton onClick={toggleMode} color="inherit">
+            {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+          <IconButton onClick={useSystemTheme} color="inherit">
+            <SettingsSuggestIcon />
+          </IconButton>
+        </Box>
       </Box>
       <Typography variant="body1" paragraph>
         This page demonstrates the Paper component with proper styling in <strong>{mode}</strong> mode.
+        {isUsingSystemTheme && (
+          <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
+            Currently following system theme preference.
+          </Typography>
+        )}
       </Typography>
       
       <Grid container spacing={4} sx={{ mb: 4 }}>

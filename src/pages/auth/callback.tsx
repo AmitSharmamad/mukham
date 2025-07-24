@@ -30,9 +30,11 @@ export default function AuthCallback() {
         // Store the token and update auth state
         login(token);
         
-        // Redirect to the return URL or default to home
-        const returnUrl = localStorage.getItem('returnUrl') || '/home';
+        // Redirect to the stored redirect URL or default to home
+        const redirectAfterLogin = sessionStorage.getItem('redirectAfterLogin');
+        const returnUrl = localStorage.getItem('returnUrl') || redirectAfterLogin || '/home';
         localStorage.removeItem('returnUrl'); // Clean up
+        sessionStorage.removeItem('redirectAfterLogin'); // Clean up
         router.replace(returnUrl);
       } catch (err) {
         console.error('Authentication failed:', err);

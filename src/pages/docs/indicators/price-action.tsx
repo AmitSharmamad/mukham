@@ -1,21 +1,22 @@
-import { Box, Typography, Paper, Divider, Grid } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 
 export default function PriceActionIndicators() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Price Action Indicators
-        </Typography>
-        <Divider sx={{ my: 2 }} />
+      <DocContent
+        title="Price Action Indicators"
+        subtitle="Indicators that analyze pure price movements including candlestick patterns, support/resistance levels, and trend analysis."
+        tags={["Price Action","Candlestick Patterns","Support Resistance","Trend Analysis"]}
+      >
         
         <Typography variant="body1" paragraph>
           Price action indicators focus directly on price movements without relying on mathematical formulas or derivatives.
           These indicators analyze raw price data, such as patterns, levels, and structures, to identify potential trading opportunities.
         </Typography>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Understanding Price Action Analysis
         </Typography>
         <Typography variant="body1" paragraph>
@@ -41,7 +42,7 @@ export default function PriceActionIndicators() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Key Price Action Indicators
         </Typography>
         
@@ -218,7 +219,7 @@ export default function PriceActionIndicators() {
           </Grid>
         </Grid>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Combining Price Action with Other Indicators
         </Typography>
         <Typography variant="body1" paragraph>
@@ -236,7 +237,7 @@ export default function PriceActionIndicators() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom >
           Best Practices for Using Price Action
         </Typography>
         <Box component="ul" sx={{ pl: 4 }}>
@@ -256,7 +257,7 @@ export default function PriceActionIndicators() {
             <strong>Practice Risk Management:</strong> Even the most reliable price action signals can fail, so always use appropriate stop-loss levels.
           </Typography>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }

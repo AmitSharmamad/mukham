@@ -1,22 +1,23 @@
 import { Box, Typography, Paper, Divider, Stepper, Step, StepLabel, StepContent, Button } from '@mui/material';
 import { DocsLayout } from '../../../components/DocsLayout';
+import { DocContent } from '../../../components';
 import Link from 'next/link';
 
 export default function QuickStart() {
   return (
     <DocsLayout>
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Quick Start Guide
-        </Typography>
-        <Divider sx={{ my: 2 }} />
+      <DocContent
+        title="Quick Start Guide"
+        subtitle="Get up and running with सूत्रम् in minutes. Learn the basics of creating and deploying your first trading strategy."
+        tags={["Quick Start","Getting Started","First Strategy","Tutorial"]}
+      >
         
         <Typography variant="body1" paragraph>
           This guide will help you get started with सूत्रम् (Sutram) and create your first algorithmic trading strategy.
           Follow these steps to quickly understand the platform's basic workflow.
         </Typography>
 
-        <Stepper orientation="vertical" sx={{ mt: 4 }}>
+        <Stepper orientation="vertical" >
           <Step active={true}>
             <StepLabel>
               <Typography variant="h6">Create a new strategy</Typography>
@@ -219,7 +220,7 @@ export default function QuickStart() {
             </Typography>
           </Box>
         </Box>
-      </Paper>
+      </DocContent>
     </DocsLayout>
   );
 }
