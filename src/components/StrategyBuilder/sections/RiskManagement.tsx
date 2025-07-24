@@ -29,7 +29,7 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
           <IndicatorExpressionBuilder
             value={formData.exitConditions}
             onChange={readOnly ? () => {} : onFieldChange('exitConditions')}
-            label="Exit Conditions"
+            label=""
             isOptional={true}
             readOnly={readOnly}
           />
