@@ -37,7 +37,6 @@ import {
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { DashboardWidget } from '../components/DashboardWidget';
-import { checkPageAuth } from '../utils/pageAuthUtils';
 import { dashboardService } from '../services/dashboardService';
 import { DashboardStatistics } from '../types/dashboard';
 
@@ -47,7 +46,6 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const theme = useTheme();
   const router = useRouter();
-  const [authChecked, setAuthChecked] = useState(false);
   
   const fetchDashboardData = async () => {
     try {
@@ -68,26 +66,12 @@ export default function Home() {
   };
   
   useEffect(() => {
-    // Check authentication
-    const checkAuth = async () => {
-      try {
-        const isAuthed = await checkPageAuth(router);
-        // If checkPageAuth returns false, it will automatically redirect to login
-        if (!isAuthed) return;
-        setAuthChecked(true);
-        
-        // Fetch dashboard data after auth check
-        await fetchDashboardData();
-      } catch (error) {
-        console.error('Auth check error:', error);
-        setLoading(false);
-      }
-    };
-    
-    checkAuth();
-  }, [router]);
+    // Fetch dashboard data on component mount
+    // AuthGuard handles authentication for this protected route
+    fetchDashboardData();
+  }, []);
   
-  if (!authChecked || loading) {
+  if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
         <CircularProgress />

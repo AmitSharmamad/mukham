@@ -8,7 +8,7 @@ interface AuthGuardProps {
   children: ReactNode;
 }
 
-const publicRoutes = ['/login', '/', '/user/login', '/auth/callback', '/community', '/marketplace', '/docs', '/waitlist']; // Routes that don't require authentication
+const protectedRoutes = ['/home', '/strategy', '/deployment']; // Routes that require authentication
 
 const AuthGuard = ({ children }: AuthGuardProps) => {
   const { isLoggedIn, loading, checkUserAuth } = useAuth();
@@ -32,13 +32,13 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     if (isAuthChecking) return;
     
     const checkAuthentication = async () => {
-      // If we're on a public route, don't check auth
-      if (
-        publicRoutes.some(route => router.pathname === route) ||
-        router.pathname.startsWith('/community/') ||
-        router.pathname.startsWith('/marketplace/') ||
-        router.pathname.startsWith('/docs/')
-      ) {
+      // Check if we're on a protected route that requires authentication
+      const isProtectedRoute = protectedRoutes.some(route => 
+        router.pathname === route || router.pathname.startsWith(route + '/')
+      );
+      
+      // If we're not on a protected route, don't check auth - allow access
+      if (!isProtectedRoute) {
         setChecking(false);
         return;
       }

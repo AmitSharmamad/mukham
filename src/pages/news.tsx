@@ -13,7 +13,7 @@ export default function News() {
       }}
     >
       <Typography variant="h5" color="text.primary">
-        Beta program for our platform starts on July 31st, 2025. Hold on to your seats 🚀
+        Beta program for our platform starts on August 1st, 2025. Hold on to your seats 🚀
       </Typography>
     </Box>
   );
