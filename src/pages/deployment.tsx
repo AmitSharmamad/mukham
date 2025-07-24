@@ -68,6 +68,7 @@ const DeploymentPage = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [positionFilter, setPositionFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<string>('');
+  const [hasAnyDeployments, setHasAnyDeployments] = useState<boolean>(false);
   
   // Apply real-time updates to deployments - use data from WebSocket events
   const updatedDeployments = useMemo(() => {
@@ -164,6 +165,10 @@ const DeploymentPage = () => {
     try {
       setLoading(true);
       
+      // First, get all deployments to check if any exist
+      const allDeployments = await getDeploymentsSearch({});
+      setHasAnyDeployments(allDeployments.length > 0);
+      
       // Build filter object based on current filter values (only position filter now)
       const filters: { status?: 'waiting' | 'entered' } = {};
       
@@ -172,7 +177,7 @@ const DeploymentPage = () => {
         filters.status = positionFilter as 'waiting' | 'entered';
       }
       
-      // Use search endpoint with only status filter (no is_active filter)
+      // Use search endpoint with status filter
       const data = await getDeploymentsSearch(filters);
       
       setDeployments(data);
@@ -409,18 +414,21 @@ const DeploymentPage = () => {
             <Button
               variant={positionFilter === 'all' ? 'contained' : 'outlined'}
               onClick={() => handlePositionFilterChange('all')}
+              disabled={!hasAnyDeployments}
             >
               All
             </Button>
             <Button
               variant={positionFilter === 'waiting' ? 'contained' : 'outlined'}
               onClick={() => handlePositionFilterChange('waiting')}
+              disabled={!hasAnyDeployments}
             >
               Waiting
             </Button>
             <Button
               variant={positionFilter === 'entered' ? 'contained' : 'outlined'}
               onClick={() => handlePositionFilterChange('entered')}
+              disabled={!hasAnyDeployments}
             >
               Entered
             </Button>
@@ -434,7 +442,7 @@ const DeploymentPage = () => {
             color="success"
             startIcon={<PlayArrowIcon />}
             onClick={() => handleBulkAction('start_all')}
-            disabled={actionLoading !== ''}
+            disabled={actionLoading !== '' || !hasAnyDeployments}
           >
             {actionLoading === 'start_all' ? <CircularProgress size={20} /> : 'Start All'}
           </Button>
@@ -443,7 +451,7 @@ const DeploymentPage = () => {
             color="warning"
             startIcon={<StopIcon />}
             onClick={() => handleBulkAction('stop_all')}
-            disabled={actionLoading !== ''}
+            disabled={actionLoading !== '' || !hasAnyDeployments}
           >
             {actionLoading === 'stop_all' ? <CircularProgress size={20} /> : 'Pause All'}
           </Button>
@@ -452,7 +460,7 @@ const DeploymentPage = () => {
             color="error"
             startIcon={<ExitToAppIcon />}
             onClick={() => handleBulkAction('exit_all')}
-            disabled={actionLoading !== ''}
+            disabled={actionLoading !== '' || !hasAnyDeployments}
           >
             {actionLoading === 'exit_all' ? <CircularProgress size={20} /> : 'Exit All'}
           </Button>

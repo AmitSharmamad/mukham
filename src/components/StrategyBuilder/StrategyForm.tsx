@@ -1060,9 +1060,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         display: 'flex', 
         flexDirection: 'row',
         alignItems: 'center', 
-        mb: 3,
-        pl: 2,
-        pt: 2
+        mb: 3
       }}>
         <Box sx={{ flex: 1 }}>
           {pageTitle && (
