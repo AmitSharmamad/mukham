@@ -75,6 +75,7 @@ export interface Position {
   entry_time: string;
   exit_price?: number;
   exit_time?: string;
+  exit_reason?: string;
   pnl?: number;
   status: 'OPEN' | 'CLOSED' | 'CANCELLED';
   metadata: Record<string, any>;
