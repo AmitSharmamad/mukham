@@ -105,6 +105,7 @@ export const MainLayout = ({
                 sx={{ 
                   py: 2, 
                   mt: { xs: 8, sm: 10, md: 12 }, // Responsive top margin - smaller on mobile
+                  mb: { xs: 8, sm: 10, md: 12 }, // Responsive bottom margin - matches top margin
                   px: { xs: 1, sm: 2, md: 3, lg: 4 }, // Custom horizontal padding
                   maxWidth: { 
                     xs: '100%', 
