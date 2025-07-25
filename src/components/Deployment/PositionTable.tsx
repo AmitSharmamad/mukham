@@ -9,7 +9,6 @@ import {
   TableRow,
   TableSortLabel,
   Paper,
-  Checkbox,
   Chip,
   Typography,
   useTheme,
@@ -39,14 +38,12 @@ interface PositionTableProps {
   positions: Position[];
   loading: boolean;
   onClosePosition?: (position: Position) => Promise<void>;
-  selectedPositions: number[];
-  onPositionSelect: (positionIds: number[]) => void;
   realtimeMetrics?: any;
   compact?: boolean;
 }
 
 type Order = 'asc' | 'desc';
-type OrderBy = 'id' | 'entry_price' | 'quantity' | 'pnl' | 'entry_time' | 'exit_price' | 'exit_time' | 'status';
+type OrderBy = 'id' | 'entry_price' | 'quantity' | 'pnl' | 'entry_time' | 'exit_price' | 'exit_time' | 'exit_reason' | 'status';
 
 interface HeadCell {
   id: OrderBy;
@@ -61,6 +58,7 @@ const headCells: HeadCell[] = [
   { id: 'entry_time', numeric: false, label: 'Entry Time', width: '150px' },
   { id: 'exit_price', numeric: true, label: 'Exit Price', width: '120px' },
   { id: 'exit_time', numeric: false, label: 'Exit Time', width: '150px' },
+  { id: 'exit_reason', numeric: false, label: 'Exit Reason', width: '120px' },
   { id: 'status', numeric: false, label: 'Status', width: '100px' },
   { id: 'pnl', numeric: true, label: 'P&L', width: '120px' },
 ];
@@ -69,8 +67,6 @@ const PositionTable: React.FC<PositionTableProps> = ({
   positions,
   loading,
   onClosePosition,
-  selectedPositions,
-  onPositionSelect,
   realtimeMetrics,
   compact = false
 }) => {
@@ -100,6 +96,11 @@ const PositionTable: React.FC<PositionTableProps> = ({
         bValue = bValue || 0;
       }
 
+      if (orderBy === 'exit_reason') {
+        aValue = aValue || '';
+        bValue = bValue || '';
+      }
+
       if (order === 'asc') {
         return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
       } else {
@@ -112,35 +113,6 @@ const PositionTable: React.FC<PositionTableProps> = ({
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
-  };
-
-  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked) {
-      const newSelected = positions.map(p => p.id);
-      onPositionSelect(newSelected);
-    } else {
-      onPositionSelect([]);
-    }
-  };
-
-  const handleSelectPosition = (id: number) => {
-    const selectedIndex = selectedPositions.indexOf(id);
-    let newSelected: number[] = [];
-
-    if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selectedPositions, id);
-    } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selectedPositions.slice(1));
-    } else if (selectedIndex === selectedPositions.length - 1) {
-      newSelected = newSelected.concat(selectedPositions.slice(0, -1));
-    } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(
-        selectedPositions.slice(0, selectedIndex),
-        selectedPositions.slice(selectedIndex + 1),
-      );
-    }
-
-    onPositionSelect(newSelected);
   };
 
   const handleExpandRow = (id: number) => {
@@ -182,71 +154,30 @@ const PositionTable: React.FC<PositionTableProps> = ({
     }
   };
 
-  // Add keyboard shortcuts support
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Ctrl+A or Cmd+A - Select all positions
-      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
-        event.preventDefault();
-        const allIds = positions.map(p => p.id);
-        onPositionSelect(allIds);
-      }
-      
-      // Delete key - Close selected open positions
-      if (event.key === 'Delete' && selectedPositions.length > 0) {
-        event.preventDefault();
-        const openSelectedPositions = positions.filter(p => 
-          selectedPositions.includes(p.id) && p.status === 'OPEN'
-        );
-        if (openSelectedPositions.length > 0) {
-          // Trigger bulk close for the first position as demo
-          if (onClosePosition) {
-            setConfirmDialog({ open: true, position: openSelectedPositions[0] });
-          }
-        }
-      }
-      
-      // Ctrl+E or Cmd+E - Export selected positions
-      if ((event.ctrlKey || event.metaKey) && event.key === 'e' && selectedPositions.length > 0) {
-        event.preventDefault();
-        // Trigger export functionality
-        handleExportSelected();
-      }
-    };
+  const formatExitReason = (exitReason: string | undefined) => {
+    if (!exitReason) return '-';
+    return exitReason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [positions, selectedPositions, onPositionSelect, onClosePosition]);
-
-  const handleExportSelected = () => {
-    const selectedData = positions.filter(p => selectedPositions.includes(p.id));
-    const csvContent = [
-      ['Position ID', 'Instrument ID', 'Quantity', 'Entry Price', 'Exit Price', 'P&L', 'Status', 'Entry Time', 'Exit Time'].join(','),
-      ...selectedData.map(p => [
-        p.id,
-        p.instrument_id,
-        p.quantity,
-        p.entry_price,
-        p.exit_price || '',
-        p.pnl || 0,
-        p.status,
-        p.entry_time,
-        p.exit_time || ''
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = `selected_positions_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    
-    toast.showSuccess(`Exported ${selectedData.length} positions`);
+  const getExitReasonColor = (exitReason: string | undefined) => {
+    if (!exitReason) return 'default';
+    switch (exitReason.toUpperCase()) {
+      case 'TARGET':
+      case 'TARGET_PROFIT':
+      case 'TAKE_PROFIT':
+        return 'success';
+      case 'STOP_LOSS':
+      case 'STOP':
+        return 'error';
+      case 'TRAILING_STOP':
+      case 'TRAILING_STOP_LOSS':
+        return 'warning';
+      case 'USER_REQUESTED':
+      case 'MANUAL':
+        return 'info';
+      default:
+        return 'default';
+    }
   };
 
   if (loading) {
@@ -341,6 +272,11 @@ const PositionTable: React.FC<PositionTableProps> = ({
                   Exit: {formatDate(position.exit_time)}
                 </Typography>
               )}
+              {position.exit_reason && (
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Exit Reason: {formatExitReason(position.exit_reason)}
+                </Typography>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -355,13 +291,6 @@ const PositionTable: React.FC<PositionTableProps> = ({
         <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  indeterminate={selectedPositions.length > 0 && selectedPositions.length < positions.length}
-                  checked={positions.length > 0 && selectedPositions.length === positions.length}
-                  onChange={handleSelectAll}
-                />
-              </TableCell>
               {headCells.map((headCell) => (
                 <TableCell
                   key={headCell.id}
@@ -387,16 +316,12 @@ const PositionTable: React.FC<PositionTableProps> = ({
           </TableHead>
           <TableBody>
             {sortedPositions.map((position) => {
-              const isSelected = selectedPositions.indexOf(position.id) !== -1;
               const isExpanded = expandedRow === position.id;
 
               return (
                 <React.Fragment key={position.id}>
                   <TableRow
                     hover
-                    role="checkbox"
-                    aria-checked={isSelected}
-                    selected={isSelected}
                     sx={{
                       cursor: 'pointer',
                       '&:hover': {
@@ -404,12 +329,6 @@ const PositionTable: React.FC<PositionTableProps> = ({
                       },
                     }}
                   >
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={isSelected}
-                        onChange={() => handleSelectPosition(position.id)}
-                      />
-                    </TableCell>
                     <TableCell 
                       align="right"
                       onClick={() => handleExpandRow(position.id)}
@@ -433,6 +352,14 @@ const PositionTable: React.FC<PositionTableProps> = ({
                       <Typography variant="body2">
                         {position.exit_time ? formatDate(position.exit_time) : '-'}
                       </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={formatExitReason(position.exit_reason)}
+                        color={getExitReasonColor(position.exit_reason) as any}
+                        size="small"
+                        variant="outlined"
+                      />
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -469,6 +396,16 @@ const PositionTable: React.FC<PositionTableProps> = ({
                                 {position.instrument_id}
                               </Typography>
                             </Box>
+                            {position.exit_reason && (
+                              <Box>
+                                <Typography variant="caption" color="text.secondary">
+                                  Exit Reason
+                                </Typography>
+                                <Typography variant="body2">
+                                  {formatExitReason(position.exit_reason)}
+                                </Typography>
+                              </Box>
+                            )}
                             <Box>
                               <Typography variant="caption" color="text.secondary">
                                 Created At
