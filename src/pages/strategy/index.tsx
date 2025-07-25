@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { useToastContext } from '../../context/ToastContext';
+import { getApiErrorMessage } from '../../utils/apiErrorHandler';
 import type { Strategy } from '../../types/strategy';
 
 export default function StrategyList() {
@@ -61,7 +62,8 @@ export default function StrategyList() {
       const response = await fetch('/api/strategy');
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -89,7 +91,8 @@ export default function StrategyList() {
       const response = await fetch('/api/strategy/default');
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -179,6 +182,11 @@ export default function StrategyList() {
         method: 'DELETE'
       });
 
+      if (!response.ok) {
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
+      }
+
       const data = await response.json();
       if (data.success) {
         // Display the API response message
@@ -190,7 +198,8 @@ export default function StrategyList() {
         showToast(data.message || data.error || 'Failed to delete strategy', 'error');
       }
     } catch (err) {
-      showToast('Error deleting strategy', 'error');
+      const errorMessage = err instanceof Error ? err.message : 'Error deleting strategy';
+      showToast(errorMessage, 'error');
     } finally {
       setDeleting(null);
     }
@@ -210,6 +219,11 @@ export default function StrategyList() {
         method: 'POST'
       });
 
+      if (!response.ok) {
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
+      }
+
       const data = await response.json();
       if (data.success) {
         // Display the API response message
@@ -219,7 +233,8 @@ export default function StrategyList() {
         showToast(data.message || data.error || 'Failed to clone strategy', 'error');
       }
     } catch (err) {
-      showToast('Error cloning strategy', 'error');
+      const errorMessage = err instanceof Error ? err.message : 'Error cloning strategy';
+      showToast(errorMessage, 'error');
     } finally {
       setCloning(null);
     }

@@ -243,8 +243,13 @@ export const createDeployment = async (deploymentData: Omit<Deployment, 'id' | '
   try {
     const response = await apiClient.post('/deployment', deploymentData);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating deployment:', error);
+    // Re-throw the error with the original error details preserved
+    // This allows the calling code to handle specific error messages
+    if (error?.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
     throw error;
   }
 };
@@ -253,8 +258,12 @@ export const updateDeployment = async (id: string, deploymentData: Partial<Deplo
   try {
     const response = await apiClient.put(`/deployment/${id}`, deploymentData);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating deployment:', error);
+    // Re-throw the error with the original error details preserved
+    if (error?.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
     throw error;
   }
 };

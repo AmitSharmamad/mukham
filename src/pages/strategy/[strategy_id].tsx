@@ -6,6 +6,7 @@ import type { Strategy } from '../../types/strategy';
 import dayjs from 'dayjs';
 import { mapTimeframeToDisplay } from '../../constants';
 import { checkPageAuth } from '../../utils/pageAuthUtils';
+import { getApiErrorMessage } from '../../utils/apiErrorHandler';
 
 interface Instrument {
   exchange_security_id: number;
@@ -59,7 +60,8 @@ export default function EditStrategy() {
       const response = await fetch(`/api/instrument-master/by-exchange-security-ids?exchange_security_ids=${instrumentIds.join(',')}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -80,7 +82,8 @@ export default function EditStrategy() {
       const response = await fetch(`/api/strategy/${id}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
