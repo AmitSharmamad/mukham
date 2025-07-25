@@ -28,17 +28,16 @@ const DeployButton: React.FC<DeployButtonProps> = ({
       setDeploying(true);
       
       // Create a deployment
-      const deploymentName = `${strategyName} - ${instrumentName}`;
       const response = await createDeployment({
         strategy_id: strategyId,
         instrument_id: instrumentId,
-        name: deploymentName,
+        name: strategyName,
         description: strategyDescription,
         isActive: true
       });
       
       // Show success message from API response
-      showToast(response.message || `Strategy deployed successfully: ${deploymentName}`, 'success');
+      showToast(response.message || `Strategy deployed successfully: ${strategyName}`, 'success');
       
       // Navigate to the deployments page after a short delay
       setTimeout(() => {

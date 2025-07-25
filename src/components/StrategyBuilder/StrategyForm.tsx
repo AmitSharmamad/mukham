@@ -78,6 +78,7 @@ import {
 import { BacktestResult } from '../../types/strategy';
 import { createDeployment, ApiResponse } from '../../services/deploymentService';
 import { convertFormToApiData } from '../../utils/strategyFormUtils';
+import { getApiErrorMessage } from '../../utils/apiErrorHandler';
 import { 
   validateForm, 
   isFormValid, 
@@ -250,7 +251,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
       
       const result = await response.json();
@@ -552,7 +554,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           });
 
           if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorMessage = await getApiErrorMessage(response);
+            throw new Error(errorMessage);
           }
 
           const result = await response.json();
@@ -651,7 +654,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         });
 
         if (!response.ok || !response.body) {
-          throw new Error(`Failed to start backtest: ${response.statusText}`);
+          const errorMessage = await getApiErrorMessage(response);
+          throw new Error(errorMessage);
         }
 
         // Read and parse SSE events from the response stream
@@ -822,14 +826,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       newSet.add(instrumentId);
       setDeployingInstruments(newSet);
       
-      // Get the instrument name
+      // Get the instrument name for display purposes
       const instrumentName = backtestResults?.results.find(r => r.instrumentId === instrumentId)?.instrumentName || `Instrument ${instrumentId}`;
       
       // Create deployment using our deployment service
       await createDeployment({
         strategy_id: initialData?.id || '',
         instrument_id: instrumentId,
-        name: `${formData.name} - ${instrumentName}`,
+        name: formData.name,
         description: formData.description,
         isActive: true
       });
@@ -850,11 +854,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       }, 1500);
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error connecting to server';
       setErrors(prev => ({
         ...prev,
-        submit: 'Error connecting to server'
+        submit: errorMessage
       }));
-      showToast('Error connecting to server', 'error');
+      showToast(errorMessage, 'error');
     } finally {
       const newSet = new Set(deployingInstruments);
       newSet.delete(instrumentId);
@@ -887,7 +892,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         .map(result => createDeployment({
           strategy_id: strategyId,
           instrument_id: result.instrumentId,
-          name: `${formData.name} - ${result.instrumentName}`,
+          name: formData.name,
           description: formData.description,
           isActive: true
         }));
@@ -912,11 +917,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       }, 1500);
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error deploying strategies';
       setErrors(prev => ({
         ...prev,
-        submit: 'Error deploying strategies'
+        submit: errorMessage
       }));
-      showToast('Error deploying strategies', 'error');
+      showToast(errorMessage, 'error');
     } finally {
       setDeployingInstruments(new Set());
     }
@@ -932,7 +938,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       const response = await fetch(`/api/deployment/strategy/${strategyId}/status?instruments=${instrumentsParam}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -987,7 +994,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       const response = await fetch(`/api/strategy/${id}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
