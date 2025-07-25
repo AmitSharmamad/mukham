@@ -16,6 +16,11 @@ import {
   Alert,
   Card,
   CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -54,6 +59,17 @@ const DeploymentDetail = () => {
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    action: 'activate' | 'pause' | null;
+    title: string;
+    message: string;
+  }>({
+    open: false,
+    action: null,
+    title: '',
+    message: ''
+  });
 
   // Use WebSocket events for real-time updates
   const { 
@@ -134,9 +150,33 @@ const DeploymentDetail = () => {
   const handleToggleStatus = async () => {
     if (!deployment) return;
     
+    const action = deployment.isActive ? 'pause' : 'activate';
+    const titles = {
+      pause: 'Pause Deployment',
+      activate: 'Activate Deployment'
+    };
+    
+    const messages = {
+      pause: `Are you sure you want to pause "${deployment.name}"? This will stop the strategy from taking new trades.`,
+      activate: `Are you sure you want to activate "${deployment.name}"? This will allow the strategy to start taking trades.`
+    };
+
+    setConfirmDialog({
+      open: true,
+      action,
+      title: titles[action],
+      message: messages[action]
+    });
+  };
+
+  const executeToggleAction = async () => {
+    if (!deployment || !confirmDialog.action) return;
+    
     setStatusUpdating(true);
+    setConfirmDialog({ open: false, action: null, title: '', message: '' });
+    
     try {
-      if (deployment.isActive) {
+      if (confirmDialog.action === 'pause') {
         await deactivateDeployment(deployment.id);
         toast.showSuccess('Deployment paused successfully');
       } else {
@@ -151,7 +191,7 @@ const DeploymentDetail = () => {
       });
     } catch (err: any) {
       console.error('Error toggling deployment status:', err);
-      toast.showError(err.response?.data?.message || `Failed to ${deployment.isActive ? 'pause' : 'activate'} deployment`);
+      toast.showError(err.response?.data?.message || `Failed to ${confirmDialog.action} deployment`);
     } finally {
       setStatusUpdating(false);
     }
@@ -477,29 +517,6 @@ const DeploymentDetail = () => {
             </Box>
           </Paper>
 
-          {/* Instrument Candlestick Chart */}
-          <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-            <Box sx={{ height: 450, mt: 2 }}>
-              <InstrumentCandlestickChart 
-                instrumentId={deployment.instrument_id}
-                title="Price Chart"
-                subtitle="Historical price data for the instrument"
-              />
-            </Box>
-          </Paper>
-
-          {/* Indicator Chart */}
-          <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-            <Box sx={{ height: 450, mt: 2 }}>
-              {positions.length > 0 && (
-                <CandlestickChart 
-                  deploymentId={id as string}
-                  deploymentPositionId={positions[0].id} 
-                />
-              )}
-            </Box>
-          </Paper>
-
           {/* Recent Events */}
           {(() => {
             const recentEvents = id ? getEventsByDeployment(id as string).slice(0, 10) : [];
@@ -579,6 +596,35 @@ const DeploymentDetail = () => {
           })()}
         </>
       )}
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog({ open: false, action: null, title: '', message: '' })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>{confirmDialog.title}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{confirmDialog.message}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setConfirmDialog({ open: false, action: null, title: '', message: '' })}
+            disabled={statusUpdating}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={executeToggleAction}
+            color={confirmDialog.action === 'pause' ? 'error' : 'success'}
+            variant="contained"
+            disabled={statusUpdating}
+          >
+            {statusUpdating ? <CircularProgress size={20} /> : 'Confirm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
