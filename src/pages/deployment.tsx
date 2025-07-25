@@ -43,6 +43,14 @@ interface ConfirmDialogState {
   message: string;
 }
 
+interface IndividualConfirmDialogState {
+  open: boolean;
+  type: 'resume' | 'pause' | 'stop' | null;
+  deployment: Deployment | null;
+  title: string;
+  message: string;
+}
+
 interface PositionsDialogState {
   open: boolean;
   deployment: Deployment | null;
@@ -101,6 +109,14 @@ const DeploymentPage = () => {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
     open: false,
     type: null,
+    title: '',
+    message: ''
+  });
+  
+  const [individualConfirmDialog, setIndividualConfirmDialog] = useState<IndividualConfirmDialogState>({
+    open: false,
+    type: null,
+    deployment: null,
     title: '',
     message: ''
   });
@@ -197,19 +213,45 @@ const DeploymentPage = () => {
   };
 
   const handleToggleDeployment = async (deployment: Deployment) => {
+    const action = deployment.isActive ? 'pause' : 'resume';
+    const titles = {
+      pause: 'Pause Deployment',
+      resume: 'Resume Deployment'
+    };
+    
+    const messages = {
+      pause: `Are you sure you want to pause "${deployment.name}"? This will stop the strategy from taking new trades.`,
+      resume: `Are you sure you want to resume "${deployment.name}"? This will activate the strategy to start taking trades.`
+    };
+
+    setIndividualConfirmDialog({
+      open: true,
+      type: action,
+      deployment,
+      title: titles[action],
+      message: messages[action]
+    });
+  };
+
+  const executeIndividualAction = async () => {
+    const { type, deployment } = individualConfirmDialog;
+    if (!type || !deployment) return;
+    
     setActionLoading(`toggle_${deployment.id}`);
+    setIndividualConfirmDialog({ open: false, type: null, deployment: null, title: '', message: '' });
+    
     try {
-      if (deployment.isActive) {
+      if (type === 'pause') {
         await deactivateDeployment(deployment.id);
         toast.showSuccess(`${deployment.name} paused successfully`);
-      } else {
+      } else if (type === 'resume') {
         await activateDeployment(deployment.id);
-        toast.showSuccess(`${deployment.name} activated successfully`);
+        toast.showSuccess(`${deployment.name} resumed successfully`);
       }
       await fetchDeployments();
     } catch (err: any) {
       console.error('Error toggling deployment:', err);
-      toast.showError(`Failed to ${deployment.isActive ? 'pause' : 'activate'} deployment`);
+      toast.showError(`Failed to ${type} deployment`);
     } finally {
       setActionLoading('');
     }
@@ -221,7 +263,22 @@ const DeploymentPage = () => {
       return;
     }
 
+    setIndividualConfirmDialog({
+      open: true,
+      type: 'stop',
+      deployment,
+      title: 'Stop Deployment',
+      message: `Are you sure you want to stop "${deployment.name}"? This will immediately deactivate the strategy.`
+    });
+  };
+
+  const executeStopAction = async () => {
+    const { deployment } = individualConfirmDialog;
+    if (!deployment) return;
+    
     setActionLoading(`stop_${deployment.id}`);
+    setIndividualConfirmDialog({ open: false, type: null, deployment: null, title: '', message: '' });
+    
     try {
       await deactivateDeployment(deployment.id);
       toast.showSuccess(`${deployment.name} stopped successfully`);
@@ -724,7 +781,7 @@ const DeploymentPage = () => {
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setExitConfirmDialog({ open: true, deployment });
+                            handleExitDeployment(deployment);
                           }}
                           disabled={actionLoading === `exit_${deployment.id}`}
                           color="error"
@@ -772,6 +829,40 @@ const DeploymentPage = () => {
             disabled={actionLoading !== ''}
           >
             {actionLoading === confirmDialog.type ? <CircularProgress size={20} /> : 'Confirm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Individual Action Confirmation Dialog */}
+      <Dialog
+        open={individualConfirmDialog.open}
+        onClose={() => setIndividualConfirmDialog({ open: false, type: null, deployment: null, title: '', message: '' })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>{individualConfirmDialog.title}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{individualConfirmDialog.message}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setIndividualConfirmDialog({ open: false, type: null, deployment: null, title: '', message: '' })}
+            disabled={actionLoading !== ''}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={individualConfirmDialog.type === 'stop' ? executeStopAction : executeIndividualAction}
+            color={individualConfirmDialog.type === 'stop' ? 'error' : 'primary'}
+            variant="contained"
+            disabled={actionLoading !== ''}
+          >
+            {(actionLoading === `toggle_${individualConfirmDialog.deployment?.id}` || 
+              actionLoading === `stop_${individualConfirmDialog.deployment?.id}`) ? (
+              <CircularProgress size={20} />
+            ) : (
+              'Confirm'
+            )}
           </Button>
         </DialogActions>
       </Dialog>
