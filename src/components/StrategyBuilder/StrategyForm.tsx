@@ -1234,6 +1234,25 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                             color: 'primary.main',
                           },
                         }),
+                        // Style the step icon (numbers)
+                        '& .MuiStepIcon-root': {
+                          fontSize: '1.5rem',
+                          transition: 'all 0.3s ease-in-out',
+                          ...(isActive && {
+                            fontSize: '1.8rem',
+                            transform: 'scale(1.1)',
+                          }),
+                          // Change color based on completion status
+                          '&.Mui-completed': {
+                            color: 'success.main',
+                          },
+                          '&.Mui-active': {
+                            color: 'primary.main',
+                          },
+                          '&:not(.Mui-completed):not(.Mui-active)': {
+                            color: isCompleted ? 'success.main' : 'error.main',
+                          },
+                        },
                         '@keyframes pulse': {
                           '0%': {
                             boxShadow: '0 0 0 0 rgba(25, 118, 210, 0.4)',
@@ -1247,38 +1266,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                         },
                       }}
                       error={!isCompleted}
-                      icon={
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center',
-                          transition: 'all 0.3s ease-in-out',
-                          ...(isActive && {
-                            transform: 'scale(1.1)',
-                          }),
-                        }}>
-                          {isCompleted ? (
-                            <CheckCircle 
-                              color="success" 
-                              sx={{ 
-                                fontSize: 20,
-                                ...(isActive && {
-                                  fontSize: 22,
-                                }),
-                              }} 
-                            />
-                          ) : (
-                            <Cancel 
-                              color="error" 
-                              sx={{ 
-                                fontSize: 20,
-                                ...(isActive && {
-                                  fontSize: 22,
-                                }),
-                              }} 
-                            />
-                          )}
-                        </Box>
-                      }
                     >
                       <Box sx={{ 
                         display: 'flex', 

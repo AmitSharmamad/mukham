@@ -29,6 +29,8 @@ import PauseIcon from '@mui/icons-material/Pause';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { useTheme } from '@mui/material/styles';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { Deployment, getDeployments, getDeploymentsSearch, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments, getDeploymentPositions, getDeploymentMetrics as getDeploymentMetricsAPI, closePosition, exitDeployment, Position, DeploymentMetrics } from '../services/deploymentService';
 import { useToastContext } from '../context/ToastContext';
 import { PositionsMetricsDashboard } from '../components/Deployment';
@@ -52,6 +54,7 @@ interface PositionsDialogState {
 const DeploymentPage = () => {
   const theme = useTheme();
   const toast = useToastContext();
+  const router = useRouter();
   
   // Use centralized WebSocket connection for real-time updates
   const { 
@@ -319,6 +322,10 @@ const DeploymentPage = () => {
     }
   };
 
+  const handleDeploymentClick = (deployment: Deployment) => {
+    router.push(`/deployment/${deployment.id}`);
+  };
+
   const handleBulkAction = (type: 'start_all' | 'stop_all' | 'exit_all') => {
     const titles = {
       start_all: 'Start All Deployments',
@@ -509,7 +516,7 @@ const DeploymentPage = () => {
                 <TableCell sx={{ fontWeight: 600 }}>
                   Strategy Name
                   <Typography variant="caption" display="block" color="text.secondary" sx={{ fontWeight: 400 }}>
-                    Click row to view positions
+                    Click row to view deployment details
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Symbol</TableCell>
@@ -565,7 +572,7 @@ const DeploymentPage = () => {
                 <TableRow 
                   key={`${deployment.id}-${realtimeMetrics?.lastUpdateTime || deployment.lastUpdatedAt}`}
                   hover
-                  onClick={() => handleViewPositions(deployment)}
+                  onClick={() => handleDeploymentClick(deployment)}
                   sx={{ 
                     '&:last-child td, &:last-child th': { border: 0 },
                     cursor: 'pointer',
@@ -585,9 +592,25 @@ const DeploymentPage = () => {
                 >
                   <TableCell>
                     <Box>
-                      <Typography variant="subtitle2" fontWeight="medium">
-                        {deployment.name}
-                      </Typography>
+                      <Link 
+                        href={`/strategy/${deployment.strategy_id}`}
+                        style={{ textDecoration: 'none' }}
+                        onClick={(e) => e.stopPropagation()} // Prevent row click when clicking strategy name
+                      >
+                        <Typography 
+                          variant="subtitle2" 
+                          fontWeight="medium"
+                          color="primary.main"
+                          sx={{ 
+                            '&:hover': { 
+                              textDecoration: 'underline',
+                              cursor: 'pointer'
+                            } 
+                          }}
+                        >
+                          {deployment.name}
+                        </Typography>
+                      </Link>
                       <Typography variant="caption" color="text.secondary">
                         {deployment.description}
                       </Typography>

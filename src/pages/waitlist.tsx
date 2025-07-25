@@ -55,7 +55,7 @@ export default function WaitlistPage() {
 
   if (success) {
     return (
-      <Container maxWidth="sm" sx={{ mt: 8, mb: 4 }}>
+      <Container maxWidth="sm" sx={{ mt: 8, mb: 8 }}>
         <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h4" component="h1" gutterBottom color="primary">
             ✅ Successfully Registered!
@@ -72,7 +72,7 @@ export default function WaitlistPage() {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 8, mb: 4 }}>
+    <Container maxWidth="sm" sx={{ mt: 8, mb: 8 }}>
       <Card elevation={3}>
         <CardContent sx={{ p: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom align="center" color="primary">

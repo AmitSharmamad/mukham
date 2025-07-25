@@ -8,6 +8,7 @@ import {
   TableHead,
   TableRow,
   TableSortLabel,
+  TablePagination,
   Paper,
   Chip,
   Typography,
@@ -80,6 +81,8 @@ const PositionTable: React.FC<PositionTableProps> = ({
     position: Position | null;
   }>({ open: false, position: null });
   const [closingPosition, setClosingPosition] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const sortedPositions = useMemo(() => {
     return [...positions].sort((a, b) => {
@@ -109,10 +112,29 @@ const PositionTable: React.FC<PositionTableProps> = ({
     });
   }, [positions, order, orderBy]);
 
+  // Get paginated positions for table display
+  const paginatedPositions = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return sortedPositions.slice(startIndex, startIndex + rowsPerPage);
+  }, [sortedPositions, page, rowsPerPage]);
+
   const handleRequestSort = (property: OrderBy) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
+    // Reset to first page when sorting changes
+    setPage(0);
+  };
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+    setExpandedRow(null); // Close any expanded rows when changing pages
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+    setExpandedRow(null); // Close any expanded rows when changing page size
   };
 
   const handleExpandRow = (id: number) => {
@@ -208,78 +230,92 @@ const PositionTable: React.FC<PositionTableProps> = ({
   // Mobile Card Layout
   if (compact) {
     return (
-      <Box sx={{ p: 2 }}>
-        {sortedPositions.map((position) => (
-          <Card key={position.id} sx={{ mb: 2 }}>
-            <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Instrument: {position.instrument_id}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Status: {position.status}
-                  </Typography>
+      <Box>
+        <Box sx={{ p: 2 }}>
+          {paginatedPositions.map((position) => (
+            <Card key={position.id} sx={{ mb: 2 }}>
+              <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      Instrument: {position.instrument_id}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Status: {position.status}
+                    </Typography>
+                  </Box>
+                  <Box textAlign="right">
+                    <Chip
+                      label={position.status}
+                      color={getStatusColor(position.status) as any}
+                      size="small"
+                    />
+                  </Box>
                 </Box>
-                <Box textAlign="right">
-                  <Chip
-                    label={position.status}
-                    color={getStatusColor(position.status) as any}
-                    size="small"
-                  />
-                </Box>
-              </Box>
-              
-              <Divider sx={{ my: 1 }} />
-              
-              <Box display="flex" justifyContent="space-between" mb={1}>
-                <Typography variant="body2">Quantity: {position.quantity}</Typography>
-                <Typography variant="body2">Entry: ₹{position.entry_price.toFixed(2)}</Typography>
-              </Box>
-              
-              {position.exit_price && (
+                
+                <Divider sx={{ my: 1 }} />
+                
                 <Box display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="body2">Exit Price:</Typography>
-                  <Typography variant="body2">₹{position.exit_price.toFixed(2)}</Typography>
+                  <Typography variant="body2">Quantity: {position.quantity}</Typography>
+                  <Typography variant="body2">Entry: ₹{position.entry_price.toFixed(2)}</Typography>
                 </Box>
-              )}
-              
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Typography
-                  variant="body1"
-                  fontWeight="bold"
-                  color={getPnLColor(position.pnl)}
-                >
-                  {formatPnL(position.pnl)}
-                </Typography>
-                {position.status === 'OPEN' && onClosePosition && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="error"
-                    onClick={() => setConfirmDialog({ open: true, position })}
-                  >
-                    Close
-                  </Button>
+                
+                {position.exit_price && (
+                  <Box display="flex" justifyContent="space-between" mb={1}>
+                    <Typography variant="body2">Exit Price:</Typography>
+                    <Typography variant="body2">₹{position.exit_price.toFixed(2)}</Typography>
+                  </Box>
                 )}
-              </Box>
-              
-              <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-                Entry: {formatDate(position.entry_time)}
-              </Typography>
-              {position.exit_time && (
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Exit: {formatDate(position.exit_time)}
+                
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography
+                    variant="body1"
+                    fontWeight="bold"
+                    color={getPnLColor(position.pnl)}
+                  >
+                    {formatPnL(position.pnl)}
+                  </Typography>
+                  {position.status === 'OPEN' && onClosePosition && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      onClick={() => setConfirmDialog({ open: true, position })}
+                    >
+                      Close
+                    </Button>
+                  )}
+                </Box>
+                
+                <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                  Entry: {formatDate(position.entry_time)}
                 </Typography>
-              )}
-              {position.exit_reason && (
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Exit Reason: {formatExitReason(position.exit_reason)}
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                {position.exit_time && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Exit: {formatDate(position.exit_time)}
+                  </Typography>
+                )}
+                {position.exit_reason && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Exit Reason: {formatExitReason(position.exit_reason)}
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+        
+        {/* Pagination for mobile */}
+        <TablePagination
+          component="div"
+          count={positions.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          labelRowsPerPage="Positions per page:"
+        />
       </Box>
     );
   }
@@ -315,7 +351,7 @@ const PositionTable: React.FC<PositionTableProps> = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {sortedPositions.map((position) => {
+            {paginatedPositions.map((position) => {
               const isExpanded = expandedRow === position.id;
 
               return (
@@ -453,6 +489,18 @@ const PositionTable: React.FC<PositionTableProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Pagination */}
+      <TablePagination
+        component="div"
+        count={positions.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 25, 50]}
+        labelRowsPerPage="Positions per page:"
+      />
 
       {/* Close Position Confirmation Dialog */}
       <Dialog
