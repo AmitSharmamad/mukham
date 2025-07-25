@@ -45,7 +45,7 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { logout as logoutService, checkAPIServer } from '../services/authService';
-import { PnLDisplay, LiveClock } from './';
+import { PnLDisplay, LiveClock, TourButton } from './';
 
 interface NavbarProps {
   onToggleTheme?: () => void;
@@ -466,6 +466,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
     <>
       <AppBar 
         position="fixed" 
+        role="navigation"
         sx={{ 
           backgroundColor: muiTheme.palette.mode === 'dark' 
             ? muiTheme.palette.background.paper
@@ -631,6 +632,14 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                 {/* Live Clock - show for both authenticated and non-authenticated users */}
                 <LiveClock color="#90EE90" fontSize="1.1rem" />
                 
+                {/* Tour button - show for both authenticated and non-authenticated users */}
+                <TourButton 
+                  variant="icon" 
+                  tooltip="Take a guided tour" 
+                  size="large"
+                  color="inherit"
+                />
+                
                 {/* Theme button - show for both authenticated and non-authenticated users */}
                 <Tooltip title={isUsingSystemTheme ? `System theme (${mode})` : `${mode} mode`}>
                   <IconButton 
@@ -642,6 +651,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                       width: 48,
                       height: 48
                     }}
+                    data-testid="theme-toggle"
                   >
                     {isUsingSystemTheme ? 
                       <SettingsSuggestIcon sx={{ fontSize: '1.75rem' }} /> : 
@@ -665,6 +675,7 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                         width: 48,
                         height: 48
                       }}
+                      data-testid="user-menu"
                     >
                       <AccountCircle sx={{ fontSize: '1.75rem' }} />
                     </IconButton>

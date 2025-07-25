@@ -10,6 +10,8 @@ export { default as Paper } from './Paper';
 export { default as Select } from './Select';
 export { default as TextField } from './TextField';
 export { default as Toast } from './Toast';
+export { default as Tour } from './Tour';
+export { default as TourButton } from './TourButton';
 export { DashboardWidget } from './DashboardWidget';
 export { default as AuthGuard } from './AuthGuard';
 export { DocsLayout } from './DocsLayout';
