@@ -45,7 +45,7 @@ interface ConfirmDialogState {
 
 interface IndividualConfirmDialogState {
   open: boolean;
-  type: 'resume' | 'pause' | 'stop' | null;
+  type: 'resume' | 'pause' | null;
   deployment: Deployment | null;
   title: string;
   message: string;
@@ -81,28 +81,31 @@ const DeploymentPage = () => {
   const [actionLoading, setActionLoading] = useState<string>('');
   const [hasAnyDeployments, setHasAnyDeployments] = useState<boolean>(false);
   
-  // Apply real-time updates to deployments - use data from WebSocket events
+  // Apply real-time updates to deployments and filter for active strategies only
+  // This ensures only active (isActive: true) strategies are displayed on the page
   const updatedDeployments = useMemo(() => {
-    return deployments.map(deployment => {
-      const realtimeMetrics = deploymentMetrics[deployment.id];
-      if (realtimeMetrics) {
-        // Create updated deployment with real-time data from events
-        return {
-          ...deployment,
-          metrics: deployment.metrics ? {
-            ...deployment.metrics,
-            total_pnl: realtimeMetrics.pnl + realtimeMetrics.unrealizedPnl,
-            total_trades: realtimeMetrics.totalTrades,
-            win_trades: realtimeMetrics.winTrades,
-            loss_trades: realtimeMetrics.lossTrades,
-            updated_at: realtimeMetrics.lastUpdateTime,
-          } : undefined,
-          status: realtimeMetrics.openPositions > 0 ? 'entered' as const : 'waiting' as const,
-          lastUpdatedAt: realtimeMetrics.lastUpdateTime
-        };
-      }
-      return deployment;
-    });
+    return deployments
+      .filter(deployment => deployment.isActive) // Only show active strategies
+      .map(deployment => {
+        const realtimeMetrics = deploymentMetrics[deployment.id];
+        if (realtimeMetrics) {
+          // Create updated deployment with real-time data from events
+          return {
+            ...deployment,
+            metrics: deployment.metrics ? {
+              ...deployment.metrics,
+              total_pnl: realtimeMetrics.pnl + realtimeMetrics.unrealizedPnl,
+              total_trades: realtimeMetrics.totalTrades,
+              win_trades: realtimeMetrics.winTrades,
+              loss_trades: realtimeMetrics.lossTrades,
+              updated_at: realtimeMetrics.lastUpdateTime,
+            } : undefined,
+            status: realtimeMetrics.openPositions > 0 ? 'entered' as const : 'waiting' as const,
+            lastUpdatedAt: realtimeMetrics.lastUpdateTime
+          };
+        }
+        return deployment;
+      });
   }, [deployments, deploymentMetrics]);
   
   // Dialog states
@@ -184,9 +187,10 @@ const DeploymentPage = () => {
     try {
       setLoading(true);
       
-      // First, get all deployments to check if any exist
+      // First, get all deployments to check if any active ones exist
       const allDeployments = await getDeploymentsSearch({});
-      setHasAnyDeployments(allDeployments.length > 0);
+      const activeDeployments = allDeployments.filter(d => d.isActive);
+      setHasAnyDeployments(activeDeployments.length > 0);
       
       // Build filter object based on current filter values (only position filter now)
       const filters: { status?: 'waiting' | 'entered' } = {};
@@ -252,40 +256,6 @@ const DeploymentPage = () => {
     } catch (err: any) {
       console.error('Error toggling deployment:', err);
       toast.showError(`Failed to ${type} deployment`);
-    } finally {
-      setActionLoading('');
-    }
-  };
-
-  const handleStopDeployment = async (deployment: Deployment) => {
-    if (!deployment.isActive) {
-      toast.showWarning('Deployment is already inactive');
-      return;
-    }
-
-    setIndividualConfirmDialog({
-      open: true,
-      type: 'stop',
-      deployment,
-      title: 'Stop Deployment',
-      message: `Are you sure you want to stop "${deployment.name}"? This will immediately deactivate the strategy.`
-    });
-  };
-
-  const executeStopAction = async () => {
-    const { deployment } = individualConfirmDialog;
-    if (!deployment) return;
-    
-    setActionLoading(`stop_${deployment.id}`);
-    setIndividualConfirmDialog({ open: false, type: null, deployment: null, title: '', message: '' });
-    
-    try {
-      await deactivateDeployment(deployment.id);
-      toast.showSuccess(`${deployment.name} stopped successfully`);
-      await fetchDeployments();
-    } catch (err: any) {
-      console.error('Error stopping deployment:', err);
-      toast.showError(`Failed to stop deployment: ${err.response?.data?.message || err.message}`);
     } finally {
       setActionLoading('');
     }
@@ -385,15 +355,15 @@ const DeploymentPage = () => {
 
   const handleBulkAction = (type: 'start_all' | 'stop_all' | 'exit_all') => {
     const titles = {
-      start_all: 'Start All Deployments',
-      stop_all: 'Pause All Deployments', 
-      exit_all: 'Exit All Deployments'
+      start_all: 'Resume All Active Strategies',
+      stop_all: 'Pause All Active Strategies', 
+      exit_all: 'Exit All Active Strategies'
     };
 
     const messages = {
-      start_all: 'Are you sure you want to start all inactive deployments? This will resume trading for all paused strategies.',
-      stop_all: 'Are you sure you want to stop all active deployments? This will pause all currently running strategies.',
-      exit_all: 'Are you sure you want to exit all deployments? This will stop all strategies and close any open positions.'
+      start_all: 'Are you sure you want to resume all paused active strategies? This will restart trading for all currently paused active strategies.',
+      stop_all: 'Are you sure you want to pause all active strategies? This will pause all currently running strategies.',
+      exit_all: 'Are you sure you want to exit all active strategies? This will stop all active strategies and close any open positions.'
     };
 
     setConfirmDialog({
@@ -412,16 +382,16 @@ const DeploymentPage = () => {
       switch (confirmDialog.type) {
         case 'start_all':
           await startAllDeployments();
-          toast.showSuccess('All deployments started successfully');
+          toast.showSuccess('All active strategies resumed successfully');
           break;
         case 'stop_all':
           await stopAllDeployments();
-          toast.showSuccess('All deployments stopped successfully');
+          toast.showSuccess('All active strategies paused successfully');
           break;
         case 'exit_all':
           // Use stop all for now since we don't have exit all API
           await stopAllDeployments();
-          toast.showSuccess('All deployments exited successfully');
+          toast.showSuccess('All active strategies exited successfully');
           break;
       }
       await fetchDeployments();
@@ -444,10 +414,17 @@ const DeploymentPage = () => {
       realtimeMetrics.openPositions > 0
     );
     
-    if (deployment.isActive) {
-      return <Chip label="Active" color="success" size="small" />;
-    }
-    return <Chip label="Inactive" color="default" size="small" />;
+    // Since all displayed deployments are active, show position status instead
+    const status = realtimeMetrics?.openPositions > 0 ? 'entered' : 
+                   deployment.status === 'entered' ? 'entered' : 'waiting';
+    
+    return (
+      <Chip 
+        label={status === 'entered' ? 'In Position' : 'Waiting'} 
+        color={status === 'entered' ? 'warning' : 'primary'} 
+        size="small" 
+      />
+    );
   };
 
   return (
@@ -456,7 +433,7 @@ const DeploymentPage = () => {
       <Box position="relative" display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
           <Typography variant="h4" component="h1">
-            Deployments
+            Active Deployments
           </Typography>
           <Chip 
             label={connectionStatus === 'connected' ? 'Connected' : connectionStatus}
@@ -508,7 +485,7 @@ const DeploymentPage = () => {
             onClick={() => handleBulkAction('start_all')}
             disabled={actionLoading !== '' || !hasAnyDeployments}
           >
-            {actionLoading === 'start_all' ? <CircularProgress size={20} /> : 'Start All'}
+            {actionLoading === 'start_all' ? <CircularProgress size={20} /> : 'Resume All'}
           </Button>
           <Button
             variant="contained"
@@ -539,7 +516,7 @@ const DeploymentPage = () => {
       ) : updatedDeployments.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography color="text.secondary">
-            No deployments found matching your filters.
+            No active deployments found matching your filters.
           </Typography>
         </Paper>
       ) : (
@@ -547,7 +524,7 @@ const DeploymentPage = () => {
           {/* Live Update Status */}
           <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6" component="h2">
-              Active Deployments ({updatedDeployments.length})
+              Active Strategies ({updatedDeployments.length})
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Button
@@ -577,7 +554,7 @@ const DeploymentPage = () => {
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Symbol</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Position Status</TableCell>
                 {/* <TableCell sx={{ fontWeight: 600 }}>Run Time</TableCell> */}
                 {/* <TableCell sx={{ fontWeight: 600 }}>MTM</TableCell> */}
                 <TableCell sx={{ fontWeight: 600 }}>Total P&L</TableCell>
@@ -759,23 +736,6 @@ const DeploymentPage = () => {
                           )}
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Stop Deployment">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStopDeployment(deployment);
-                          }}
-                          disabled={actionLoading === `stop_${deployment.id}` || !deployment.isActive}
-                          color="error"
-                        >
-                          {actionLoading === `stop_${deployment.id}` ? (
-                            <CircularProgress size={16} />
-                          ) : (
-                            <StopIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                      </Tooltip>
                       <Tooltip title="Exit Deployment">
                         <IconButton
                           size="small"
@@ -852,13 +812,12 @@ const DeploymentPage = () => {
             Cancel
           </Button>
           <Button 
-            onClick={individualConfirmDialog.type === 'stop' ? executeStopAction : executeIndividualAction}
-            color={individualConfirmDialog.type === 'stop' ? 'error' : 'primary'}
+            onClick={executeIndividualAction}
+            color="primary"
             variant="contained"
             disabled={actionLoading !== ''}
           >
-            {(actionLoading === `toggle_${individualConfirmDialog.deployment?.id}` || 
-              actionLoading === `stop_${individualConfirmDialog.deployment?.id}`) ? (
+            {actionLoading === `toggle_${individualConfirmDialog.deployment?.id}` ? (
               <CircularProgress size={20} />
             ) : (
               'Confirm'
