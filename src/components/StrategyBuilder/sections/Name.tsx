@@ -69,13 +69,16 @@ export const Name: React.FC<NameProps> = ({
         justifyContent: 'center',
         minHeight: '56px'
       }}>
-        <Button
-          variant="outlined"
-          startIcon={<Add />}
-          onClick={onInstrumentSelectorOpen}
-        >
-          Add Instrument
-        </Button>
+        {/* Hide Add Instrument button for F&O Time-based strategy */}
+        {!(formData.instrumentType === 'options' && formData.strategyType === 'time-based') && (
+          <Button
+            variant="outlined"
+            startIcon={<Add />}
+            onClick={onInstrumentSelectorOpen}
+          >
+            Add Instrument
+          </Button>
+        )}
         
         <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
           {selectedInstruments.map((instrument) => (
