@@ -26,6 +26,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { 
   Deployment, 
   Position, 
@@ -35,7 +36,8 @@ import {
   getDeploymentMetrics,
   activateDeployment,
   deactivateDeployment,
-  closePosition
+  closePosition,
+  exitDeployment
 } from '../../services/deploymentService';
 import { useToastContext } from '../../context/ToastContext';
 import { useDeploymentEvents } from '../../hooks/useDeploymentEvents';
@@ -70,6 +72,12 @@ const DeploymentDetail = () => {
     title: '',
     message: ''
   });
+  const [exitDialog, setExitDialog] = useState<{
+    open: boolean;
+  }>({
+    open: false
+  });
+  const [exitUpdating, setExitUpdating] = useState(false);
 
   // Use WebSocket events for real-time updates
   const { 
@@ -214,6 +222,28 @@ const DeploymentDetail = () => {
     }
   };
 
+  const handleExitDeployment = () => {
+    setExitDialog({ open: true });
+  };
+
+  const executeExitDeployment = async () => {
+    if (!deployment) return;
+    
+    setExitUpdating(true);
+    setExitDialog({ open: false });
+    
+    try {
+      await exitDeployment(deployment.id);
+      toast.showSuccess('Deployment exited successfully');
+      router.push('/deployment'); // Navigate back to deployments list
+    } catch (err: any) {
+      console.error('Error exiting deployment:', err);
+      toast.showError(err.response?.data?.message || 'Failed to exit deployment');
+    } finally {
+      setExitUpdating(false);
+    }
+  };
+
   // Helper function to format metric values
   const formatMetricValue = (metricName: string, value: number): string => {
     switch (metricName) {
@@ -308,11 +338,21 @@ const DeploymentDetail = () => {
             color={deployment.isActive ? "error" : "success"}
             startIcon={deployment.isActive ? <PauseIcon /> : <PlayArrowIcon />}
             onClick={handleToggleStatus}
-            disabled={statusUpdating}
+            disabled={statusUpdating || exitUpdating}
+            sx={{ mr: 1 }}
           >
             {statusUpdating 
               ? (deployment.isActive ? 'Pausing...' : 'Activating...') 
               : (deployment.isActive ? 'Pause Deployment' : 'Activate Deployment')}
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<ExitToAppIcon />}
+            onClick={handleExitDeployment}
+            disabled={statusUpdating || exitUpdating}
+          >
+            {exitUpdating ? 'Exiting...' : 'Exit'}
           </Button>
         </Box>
       </Box>
@@ -405,103 +445,6 @@ const DeploymentDetail = () => {
       {/* Charts and Additional Information */}
       {metrics && (
         <>
-          {(() => {
-            // Get real-time metrics if available
-            const realtimeMetrics = id ? getRealtimeMetrics(id as string) : null;
-            
-            return (
-              <>
-                {/* Metrics Cards */}
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Total P&L
-                        </Typography>
-                        <Typography variant="h4" component="div" sx={{ 
-                          color: realtimeMetrics 
-                            ? (realtimeMetrics.pnl + realtimeMetrics.unrealizedPnl) >= 0 ? 'success.main' : 'error.main'
-                            : metrics.totalPnL >= 0 ? 'success.main' : 'error.main' 
-                        }}>
-                          {realtimeMetrics 
-                            ? `₹${(realtimeMetrics.pnl + realtimeMetrics.unrealizedPnl).toFixed(2)}`
-                            : formatMetricValue('totalPnL', metrics.totalPnL)
-                          }
-                        </Typography>
-                        {realtimeMetrics && (
-                          <Typography variant="caption" color="text.secondary">
-                            Realized: ₹{realtimeMetrics.pnl.toFixed(2)} | Unrealized: ₹{realtimeMetrics.unrealizedPnl.toFixed(2)}
-                          </Typography>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Open Positions
-                        </Typography>
-                        <Typography variant="h4" component="div">
-                          {realtimeMetrics ? realtimeMetrics.openPositions : positions.filter(p => p.status === 'OPEN').length}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Total Trades
-                        </Typography>
-                        <Typography variant="h4" component="div">
-                          {realtimeMetrics ? realtimeMetrics.totalTrades : metrics.totalTrades}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Win Rate
-                        </Typography>
-                        <Typography variant="h4" component="div" sx={{
-                          color: getMetricColor('winRate', metrics.winRate) === 'success' 
-                            ? 'success.main' 
-                            : getMetricColor('winRate', metrics.winRate) === 'warning'
-                              ? 'warning.main'
-                              : 'error.main'
-                        }}>
-                          {formatMetricValue('winRate', metrics.winRate)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Max Drawdown
-                        </Typography>
-                        <Typography variant="h4" component="div" sx={{
-                          color: getMetricColor('maxDrawdown', metrics.maxDrawdown) === 'success' 
-                            ? 'success.main' 
-                            : getMetricColor('maxDrawdown', metrics.maxDrawdown) === 'warning'
-                              ? 'warning.main'
-                              : 'error.main'
-                        }}>
-                          {formatMetricValue('maxDrawdown', metrics.maxDrawdown)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                </Grid>
-              </>
-            );
-          })()}
-
           {/* Performance Chart */}
           <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
             <Box sx={{ height: 400, mt: 2 }}>
@@ -622,6 +565,37 @@ const DeploymentDetail = () => {
             disabled={statusUpdating}
           >
             {statusUpdating ? <CircularProgress size={20} /> : 'Confirm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Exit Confirmation Dialog */}
+      <Dialog
+        open={exitDialog.open}
+        onClose={() => setExitDialog({ open: false })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Exit Deployment</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to exit "{deployment?.name}"? This will stop the strategy and close any open positions.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setExitDialog({ open: false })}
+            disabled={exitUpdating}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={executeExitDeployment}
+            color="error"
+            variant="contained"
+            disabled={exitUpdating}
+          >
+            {exitUpdating ? <CircularProgress size={20} /> : 'Confirm Exit'}
           </Button>
         </DialogActions>
       </Dialog>
