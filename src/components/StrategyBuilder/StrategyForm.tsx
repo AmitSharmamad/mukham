@@ -427,7 +427,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     return [
       {
         id: 'name-positions',
-        title: 'Name & Positions',
+        title: formData.instrumentType === 'options' && formData.strategyType === 'time-based' ? 'Name & Description' : 'Name & Positions',
         component: (
           <Name
             formData={formData}
@@ -443,7 +443,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       },
       {
         id: 'entry',
-        title: formData.instrumentType === 'options' && formData.strategyType === 'time-based' ? 'Conditions' : 'Entry Conditions',
+        title: formData.instrumentType === 'options' && formData.strategyType === 'time-based' ? 'Leg Builder' : 'Entry Conditions',
         component: (
           <Entry
             formData={formData}
