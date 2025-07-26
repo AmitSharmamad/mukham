@@ -413,38 +413,6 @@ export const OptionsLegBuilder: React.FC<OptionsLegBuilderProps> = ({
                           </Box>
                         </Grid>
 
-                        {/* Buy/Sell Button Group */}
-                        <Grid item xs={12} sm={6} md={1.5}>
-                          <Box>
-                            <ButtonGroup variant="outlined" size="small" fullWidth sx={{ height: '40px' }}>
-                              <Button
-                                variant={leg.buySell === 'Buy' ? 'contained' : 'outlined'}
-                                onClick={() => updateLeg(leg.id, 'buySell', 'Buy')}
-                                sx={{ 
-                                  height: '40px',
-                                  fontSize: '0.75rem',
-                                  minWidth: '50px',
-                                  flex: 1
-                                }}
-                              >
-                                Buy
-                              </Button>
-                              <Button
-                                variant={leg.buySell === 'Sell' ? 'contained' : 'outlined'}
-                                onClick={() => updateLeg(leg.id, 'buySell', 'Sell')}
-                                sx={{ 
-                                  height: '40px',
-                                  fontSize: '0.75rem',
-                                  minWidth: '50px',
-                                  flex: 1
-                                }}
-                              >
-                                Sell
-                              </Button>
-                            </ButtonGroup>
-                          </Box>
-                        </Grid>
-
                         {/* CE/PE Button Group - Only show for Options */}
                         <Grid item xs={12} sm={6} md={1}>
                           {leg.segment === 'Options' ? (
@@ -481,6 +449,38 @@ export const OptionsLegBuilder: React.FC<OptionsLegBuilderProps> = ({
                               <Box sx={{ height: '40px', width: '100%' }} />
                             </Box>
                           )}
+                        </Grid>
+
+                        {/* Buy/Sell Button Group */}
+                        <Grid item xs={12} sm={6} md={1.5}>
+                          <Box>
+                            <ButtonGroup variant="outlined" size="small" fullWidth sx={{ height: '40px' }}>
+                              <Button
+                                variant={leg.buySell === 'Buy' ? 'contained' : 'outlined'}
+                                onClick={() => updateLeg(leg.id, 'buySell', 'Buy')}
+                                sx={{ 
+                                  height: '40px',
+                                  fontSize: '0.75rem',
+                                  minWidth: '50px',
+                                  flex: 1
+                                }}
+                              >
+                                Buy
+                              </Button>
+                              <Button
+                                variant={leg.buySell === 'Sell' ? 'contained' : 'outlined'}
+                                onClick={() => updateLeg(leg.id, 'buySell', 'Sell')}
+                                sx={{ 
+                                  height: '40px',
+                                  fontSize: '0.75rem',
+                                  minWidth: '50px',
+                                  flex: 1
+                                }}
+                              >
+                                Sell
+                              </Button>
+                            </ButtonGroup>
+                          </Box>
                         </Grid>
 
                         {/* Expiry Type Button Group - Only show for Options */}
@@ -521,32 +521,6 @@ export const OptionsLegBuilder: React.FC<OptionsLegBuilderProps> = ({
                           )}
                         </Grid>
 
-                        {/* Strike Type Dropdown - Only show for Options */}
-                        <Grid item xs={12} sm={6} md={2.5}>
-                          {leg.segment === 'Options' ? (
-                            <Select
-                              fullWidth
-                              label="Strike Type"
-                              options={strikeTypeOptions}
-                              value={leg.strikeType || 'ATM'}
-                              onChange={(value) => updateLeg(leg.id, 'strikeType', value)}
-                              size="small"
-                              required
-                              sx={{ 
-                                '& .MuiInputBase-root': { 
-                                  height: '40px',
-                                  fontSize: '0.875rem',
-                                  minHeight: '40px'
-                                }
-                              }}
-                            />
-                          ) : (
-                            <Box sx={{ height: '40px', display: 'flex', alignItems: 'center' }}>
-                              <Box sx={{ height: '40px', width: '100%' }} />
-                            </Box>
-                          )}
-                        </Grid>
-
                         {/* Expiry Dropdown */}
                         <Grid item xs={12} sm={6} md={1.5}>
                           <Select
@@ -568,6 +542,48 @@ export const OptionsLegBuilder: React.FC<OptionsLegBuilderProps> = ({
                               }
                             }}
                           />
+                        </Grid>
+
+                        {/* Strike Type Dropdown - Only show for Options */}
+                        <Grid item xs={12} sm={6} md={2.5}>
+                          {leg.segment === 'Options' ? (
+                            <Select
+                              fullWidth
+                              label="Strike Type"
+                              options={strikeTypeOptions}
+                              value={leg.strikeType || 'ATM'}
+                              onChange={(value) => updateLeg(leg.id, 'strikeType', value)}
+                              size="small"
+                              required
+                              MenuProps={{
+                                PaperProps: {
+                                  style: {
+                                    maxHeight: 300,
+                                  },
+                                },
+                                variant: 'selectedMenu',
+                                anchorOrigin: {
+                                  vertical: 'top',
+                                  horizontal: 'left',
+                                },
+                                transformOrigin: {
+                                  vertical: 'top',
+                                  horizontal: 'left',
+                                },
+                              }}
+                              sx={{ 
+                                '& .MuiInputBase-root': { 
+                                  height: '40px',
+                                  fontSize: '0.875rem',
+                                  minHeight: '40px'
+                                }
+                              }}
+                            />
+                          ) : (
+                            <Box sx={{ height: '40px', display: 'flex', alignItems: 'center' }}>
+                              <Box sx={{ height: '40px', width: '100%' }} />
+                            </Box>
+                          )}
                         </Grid>
 
                         {/* No. of Lots */}
