@@ -7,9 +7,8 @@ import { Footer } from '../Footer';
 import Navbar from '../Navbar';
 import { PWAInstallPrompt } from '../PWAInstallPrompt';
 import { DeploymentSidebar } from '../DeploymentSidebar';
-import { DeploymentEventHandler } from '../DeploymentEventHandler';
+import { GlobalEventHandler } from '../GlobalEventHandler';
 import { ThemeColor } from '../../theme';
-import { useDeploymentContext } from '../../context/DeploymentContext';
 import { useAuth } from '../../context/AuthContext';
 
 interface MainLayoutProps {
@@ -31,25 +30,6 @@ export const MainLayout = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { isLoggedIn, user } = useAuth(); // Get authentication status
-  
-  // Initialize WebSocket connection for real-time updates
-  const { connect, disconnect, connectionStatus } = useDeploymentContext();
-
-  // Connect to WebSocket when component mounts
-  useEffect(() => {
-    console.log('🚀 MainLayout: Connecting to WebSocket...');
-    connect();
-    
-    return () => {
-      console.log('🔌 MainLayout: Disconnecting WebSocket...');
-      disconnect();
-    };
-  }, [connect, disconnect]);
-
-  // Log connection status changes
-  useEffect(() => {
-    console.log(`🔗 MainLayout: WebSocket connection status: ${connectionStatus}`);
-  }, [connectionStatus]);
 
   // Determine if we should show the sidebar based on route and authentication
   const shouldShowSidebar = false; // Hidden for all pages
@@ -130,8 +110,8 @@ export const MainLayout = ({
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
       
-      {/* Deployment Event Handler for real-time notifications */}
-      <DeploymentEventHandler />
+      {/* Global Event Handler for real-time notifications - only when logged in */}
+      {isLoggedIn && <GlobalEventHandler />}
     </Box>
   );
 };

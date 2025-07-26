@@ -34,7 +34,7 @@ import { useRouter } from 'next/router';
 import { Deployment, getDeployments, getDeploymentsSearch, activateDeployment, deactivateDeployment, stopAllDeployments, startAllDeployments, getDeploymentPositions, getDeploymentMetrics as getDeploymentMetricsAPI, closePosition, exitDeployment, Position, DeploymentMetrics } from '../services/deploymentService';
 import { useToastContext } from '../context/ToastContext';
 import { PositionsMetricsDashboard } from '../components/Deployment';
-import { useDeploymentContext } from '../context/DeploymentContext';
+import { useDeploymentListWebSocket } from '../hooks/useDeploymentListWebSocket';
 
 interface ConfirmDialogState {
   open: boolean;
@@ -64,15 +64,13 @@ const DeploymentPage = () => {
   const toast = useToastContext();
   const router = useRouter();
   
-  // Use centralized WebSocket connection for real-time updates
+  // Use new WebSocket connection for real-time updates
   const { 
-    connect, 
-    disconnect, 
-    connectionStatus, 
-    deploymentMetrics,
-    hasRecentActivity,
-    hasRecentErrors
-  } = useDeploymentContext();
+    getAllDeployments,
+    getDeploymentData,
+    connectionStatus,
+    isConnected
+  } = useDeploymentListWebSocket();
   
   // State management
   const [deployments, setDeployments] = useState<Deployment[]>([]);
@@ -84,29 +82,32 @@ const DeploymentPage = () => {
   // Apply real-time updates to deployments and filter for active strategies only
   // This ensures only active (isActive: true) strategies are displayed on the page
   const updatedDeployments = useMemo(() => {
+    const realTimeDeployments = getAllDeployments();
+    
     return deployments
       .filter(deployment => deployment.isActive) // Only show active strategies
       .map(deployment => {
-        const realtimeMetrics = deploymentMetrics[deployment.id];
-        if (realtimeMetrics) {
+        // Check if we have real-time data for this deployment
+        const realtimeData = getDeploymentData(deployment.id);
+        if (realtimeData) {
           // Create updated deployment with real-time data from events
           return {
             ...deployment,
             metrics: deployment.metrics ? {
               ...deployment.metrics,
-              total_pnl: realtimeMetrics.pnl + realtimeMetrics.unrealizedPnl,
-              total_trades: realtimeMetrics.totalTrades,
-              win_trades: realtimeMetrics.winTrades,
-              loss_trades: realtimeMetrics.lossTrades,
-              updated_at: realtimeMetrics.lastUpdateTime,
+              total_pnl: realtimeData.pnl,
+              total_trades: deployment.metrics.total_trades, // Keep original as real-time doesn't have this
+              win_trades: deployment.metrics.win_trades, // Keep original as real-time doesn't have this
+              loss_trades: deployment.metrics.loss_trades, // Keep original as real-time doesn't have this
+              updated_at: realtimeData.last_active,
             } : undefined,
-            status: realtimeMetrics.openPositions > 0 ? 'entered' as const : 'waiting' as const,
-            lastUpdatedAt: realtimeMetrics.lastUpdateTime
+            status: realtimeData.open_positions > 0 ? 'entered' as const : 'waiting' as const,
+            lastUpdatedAt: realtimeData.last_active
           };
         }
         return deployment;
       });
-  }, [deployments, deploymentMetrics]);
+  }, [deployments, getAllDeployments, getDeploymentData]);
   
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
@@ -405,18 +406,8 @@ const DeploymentPage = () => {
   };
 
   const getStatusChip = (deployment: Deployment) => {
-    // Check if we have real-time metrics for more accurate status
-    const realtimeMetrics = deploymentMetrics[deployment.id];
-    const hasRealtimeData = realtimeMetrics && (
-      realtimeMetrics.totalTrades > 0 || 
-      realtimeMetrics.pnl !== 0 || 
-      realtimeMetrics.unrealizedPnl !== 0 ||
-      realtimeMetrics.openPositions > 0
-    );
-    
-    // Since all displayed deployments are active, show position status instead
-    const status = realtimeMetrics?.openPositions > 0 ? 'entered' : 
-                   deployment.status === 'entered' ? 'entered' : 'waiting';
+    // Use deployment status directly since we don't have real-time position tracking in the new system yet
+    const status = deployment.status === 'entered' ? 'entered' : 'waiting';
     
     return (
       <Chip 
@@ -565,17 +556,12 @@ const DeploymentPage = () => {
             </TableHead>
             <TableBody>
               {updatedDeployments.map((deployment) => {
-                // Compute real-time metrics once for this deployment
-                const realtimeMetrics = deploymentMetrics[deployment.id];
-                const hasRecentActivityForDeployment = hasRecentActivity(deployment.id, 1); // Check for activity in last minute
+                // Use the deployment data that's already been updated with real-time data in useMemo
+                const hasRealtimeData = deployment.lastUpdatedAt && 
+                  new Date(deployment.lastUpdatedAt).getTime() > Date.now() - 60000; // Updated in last minute
                 
                 // Pre-calculate values to avoid recalculation in render
-                // Use realtime metrics if available, otherwise preserve existing metrics
-                const hasRealtimeData = realtimeMetrics;
-                
-                const totalPnl = hasRealtimeData 
-                  ? (realtimeMetrics.pnl + (realtimeMetrics.unrealizedPnl || 0))
-                  : deployment.metrics?.total_pnl; // Don't default to 0, use undefined to show N/A
+                const totalPnl = deployment.metrics?.total_pnl;
                 
                 // Calculate run time (time since creation)
                 const runTime = (() => {
@@ -597,14 +583,12 @@ const DeploymentPage = () => {
                 })();
                 
                 // MTM (Mark to Market) - current unrealized P&L
-                // Use real-time data if available, otherwise show N/A
-                const mtm = hasRealtimeData 
-                  ? (realtimeMetrics?.unrealizedPnl || 0) 
-                  : undefined; // Use undefined to show N/A instead of 0
+                // For now, we'll show N/A since we need to implement unrealized P&L tracking
+                const mtm = undefined; // Use undefined to show N/A
                 
                 return (
                 <TableRow 
-                  key={`${deployment.id}-${realtimeMetrics?.lastUpdateTime || deployment.lastUpdatedAt}`}
+                  key={`${deployment.id}-${deployment.lastUpdatedAt || deployment.createdAt}`}
                   hover
                   onClick={() => handleDeploymentClick(deployment)}
                   sx={{ 
@@ -614,7 +598,7 @@ const DeploymentPage = () => {
                       backgroundColor: theme.palette.action.hover
                     },
                     // Add subtle pulse animation for recent activity
-                    ...(hasRecentActivityForDeployment && {
+                    ...(hasRealtimeData && {
                       animation: 'pulse 2s infinite',
                       '@keyframes pulse': {
                         '0%': { backgroundColor: 'transparent' },
@@ -703,16 +687,12 @@ const DeploymentPage = () => {
                   </TableCell>
                   <TableCell align="center">
                     <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 500 }}>
-                      {hasRealtimeData && realtimeMetrics?.winTrades !== undefined
-                        ? realtimeMetrics.winTrades
-                        : deployment.metrics?.win_trades ?? 'N/A'}
+                      {deployment.metrics?.win_trades ?? 'N/A'}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 500 }}>
-                      {hasRealtimeData && realtimeMetrics?.lossTrades !== undefined
-                        ? realtimeMetrics.lossTrades
-                        : deployment.metrics?.loss_trades ?? 'N/A'}
+                      {deployment.metrics?.loss_trades ?? 'N/A'}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
