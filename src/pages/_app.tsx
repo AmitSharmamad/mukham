@@ -6,15 +6,37 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { getTheme } from '../theme';
 import MainLayout from '../components/MainLayout';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
-import { AuthProvider } from '../context/AuthContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
-import { DeploymentProvider } from '../context/DeploymentContext';
+import { WebSocketProvider } from '../context/WebSocketContext';
 import { TourProvider } from '../context/TourContext';
 import AuthGuard from '../components/AuthGuard';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import '../styles/globals.css';
+
+// Component to provide WebSocket context
+function WebSocketProviderWrapper({ children }: { children: React.ReactNode }) {
+  const { isLoggedIn } = useAuth();
+  const [token, setToken] = useState<string>('');
+  
+  useEffect(() => {
+    if (isLoggedIn && typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('token') || '';
+      setToken(storedToken);
+    }
+  }, [isLoggedIn]);
+  
+  // Always provide the WebSocketProvider, but only with a valid token when logged in
+  const effectiveToken = (isLoggedIn && token) ? token : '';
+
+  return (
+    <WebSocketProvider token={effectiveToken}>
+      {children}
+    </WebSocketProvider>
+  );
+}
 
 function AppContent({ Component, pageProps }: AppProps) {
   const { mode, color, toggleMode, setThemeColor } = useTheme();
@@ -75,11 +97,11 @@ function MyApp(props: AppProps) {
     <AuthProvider>
       <ThemeProvider>
         <ToastProvider>
-          <DeploymentProvider>
+          <WebSocketProviderWrapper>
             <TourProvider>
               <AppContent {...props} />
             </TourProvider>
-          </DeploymentProvider>
+          </WebSocketProviderWrapper>
         </ToastProvider>
       </ThemeProvider>
     </AuthProvider>
