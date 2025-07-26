@@ -40,7 +40,7 @@ import {
   exitDeployment
 } from '../../services/deploymentService';
 import { useToastContext } from '../../context/ToastContext';
-import { useDeploymentEvents } from '../../hooks/useDeploymentEvents';
+import { useDeploymentDetailWebSocket } from '../../hooks/useDeploymentDetailWebSocket';
 import DeploymentPositions from '../../components/Deployment/DeploymentPositions';
 import TradeChart from '../../components/Deployment/TradeChart';
 import CandlestickChart from '../../components/Deployment/CandlestickChart';
@@ -80,27 +80,24 @@ const DeploymentDetail = () => {
   const [exitUpdating, setExitUpdating] = useState(false);
 
   // Use WebSocket events for real-time updates
-  const { 
-    connect, 
-    disconnect, 
-    connectionStatus, 
-    getDeploymentMetrics: getRealtimeMetrics,
-    getEventsByDeployment 
-  } = useDeploymentEvents();
+  const deploymentId = id as string;
+  const {
+    positions: realtimePositions,
+    signals,
+    metrics: realtimeMetrics,
+    chartData,
+    logs,
+    connectionStatus,
+    isConnected,
+    getOpenPositions
+  } = useDeploymentDetailWebSocket(deploymentId);
 
   // Fetch deployment data
   useEffect(() => {
     if (id) {
       fetchDeploymentData();
-      // Connect to WebSocket for real-time updates
-      connect();
     }
-    
-    // Cleanup on unmount
-    return () => {
-      disconnect();
-    };
-  }, [id, connect, disconnect]);
+  }, [id]);
 
   const fetchDeploymentData = async () => {
     if (!id) return;
@@ -462,21 +459,21 @@ const DeploymentDetail = () => {
 
           {/* Recent Events */}
           {(() => {
-            const recentEvents = id ? getEventsByDeployment(id as string).slice(0, 10) : [];
-            if (recentEvents.length > 0) {
+            const recentSignals = signals.slice(0, 10);
+            if (recentSignals.length > 0) {
               return (
                 <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
                   <Typography variant="h6" component="h3" sx={{ mb: 2 }}>
-                    Recent Events
+                    Recent Signals
                     <Chip 
-                      label={`${recentEvents.length} events`}
+                      label={`${recentSignals.length} signals`}
                       size="small" 
                       color="primary"
                       sx={{ ml: 2 }}
                     />
                   </Typography>
                   <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
-                    {recentEvents.map((event, index) => (
+                    {recentSignals.map((signal, index) => (
                       <Box 
                         key={index} 
                         sx={{ 
@@ -487,11 +484,8 @@ const DeploymentDetail = () => {
                             : 'rgba(0, 0, 0, 0.03)',
                           borderRadius: 1,
                           borderLeft: `4px solid ${
-                            event.event_type === 'position_opened' ? theme.palette.success.main :
-                            event.event_type === 'position_closed' ? theme.palette.info.main :
-                            event.event_type === 'deployment_error' ? theme.palette.error.main :
-                            event.event_type === 'stop_loss_triggered' ? theme.palette.warning.main :
-                            event.event_type === 'target_profit_triggered' ? theme.palette.success.main :
+                            signal.signal_type === 'entry' ? theme.palette.success.main :
+                            signal.signal_type === 'exit' ? theme.palette.info.main :
                             theme.palette.grey[400]
                           }`
                         }}
@@ -499,34 +493,20 @@ const DeploymentDetail = () => {
                         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                           <Box>
                             <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                              {event.event_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              {signal.signal_type.toUpperCase()} Signal
                             </Typography>
-                            {event.metadata.instrument_symbol && (
-                              <Typography variant="body2" color="text.secondary">
-                                {event.metadata.instrument_symbol}
-                                {event.metadata.market_price && ` at ₹${event.metadata.market_price}`}
-                                {event.data.quantity && ` (${event.data.quantity} qty)`}
-                              </Typography>
-                            )}
-                            {event.data.pnl && (
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                  color: event.data.pnl >= 0 ? 'success.main' : 'error.main',
-                                  fontWeight: 500 
-                                }}
-                              >
-                                P&L: ₹{event.data.pnl.toFixed(2)}
-                              </Typography>
-                            )}
-                            {event.data.message && event.event_type === 'deployment_error' && (
-                              <Typography variant="body2" color="error.main">
-                                {event.data.message}
-                              </Typography>
-                            )}
+                            <Typography variant="body2" color="text.secondary">
+                              Price: ₹{signal.price}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Confidence: {(signal.confidence * 100).toFixed(1)}%
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {signal.reason}
+                            </Typography>
                           </Box>
                           <Typography variant="caption" color="text.secondary">
-                            {formatTimeOnly(event.timestamp)}
+                            {formatTimeOnly(signal.timestamp)}
                           </Typography>
                         </Box>
                       </Box>
