@@ -254,239 +254,346 @@ export const OptionsLegBuilder: React.FC<OptionsLegBuilderProps> = ({
         </Box>
       ) : (
         <Grid container spacing={2}>
-          {value.map(leg => (
+          {value.map((leg, index) => (
             <Grid item xs={12} key={leg.id}>
               <Card variant="outlined">
-                <CardHeader
-                  title={`${leg.segment} - ${leg.instrumentType} (${leg.buySell})`}
-                  action={
-                    <IconButton onClick={() => removeLeg(leg.id)} aria-label="delete leg">
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      Leg #{index + 1}
+                    </Typography>
+                    <IconButton onClick={() => removeLeg(leg.id)} aria-label="delete leg" size="small">
                       <Delete />
                     </IconButton>
-                  }
-                />
-                <Divider />
-                <CardContent>
-                  <Grid container spacing={3}>
-                    {/* Exchange Dropdown */}
-                    <Grid item xs={12} md={3}>
-                      <Select
-                        fullWidth
-                        label="Exchange"
-                        options={exchangeOptions}
-                        value={leg.exchange}
-                        onChange={(value) => {
-                          updateLeg(leg.id, 'exchange', value);
-                          updateLeg(leg.id, 'selectedInstrument', null); // Reset instrument when exchange changes
-                        }}
-                        required
-                      />
-                    </Grid>
-
-                    {/* Instrument Type Button Group */}
-                    <Grid item xs={12} md={3}>
-                      <Box>
-                        <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                          Instrument Type
-                        </Typography>
-                        <ButtonGroup variant="outlined" fullWidth>
-                          <Button
-                            variant={leg.instrumentType === 'Index' ? 'contained' : 'outlined'}
-                            onClick={() => {
-                              updateLeg(leg.id, 'instrumentType', 'Index');
-                              updateLeg(leg.id, 'selectedInstrument', null); // Reset instrument when type changes
-                            }}
-                          >
-                            Index
-                          </Button>
-                          <Button
-                            variant={leg.instrumentType === 'Stock' ? 'contained' : 'outlined'}
-                            onClick={() => {
-                              updateLeg(leg.id, 'instrumentType', 'Stock');
-                              updateLeg(leg.id, 'selectedInstrument', null); // Reset instrument when type changes
-                            }}
-                          >
-                            Stock
-                          </Button>
-                        </ButtonGroup>
-                      </Box>
-                    </Grid>
-
-                    {/* Add Instrument Dropdown */}
-                    <Grid item xs={12} md={3}>
-                      <Autocomplete
-                        fullWidth
-                        options={instrumentOptions[leg.id] || []}
-                        value={leg.selectedInstrument || null}
-                        onChange={(_, newValue) => updateLeg(leg.id, 'selectedInstrument', newValue)}
-                        onOpen={() => {
-                          if (leg.exchange && leg.instrumentType) {
-                            fetchInstruments(leg.exchange, leg.instrumentType, leg.id);
-                          }
-                        }}
-                        onInputChange={(_, newInputValue) => {
-                          if (leg.exchange && leg.instrumentType && newInputValue.length > 2) {
-                            fetchInstruments(leg.exchange, leg.instrumentType, leg.id, newInputValue);
-                          }
-                        }}
-                        getOptionLabel={(option) => option?.label || ''}
-                        isOptionEqualToValue={(option, value) => option?.value === value?.value}
-                        loading={loadingInstruments[leg.id] || false}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Add Instrument"
-                            variant="outlined"
-                            InputProps={{
-                              ...params.InputProps,
-                              endAdornment: (
-                                <>
-                                  {loadingInstruments[leg.id] ? <CircularProgress color="inherit" size={20} /> : null}
-                                  {params.InputProps.endAdornment}
-                                </>
-                              ),
-                            }}
-                          />
-                        )}
-                        disabled={!leg.exchange || !leg.instrumentType}
-                      />
-                    </Grid>
-
-                    {/* Segment Button Group */}
-                    <Grid item xs={12} md={3}>
-                      <Box>
-                        <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                          Segment
-                        </Typography>
-                        <ButtonGroup variant="outlined" fullWidth>
-                          <Button
-                            variant={leg.segment === 'Futures' ? 'contained' : 'outlined'}
-                            onClick={() => updateLeg(leg.id, 'segment', 'Futures')}
-                          >
-                            Futures
-                          </Button>
-                          <Button
-                            variant={leg.segment === 'Options' ? 'contained' : 'outlined'}
-                            onClick={() => updateLeg(leg.id, 'segment', 'Options')}
-                          >
-                            Options
-                          </Button>
-                        </ButtonGroup>
-                      </Box>
-                    </Grid>
-
-                    {/* Buy/Sell Button Group */}
-                    <Grid item xs={12} md={3}>
-                      <Box>
-                        <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                          Buy/Sell
-                        </Typography>
-                        <ButtonGroup variant="outlined" fullWidth>
-                          <Button
-                            variant={leg.buySell === 'Buy' ? 'contained' : 'outlined'}
-                            onClick={() => updateLeg(leg.id, 'buySell', 'Buy')}
-                          >
-                            Buy
-                          </Button>
-                          <Button
-                            variant={leg.buySell === 'Sell' ? 'contained' : 'outlined'}
-                            onClick={() => updateLeg(leg.id, 'buySell', 'Sell')}
-                          >
-                            Sell
-                          </Button>
-                        </ButtonGroup>
-                      </Box>
-                    </Grid>
-
-                    {/* Options-specific fields */}
-                    {leg.segment === 'Options' && (
-                      <>
-                        {/* CE/PE Button Group */}
-                        <Grid item xs={12} md={3}>
-                          <Box>
-                            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                              Option Type
-                            </Typography>
-                            <ButtonGroup variant="outlined" fullWidth>
-                              <Button
-                                variant={leg.optionType === 'CE' ? 'contained' : 'outlined'}
-                                onClick={() => updateLeg(leg.id, 'optionType', 'CE')}
-                              >
-                                CE
-                              </Button>
-                              <Button
-                                variant={leg.optionType === 'PE' ? 'contained' : 'outlined'}
-                                onClick={() => updateLeg(leg.id, 'optionType', 'PE')}
-                              >
-                                PE
-                              </Button>
-                            </ButtonGroup>
-                          </Box>
-                        </Grid>
-
-                        {/* Expiry Type Button Group */}
-                        <Grid item xs={12} md={3}>
-                          <Box>
-                            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                              Expiry Type
-                            </Typography>
-                            <ButtonGroup variant="outlined" fullWidth>
-                              <Button
-                                variant={leg.expiryType === 'Weekly' ? 'contained' : 'outlined'}
-                                onClick={() => updateLeg(leg.id, 'expiryType', 'Weekly')}
-                              >
-                                Weekly
-                              </Button>
-                              <Button
-                                variant={leg.expiryType === 'Monthly' ? 'contained' : 'outlined'}
-                                onClick={() => updateLeg(leg.id, 'expiryType', 'Monthly')}
-                              >
-                                Monthly
-                              </Button>
-                            </ButtonGroup>
-                          </Box>
-                        </Grid>
-
-                        {/* Strike Type Dropdown */}
-                        <Grid item xs={12} md={3}>
+                  </Box>
+                  <Grid container spacing={2}>
+                    {/* Row 1: Exchange, Instrument Type, and Add Instrument */}
+                    <Grid item xs={12}>
+                      <Grid container spacing={2} alignItems="center" justifyContent="center" sx={{ minHeight: '64px' }}>
+                        {/* Exchange Dropdown */}
+                        <Grid item xs={12} sm={4} md={2}>
                           <Select
                             fullWidth
-                            label="Strike Type"
-                            options={strikeTypeOptions}
-                            value={leg.strikeType || 'ATM'}
-                            onChange={(value) => updateLeg(leg.id, 'strikeType', value)}
+                            label="Exchange"
+                            options={exchangeOptions}
+                            value={leg.exchange}
+                            onChange={(value) => {
+                              updateLeg(leg.id, 'exchange', value);
+                              updateLeg(leg.id, 'selectedInstrument', null); // Reset instrument when exchange changes
+                            }}
                             required
+                            size="small"
+                            sx={{ 
+                              '& .MuiInputBase-root': { 
+                                height: '40px',
+                                fontSize: '0.875rem'
+                              }
+                            }}
                           />
                         </Grid>
-                      </>
-                    )}
 
-                    {/* Expiry Dropdown */}
-                    <Grid item xs={12} md={3}>
-                      <Select
-                        fullWidth
-                        label="Expiry"
-                        options={[
-                          { value: 'Current', label: 'Current' },
-                          { value: 'Next', label: 'Next' }
-                        ]}
-                        value={leg.expiry}
-                        onChange={(value) => updateLeg(leg.id, 'expiry', value)}
-                        required
-                      />
+                        {/* Instrument Type Button Group */}
+                        <Grid item xs={12} sm={4} md={2}>
+                          <Box>
+                            <ButtonGroup variant="outlined" size="small" fullWidth sx={{ height: '40px' }}>
+                              <Button
+                                variant={leg.instrumentType === 'Index' ? 'contained' : 'outlined'}
+                                onClick={() => {
+                                  updateLeg(leg.id, 'instrumentType', 'Index');
+                                  updateLeg(leg.id, 'selectedInstrument', null); // Reset instrument when type changes
+                                }}
+                                sx={{ 
+                                  height: '40px',
+                                  fontSize: '0.75rem',
+                                  minWidth: '50px',
+                                  flex: 1
+                                }}
+                              >
+                                Index
+                              </Button>
+                              <Button
+                                variant={leg.instrumentType === 'Stock' ? 'contained' : 'outlined'}
+                                onClick={() => {
+                                  updateLeg(leg.id, 'instrumentType', 'Stock');
+                                  updateLeg(leg.id, 'selectedInstrument', null); // Reset instrument when type changes
+                                }}
+                                sx={{ 
+                                  height: '40px',
+                                  fontSize: '0.75rem',
+                                  minWidth: '50px',
+                                  flex: 1
+                                }}
+                              >
+                                Stock
+                              </Button>
+                            </ButtonGroup>
+                          </Box>
+                        </Grid>
+
+                        {/* Add Instrument Dropdown */}
+                        <Grid item xs={12} sm={4} md={2}>
+                          <Autocomplete
+                            fullWidth
+                            size="small"
+                            options={instrumentOptions[leg.id] || []}
+                            value={leg.selectedInstrument || null}
+                            onChange={(_, newValue) => updateLeg(leg.id, 'selectedInstrument', newValue)}
+                            onOpen={() => {
+                              if (leg.exchange && leg.instrumentType) {
+                                fetchInstruments(leg.exchange, leg.instrumentType, leg.id);
+                              }
+                            }}
+                            onInputChange={(_, newInputValue) => {
+                              if (leg.exchange && leg.instrumentType && newInputValue.length > 2) {
+                                fetchInstruments(leg.exchange, leg.instrumentType, leg.id, newInputValue);
+                              }
+                            }}
+                            getOptionLabel={(option) => option?.label || ''}
+                            isOptionEqualToValue={(option, value) => option?.value === value?.value}
+                            loading={loadingInstruments[leg.id] || false}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Add Instrument"
+                                variant="outlined"
+                                size="small"
+                                InputProps={{
+                                  ...params.InputProps,
+                                  sx: { 
+                                    height: '40px',
+                                    fontSize: '0.875rem'
+                                  },
+                                  endAdornment: (
+                                    <>
+                                      {loadingInstruments[leg.id] ? <CircularProgress color="inherit" size={16} /> : null}
+                                      {params.InputProps.endAdornment}
+                                    </>
+                                  ),
+                                }}
+                              />
+                            )}
+                            disabled={!leg.exchange || !leg.instrumentType}
+                          />
+                        </Grid>
+                      </Grid>
                     </Grid>
 
-                    {/* No. of Lots */}
-                    <Grid item xs={12} md={3}>
-                      <TextField
-                        fullWidth
-                        label="No. of Lots"
-                        type="number"
-                        value={leg.lots}
-                        onChange={(e) => updateLeg(leg.id, 'lots', e.target.value)}
-                        required
-                        inputProps={{ min: 1 }}
-                      />
+                    {/* Row 2: Segment, Buy/Sell, and other configuration fields */}
+                    <Grid item xs={12}>
+                      <Grid container spacing={2} alignItems="center" justifyContent="center" sx={{ minHeight: '64px' }}>
+                        {/* Segment Button Group */}
+                        <Grid item xs={12} sm={6} md={1.5}>
+                          <Box>
+                            <ButtonGroup variant="outlined" size="small" fullWidth sx={{ height: '40px' }}>
+                              <Button
+                                variant={leg.segment === 'Futures' ? 'contained' : 'outlined'}
+                                onClick={() => updateLeg(leg.id, 'segment', 'Futures')}
+                                sx={{ 
+                                  height: '40px',
+                                  fontSize: '0.75rem',
+                                  minWidth: '50px',
+                                  flex: 1
+                                }}
+                              >
+                                FUT
+                              </Button>
+                              <Button
+                                variant={leg.segment === 'Options' ? 'contained' : 'outlined'}
+                                onClick={() => updateLeg(leg.id, 'segment', 'Options')}
+                                sx={{ 
+                                  height: '40px',
+                                  fontSize: '0.75rem',
+                                  minWidth: '50px',
+                                  flex: 1
+                                }}
+                              >
+                                OPT
+                              </Button>
+                            </ButtonGroup>
+                          </Box>
+                        </Grid>
+
+                        {/* Buy/Sell Button Group */}
+                        <Grid item xs={12} sm={6} md={1.5}>
+                          <Box>
+                            <ButtonGroup variant="outlined" size="small" fullWidth sx={{ height: '40px' }}>
+                              <Button
+                                variant={leg.buySell === 'Buy' ? 'contained' : 'outlined'}
+                                onClick={() => updateLeg(leg.id, 'buySell', 'Buy')}
+                                sx={{ 
+                                  height: '40px',
+                                  fontSize: '0.75rem',
+                                  minWidth: '50px',
+                                  flex: 1
+                                }}
+                              >
+                                Buy
+                              </Button>
+                              <Button
+                                variant={leg.buySell === 'Sell' ? 'contained' : 'outlined'}
+                                onClick={() => updateLeg(leg.id, 'buySell', 'Sell')}
+                                sx={{ 
+                                  height: '40px',
+                                  fontSize: '0.75rem',
+                                  minWidth: '50px',
+                                  flex: 1
+                                }}
+                              >
+                                Sell
+                              </Button>
+                            </ButtonGroup>
+                          </Box>
+                        </Grid>
+
+                        {/* CE/PE Button Group - Only show for Options */}
+                        <Grid item xs={12} sm={6} md={1}>
+                          {leg.segment === 'Options' ? (
+                            <Box>
+                              <ButtonGroup variant="outlined" size="small" fullWidth sx={{ height: '40px' }}>
+                                <Button
+                                  variant={leg.optionType === 'CE' ? 'contained' : 'outlined'}
+                                  onClick={() => updateLeg(leg.id, 'optionType', 'CE')}
+                                  sx={{ 
+                                    height: '40px',
+                                    fontSize: '0.75rem',
+                                    minWidth: '35px',
+                                    flex: 1
+                                  }}
+                                >
+                                  CE
+                                </Button>
+                                <Button
+                                  variant={leg.optionType === 'PE' ? 'contained' : 'outlined'}
+                                  onClick={() => updateLeg(leg.id, 'optionType', 'PE')}
+                                  sx={{ 
+                                    height: '40px',
+                                    fontSize: '0.75rem',
+                                    minWidth: '35px',
+                                    flex: 1
+                                  }}
+                                >
+                                  PE
+                                </Button>
+                              </ButtonGroup>
+                            </Box>
+                          ) : (
+                            <Box sx={{ height: '40px', display: 'flex', alignItems: 'center' }}>
+                              <Box sx={{ height: '40px', width: '100%' }} />
+                            </Box>
+                          )}
+                        </Grid>
+
+                        {/* Expiry Type Button Group - Only show for Options */}
+                        <Grid item xs={12} sm={6} md={1.5}>
+                          {leg.segment === 'Options' ? (
+                            <Box>
+                              <ButtonGroup variant="outlined" size="small" fullWidth sx={{ height: '40px' }}>
+                                <Button
+                                  variant={leg.expiryType === 'Weekly' ? 'contained' : 'outlined'}
+                                  onClick={() => updateLeg(leg.id, 'expiryType', 'Weekly')}
+                                  sx={{ 
+                                    height: '40px',
+                                    fontSize: '0.75rem',
+                                    minWidth: '50px',
+                                    flex: 1
+                                  }}
+                                >
+                                  Weekly
+                                </Button>
+                                <Button
+                                  variant={leg.expiryType === 'Monthly' ? 'contained' : 'outlined'}
+                                  onClick={() => updateLeg(leg.id, 'expiryType', 'Monthly')}
+                                  sx={{ 
+                                    height: '40px',
+                                    fontSize: '0.75rem',
+                                    minWidth: '50px',
+                                    flex: 1
+                                  }}
+                                >
+                                  Monthly
+                                </Button>
+                              </ButtonGroup>
+                            </Box>
+                          ) : (
+                            <Box sx={{ height: '40px', display: 'flex', alignItems: 'center' }}>
+                              <Box sx={{ height: '40px', width: '100%' }} />
+                            </Box>
+                          )}
+                        </Grid>
+
+                        {/* Strike Type Dropdown - Only show for Options */}
+                        <Grid item xs={12} sm={6} md={2.5}>
+                          {leg.segment === 'Options' ? (
+                            <Select
+                              fullWidth
+                              label="Strike Type"
+                              options={strikeTypeOptions}
+                              value={leg.strikeType || 'ATM'}
+                              onChange={(value) => updateLeg(leg.id, 'strikeType', value)}
+                              size="small"
+                              required
+                              sx={{ 
+                                '& .MuiInputBase-root': { 
+                                  height: '40px',
+                                  fontSize: '0.875rem',
+                                  minHeight: '40px'
+                                }
+                              }}
+                            />
+                          ) : (
+                            <Box sx={{ height: '40px', display: 'flex', alignItems: 'center' }}>
+                              <Box sx={{ height: '40px', width: '100%' }} />
+                            </Box>
+                          )}
+                        </Grid>
+
+                        {/* Expiry Dropdown */}
+                        <Grid item xs={12} sm={6} md={1.5}>
+                          <Select
+                            fullWidth
+                            label="Expiry"
+                            options={[
+                              { value: 'Current', label: 'Current' },
+                              { value: 'Next', label: 'Next' }
+                            ]}
+                            value={leg.expiry}
+                            onChange={(value) => updateLeg(leg.id, 'expiry', value)}
+                            size="small"
+                            required
+                            sx={{ 
+                              '& .MuiInputBase-root': { 
+                                height: '40px',
+                                fontSize: '0.875rem',
+                                minHeight: '40px'
+                              }
+                            }}
+                          />
+                        </Grid>
+
+                        {/* No. of Lots */}
+                        <Grid item xs={12} sm={6} md={1.5}>
+                          <TextField
+                            fullWidth
+                            label="No. of Lots"
+                            type="number"
+                            size="small"
+                            value={leg.lots}
+                            onChange={(e) => updateLeg(leg.id, 'lots', e.target.value)}
+                            required
+                            inputProps={{ min: 1 }}
+                            sx={{ 
+                              '& .MuiInputBase-root': { 
+                                height: '40px',
+                                fontSize: '0.875rem',
+                                minHeight: '40px'
+                              },
+                              '& .MuiInputLabel-root': {
+                                fontSize: '0.875rem'
+                              }
+                            }}
+                          />
+                        </Grid>
+                      </Grid>
                     </Grid>
                   </Grid>
                 </CardContent>
