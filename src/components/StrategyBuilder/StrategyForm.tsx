@@ -77,7 +77,7 @@ import {
 } from '@mui/material';
 import { BacktestResult } from '../../types/strategy';
 import { createDeployment, ApiResponse } from '../../services/deploymentService';
-import { convertFormToApiData } from '../../utils/strategyFormUtils';
+import { convertFormToApiData, mapApiTradingDaysToForm } from '../../utils/strategyFormUtils';
 import { getApiErrorMessage } from '../../utils/apiErrorHandler';
 import { 
   validateForm, 
@@ -139,7 +139,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
     entryStartTime: initialData?.entryStartTime ? dayjs(initialData.entryStartTime, 'HH:mm:ss') : null,
     entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm:ss') : null,
-    tradingDays: initialData?.tradingDays || [],
+    tradingDays: mapApiTradingDaysToForm(initialData?.tradingDays || []),
     startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
     endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
     brokerage: initialData?.brokerage || '20',
@@ -215,7 +215,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
         entryStartTime: isNullTime(initialData.entryStartTime) ? null : dayjs(initialData.entryStartTime, 'HH:mm:ss'),
         entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime, 'HH:mm:ss'),
-        tradingDays: initialData?.tradingDays || [],
+        tradingDays: mapApiTradingDaysToForm(initialData?.tradingDays || []),
         startDate: dayjs(initialData.startDate),
         endDate: dayjs(initialData.endDate),
         brokerage: initialData.brokerage || '20',
@@ -521,9 +521,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       try {
         setLoading(true);
 
+        // Check if instruments are required for this strategy type
+        const instrumentsRequired = !(formData.instrumentType === 'options' && formData.strategyType === 'time-based');
+        
         // Make sure we have the instrument IDs correctly set in formData before sending
-        if (selectedInstruments.length > 0) {
-          // Update formData.instruments with the correct instrument IDs from selectedInstruments
+        if (selectedInstruments.length > 0 || !instrumentsRequired) {
+          // Update formData.instruments with the correct instrument IDs from selectedInstruments (if any)
           const instrumentIds = selectedInstruments.map(instrument => instrument.exchange_security_id);
           setFormData(prev => ({
             ...prev,
@@ -1039,7 +1042,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           trailingStopLossType: strategyData.trailing_stop_loss_type || 'ABSOLUTE',
           entryStartTime: strategyData.entry_start_time ? dayjs(strategyData.entry_start_time) : null,
           entryEndTime: strategyData.entry_end_time ? dayjs(strategyData.entry_end_time) : null,
-          tradingDays: strategyData.trading_days || [],
+          tradingDays: mapApiTradingDaysToForm(strategyData.trading_days || []),
           startDate: strategyData.start_date ? dayjs(strategyData.start_date) : null,
           endDate: strategyData.end_date ? dayjs(strategyData.end_date) : null,
           brickSize: strategyData.brick_size?.toString() || '',

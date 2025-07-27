@@ -2,6 +2,43 @@ import { FormData, ApiFormData } from '../types/strategyForm';
 import { stringifyConditions } from '../components/StrategyBuilder/utils/indicatorExpressionUtils';
 
 /**
+ * Normalizes segment values from API to handle different encodings
+ */
+export const normalizeSegment = (segment: string): string => {
+  // Handle various encodings of F&O that might come from the backend
+  if (segment === 'F\\u0026O' || segment === 'F\u0026O' || segment === 'F%26O') {
+    return 'F&O';
+  }
+  return segment;
+};
+
+/**
+ * Converts API segment to instrumentType
+ */
+export const segmentToInstrumentType = (segment: string): 'equity' | 'futures' | 'options' => {
+  const normalizedSegment = normalizeSegment(segment);
+  
+  if (normalizedSegment === 'F&O') {
+    return 'options'; // F&O maps to options in the form
+  }
+  return 'equity'; // EQ and other segments map to equity
+};
+
+/**
+ * Converts API strategy_type to form strategyType for F&O strategies
+ */
+export const apiStrategyTypeToFormType = (apiStrategyType: string): 'expression' | 'time-based' | '' => {
+  switch (apiStrategyType) {
+    case 'TIME_BASED':
+      return 'time-based';
+    case 'CONDITIONAL':
+      return 'expression';
+    default:
+      return '';
+  }
+};
+
+/**
  * Converts form data to API data format
  */
 export const convertFormToApiData = (formData: FormData): ApiFormData => {
@@ -21,7 +58,7 @@ export const convertFormToApiData = (formData: FormData): ApiFormData => {
     }
     
     // Ensure F&O is properly formatted (not URL-encoded)
-    if (segment === 'F\\u0026O' || segment === 'F%26O') {
+    if (segment === 'F\\u0026O' || segment === 'F\u0026O' || segment === 'F%26O') {
       segment = 'F&O';
     }
     
@@ -71,7 +108,47 @@ export const convertFormToApiData = (formData: FormData): ApiFormData => {
     max_trades: 100, // Default value for now
     entry_start_time: formData.entryStartTime ? formData.entryStartTime.format('HH:mm:ss') : null,
     entry_end_time: formData.entryEndTime ? formData.entryEndTime.format('HH:mm:ss') : null,
+    trading_days: formData.tradingDays,
     start_date: formData.startDate ? formData.startDate.startOf('day').format('YYYY-MM-DDTHH:mm:ss') + '+05:30' : null,
     end_date: formData.endDate ? formData.endDate.startOf('day').format('YYYY-MM-DDTHH:mm:ss') + '+05:30' : null,
   };
+};
+
+/**
+ * Maps trading days from API response to form format
+ * API sends full day names or abbreviations, form expects specific abbreviations
+ */
+export const mapApiTradingDaysToForm = (apiTradingDays: string[]): string[] => {
+  if (!apiTradingDays || !Array.isArray(apiTradingDays)) {
+    return [];
+  }
+
+  const dayMapping: { [key: string]: string } = {
+    // Full day names to abbreviations
+    'MONDAY': 'MON',
+    'TUESDAY': 'TUE', 
+    'WEDNESDAY': 'WED',
+    'THURSDAY': 'THU',
+    'FRIDAY': 'FRI',
+    // Common abbreviations
+    'MON': 'MON',
+    'TUE': 'TUE',
+    'WED': 'WED',
+    'THU': 'THU',
+    'FRI': 'FRI',
+    // Alternative abbreviations
+    'TUES': 'TUE',
+    'THURS': 'THU',
+    // In case they come as numbers (1=Monday, 2=Tuesday, etc.)
+    '1': 'MON',
+    '2': 'TUE',
+    '3': 'WED',
+    '4': 'THU',
+    '5': 'FRI',
+  };
+
+  return apiTradingDays
+    .map(day => dayMapping[day.toUpperCase()] || day)
+    .filter(day => ['MON', 'TUE', 'WED', 'THU', 'FRI'].includes(day))
+    .filter((day, index, arr) => arr.indexOf(day) === index); // Remove duplicates
 };

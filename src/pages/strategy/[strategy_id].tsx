@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import { mapTimeframeToDisplay } from '../../constants';
 import { checkPageAuth } from '../../utils/pageAuthUtils';
 import { getApiErrorMessage } from '../../utils/apiErrorHandler';
+import { segmentToInstrumentType, apiStrategyTypeToFormType } from '../../utils/strategyFormUtils';
 
 interface Instrument {
   exchange_security_id: number;
@@ -23,6 +24,8 @@ interface FormattedStrategy {
   id: string;
   name: string;
   description: string;
+  instrumentType: 'equity' | 'futures' | 'options';
+  strategyType: 'expression' | 'time-based' | '';
   buyOrSell: 'buy' | 'sell';
   instruments: number[];
   candlestickType: string;
@@ -44,6 +47,7 @@ interface FormattedStrategy {
   endDate: string;
   brokerage: string;
   slippage: string;
+  tradingDays: string[];
   is_readonly?: boolean; // Add the is_readonly property
 }
 
@@ -96,6 +100,10 @@ export default function EditStrategy() {
           id: strategyData.id,
           name: strategyData.name,
           description: strategyData.description,
+          instrumentType: segmentToInstrumentType(strategyData.segment),
+          strategyType: segmentToInstrumentType(strategyData.segment) === 'options' 
+            ? apiStrategyTypeToFormType(strategyData.strategy_type) 
+            : '',
           buyOrSell: strategyData.position_type === 'LONG' ? 'buy' : 'sell',
           instruments: strategyData.instruments, // These are already the correct ids
           candlestickType: strategyData.chart_type || 'CANDLESTICK',
@@ -117,6 +125,7 @@ export default function EditStrategy() {
           brickSize: strategyData.brick_size?.toString() || '',
           brokerage: strategyData.brokerage?.toString() || '20',
           slippage: strategyData.slippage?.toString() || '0.5',
+          tradingDays: strategyData.trading_days || [],
           is_readonly: strategyData.is_readonly, // Add the is_readonly property
         };
         
