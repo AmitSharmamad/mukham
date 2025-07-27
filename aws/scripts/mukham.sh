@@ -104,7 +104,7 @@ aws cloudformation deploy \
         PublicSubnet2Id="$PUBLIC_SUBNET_2_ID" \
         PrivateSubnet1Id="$PRIVATE_SUBNET_1_ID" \
         PrivateSubnet2Id="$PRIVATE_SUBNET_2_ID" \
-    --capabilities CAPABILITY_IAM \
+    --capabilities CAPABILITY_NAMED_IAM \
     --region "$AWS_REGION"
 
 if [[ $? -eq 0 ]]; then
