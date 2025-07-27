@@ -56,6 +56,8 @@ export interface ApiFormData {
   name: string;
   description: string;
   instrument_type: 'equity' | 'futures' | 'options';
+  segment: string; // Add segment parameter based on Equity/F&O selection
+  strategy_type: 'CONDITIONAL' | 'TIME_BASED'; // Add strategy_type field
   position_type: 'LONG' | 'SHORT';
   instruments: number[];
   chart_type: string;

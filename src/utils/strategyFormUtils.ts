@@ -5,11 +5,47 @@ import { stringifyConditions } from '../components/StrategyBuilder/utils/indicat
  * Converts form data to API data format
  */
 export const convertFormToApiData = (formData: FormData): ApiFormData => {
+  // Map instrumentType to segment
+  const getSegment = (instrumentType: string): string => {
+    let segment: string;
+    switch (instrumentType) {
+      case 'equity':
+        segment = 'EQ';
+        break;
+      case 'options':
+      case 'futures':
+        segment = 'F&O';
+        break;
+      default:
+        segment = 'EQ'; // Default fallback
+    }
+    
+    // Ensure F&O is properly formatted (not URL-encoded)
+    if (segment === 'F\\u0026O' || segment === 'F%26O') {
+      segment = 'F&O';
+    }
+    
+    return segment;
+  };
+
+  // Map strategy type based on segment and form data
+  const getStrategyType = (instrumentType: string, strategyType: string): 'CONDITIONAL' | 'TIME_BASED' => {
+    if (instrumentType === 'equity') {
+      // For EQ segment, always send CONDITIONAL
+      return 'CONDITIONAL';
+    } else {
+      // For F&O segment, map the form strategy type
+      return strategyType === 'time-based' ? 'TIME_BASED' : 'CONDITIONAL';
+    }
+  };
+
   return {
     id: formData.id,
     name: formData.name,
     description: formData.description,
     instrument_type: formData.instrumentType,
+    segment: getSegment(formData.instrumentType),
+    strategy_type: getStrategyType(formData.instrumentType, formData.strategyType),
     position_type: formData.buyOrSell === 'buy' ? 'LONG' : 'SHORT',
     instruments: formData.instruments,
     chart_type: formData.candlestickType,
