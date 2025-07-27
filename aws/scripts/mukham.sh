@@ -39,6 +39,11 @@ MUKHAM_REPO_NAME="${PROJECT_NAME}-${ENVIRONMENT}-mukham"
 
 print_info "Deploying Mukham service for $ENVIRONMENT environment with tag $IMAGE_TAG"
 
+# Get AWS Account ID if not set
+if [[ -z "$AWS_ACCOUNT_ID" ]]; then
+    AWS_ACCOUNT_ID=$(get_aws_account_id)
+fi
+
 # Ensure ECR repository exists
 if ! aws ecr describe-repositories --repository-names "$MUKHAM_REPO_NAME" --region "$AWS_REGION" >/dev/null 2>&1; then
     print_info "ECR repository doesn't exist. Creating it..."
@@ -48,11 +53,6 @@ fi
 # Get ECR login token and login
 print_info "Logging into ECR..."
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-
-# Get AWS Account ID if not set
-if [[ -z "$AWS_ACCOUNT_ID" ]]; then
-    AWS_ACCOUNT_ID=$(get_aws_account_id)
-fi
 
 # ECR URI
 ECR_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${MUKHAM_REPO_NAME}"
