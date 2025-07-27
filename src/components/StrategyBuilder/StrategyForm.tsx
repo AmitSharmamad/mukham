@@ -78,6 +78,7 @@ import {
 import { BacktestResult } from '../../types/strategy';
 import { createDeployment, ApiResponse } from '../../services/deploymentService';
 import { convertFormToApiData } from '../../utils/strategyFormUtils';
+import { getApiErrorMessage } from '../../utils/apiErrorHandler';
 import { 
   validateForm, 
   isFormValid, 
@@ -166,6 +167,16 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
   const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
+  // Use is_readonly property from API response, fallback to deployment status check
+  const isReadOnly = React.useMemo(() => {
+    // If initialData has is_readonly property, use it
+    if (initialData?.is_readonly !== undefined) {
+      return initialData.is_readonly;
+    }
+    // Fallback to deployment status check for backward compatibility
+    return Array.from(deploymentStatuses.values()).some(isDeployed => isDeployed);
+  }, [initialData?.is_readonly, deploymentStatuses]);
+
   useEffect(() => {
     if (initialData) {
       // Make sure to set hasUnsavedChanges to false when initializing with existing data
@@ -209,6 +220,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         endDate: dayjs(initialData.endDate),
         brokerage: initialData.brokerage || '20',
         slippage: initialData.slippage || '0.5',
+        is_readonly: initialData?.is_readonly, // Add the is_readonly property
       });
     }
   }, [initialData]);
@@ -218,6 +230,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       setSelectedInstruments(initialInstruments);
     }
   }, [initialInstruments]);
+
+  // Check deployment status when editing an existing strategy
+  useEffect(() => {
+    if (initialData?.id && selectedInstruments.length > 0) {
+      const instrumentIds = selectedInstruments.map(inst => inst.exchange_security_id);
+      checkDeploymentStatus(initialData.id, instrumentIds);
+    }
+  }, [initialData?.id, selectedInstruments]);
 
   // Using toast context instead of local state
 
@@ -231,7 +251,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
       
       const result = await response.json();
@@ -406,7 +427,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     return [
       {
         id: 'name-positions',
-        title: 'Name & Positions',
+        title: formData.instrumentType === 'options' && formData.strategyType === 'time-based' ? 'Name & Description' : 'Name & Positions',
         component: (
           <Name
             formData={formData}
@@ -416,12 +437,13 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             onFieldChange={handleChange}
             onInstrumentSelectorOpen={() => setInstrumentSelectorOpen(true)}
             onInstrumentDelete={handleInstrumentDelete}
+            readOnly={isReadOnly}
           />
         ),
       },
       {
         id: 'entry',
-        title: formData.instrumentType === 'options' && formData.strategyType === 'time-based' ? 'Conditions' : 'Entry Conditions',
+        title: formData.instrumentType === 'options' && formData.strategyType === 'time-based' ? 'Leg Builder' : 'Entry Conditions',
         component: (
           <Entry
             formData={formData}
@@ -430,6 +452,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             onFieldChange={handleChange}
             onTimeChange={handleTimeChange}
             onClearTime={handleClearTime}
+            readOnly={isReadOnly}
           />
         ),
       },
@@ -442,6 +465,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             errors={errors}
             attemptedSubmit={attemptedSubmit}
             onFieldChange={handleChange}
+            readOnly={isReadOnly}
           />
         ),
       },
@@ -455,6 +479,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             attemptedSubmit={attemptedSubmit}
             onFieldChange={handleChange}
             onDateChange={handleDateChange}
+            readOnly={isReadOnly}
           />
         ),
       },
@@ -529,7 +554,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           });
 
           if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorMessage = await getApiErrorMessage(response);
+            throw new Error(errorMessage);
           }
 
           const result = await response.json();
@@ -628,7 +654,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         });
 
         if (!response.ok || !response.body) {
-          throw new Error(`Failed to start backtest: ${response.statusText}`);
+          const errorMessage = await getApiErrorMessage(response);
+          throw new Error(errorMessage);
         }
 
         // Read and parse SSE events from the response stream
@@ -799,14 +826,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       newSet.add(instrumentId);
       setDeployingInstruments(newSet);
       
-      // Get the instrument name
+      // Get the instrument name for display purposes
       const instrumentName = backtestResults?.results.find(r => r.instrumentId === instrumentId)?.instrumentName || `Instrument ${instrumentId}`;
       
       // Create deployment using our deployment service
       await createDeployment({
         strategy_id: initialData?.id || '',
         instrument_id: instrumentId,
-        name: `${formData.name} - ${instrumentName}`,
+        name: formData.name,
         description: formData.description,
         isActive: true
       });
@@ -821,12 +848,18 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         'Your strategy is now live and will execute trades based on your defined conditions.'
       );
       
+      // Refresh the page after successful deployment
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error connecting to server';
       setErrors(prev => ({
         ...prev,
-        submit: 'Error connecting to server'
+        submit: errorMessage
       }));
-      showToast('Error connecting to server', 'error');
+      showToast(errorMessage, 'error');
     } finally {
       const newSet = new Set(deployingInstruments);
       newSet.delete(instrumentId);
@@ -859,7 +892,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         .map(result => createDeployment({
           strategy_id: strategyId,
           instrument_id: result.instrumentId,
-          name: `${formData.name} - ${result.instrumentName}`,
+          name: formData.name,
           description: formData.description,
           isActive: true
         }));
@@ -884,11 +917,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       }, 1500);
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error deploying strategies';
       setErrors(prev => ({
         ...prev,
-        submit: 'Error deploying strategies'
+        submit: errorMessage
       }));
-      showToast('Error deploying strategies', 'error');
+      showToast(errorMessage, 'error');
     } finally {
       setDeployingInstruments(new Set());
     }
@@ -904,7 +938,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       const response = await fetch(`/api/deployment/strategy/${strategyId}/status?instruments=${instrumentsParam}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -959,7 +994,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       const response = await fetch(`/api/strategy/${id}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -1009,6 +1045,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           brickSize: strategyData.brick_size?.toString() || '',
           brokerage: strategyData.brokerage?.toString() || '20',
           slippage: strategyData.slippage?.toString() || '0.5',
+          is_readonly: strategyData.is_readonly, // Add the is_readonly property
         };
         
         setFormData(formData);
@@ -1031,9 +1068,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         display: 'flex', 
         flexDirection: 'row',
         alignItems: 'center', 
-        mb: 3,
-        pl: 2,
-        pt: 2
+        mb: 3
       }}>
         <Box sx={{ flex: 1 }}>
           {pageTitle && (
@@ -1048,12 +1083,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
             <Button
               variant={formData.instrumentType === 'equity' ? 'contained' : 'outlined'}
               onClick={() => handleInstrumentTypeChange('equity')}
+              disabled={isReadOnly}
             >
               Equity
             </Button>
             <Button
               variant={formData.instrumentType === 'options' ? 'contained' : 'outlined'}
               onClick={() => handleInstrumentTypeChange('options')}
+              disabled={isReadOnly}
             >
               F&O
             </Button>
@@ -1073,12 +1110,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                 <Button
                   variant={formData.strategyType === 'expression' ? 'contained' : 'outlined'}
                   onClick={() => handleChange('strategyType')('expression')}
+                  disabled={isReadOnly}
                 >
                   Expression
                 </Button>
                 <Button
                   variant={formData.strategyType === 'time-based' ? 'contained' : 'outlined'}
                   onClick={() => handleChange('strategyType')('time-based')}
+                  disabled={isReadOnly}
                 >
                   Time based
                 </Button>
@@ -1203,6 +1242,25 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                             color: 'primary.main',
                           },
                         }),
+                        // Style the step icon (numbers)
+                        '& .MuiStepIcon-root': {
+                          fontSize: '1.5rem',
+                          transition: 'all 0.3s ease-in-out',
+                          ...(isActive && {
+                            fontSize: '1.8rem',
+                            transform: 'scale(1.1)',
+                          }),
+                          // Change color based on completion status
+                          '&.Mui-completed': {
+                            color: 'success.main',
+                          },
+                          '&.Mui-active': {
+                            color: 'primary.main',
+                          },
+                          '&:not(.Mui-completed):not(.Mui-active)': {
+                            color: isCompleted ? 'success.main' : 'error.main',
+                          },
+                        },
                         '@keyframes pulse': {
                           '0%': {
                             boxShadow: '0 0 0 0 rgba(25, 118, 210, 0.4)',
@@ -1216,38 +1274,6 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                         },
                       }}
                       error={!isCompleted}
-                      icon={
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center',
-                          transition: 'all 0.3s ease-in-out',
-                          ...(isActive && {
-                            transform: 'scale(1.1)',
-                          }),
-                        }}>
-                          {isCompleted ? (
-                            <CheckCircle 
-                              color="success" 
-                              sx={{ 
-                                fontSize: 20,
-                                ...(isActive && {
-                                  fontSize: 22,
-                                }),
-                              }} 
-                            />
-                          ) : (
-                            <Cancel 
-                              color="error" 
-                              sx={{ 
-                                fontSize: 20,
-                                ...(isActive && {
-                                  fontSize: 22,
-                                }),
-                              }} 
-                            />
-                          )}
-                        </Box>
-                      }
                     >
                       <Box sx={{ 
                         display: 'flex', 
@@ -1256,13 +1282,14 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
                         transition: 'all 0.3s ease-in-out',
                       }}>
                         <Typography 
-                          variant="body2" 
+                          variant="body1" 
                           component="span"
                           sx={{
+                            fontSize: '1rem',
                             ...(isActive && {
                               fontWeight: 'bold',
                               color: 'primary.main',
-                              fontSize: '0.95rem',
+                              fontSize: '1.1rem',
                             }),
                           }}
                         >
@@ -1419,20 +1446,22 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       />
       
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
-        <Tooltip title={
-          (formData.instrumentType === 'options' && !formData.strategyType) ? "Please select a strategy type first" :
-          !isFormValid(formData, selectedInstruments) ? "Please fill in all required fields to save" : ""
-        } arrow>
-          <span>
-            <Button 
-              variant="contained" 
-              onClick={() => handleSave()}
-              disabled={(formData.instrumentType === 'options' && !formData.strategyType) || loading || (initialData && !hasUnsavedChanges) || !isFormValid(formData, selectedInstruments)}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Save'}
-            </Button>
-          </span>
-        </Tooltip>
+        {!isReadOnly && (
+          <Tooltip title={
+            (formData.instrumentType === 'options' && !formData.strategyType) ? "Please select a strategy type first" :
+            !isFormValid(formData, selectedInstruments) ? "Please fill in all required fields to save" : ""
+          } arrow>
+            <span>
+              <Button 
+                variant="contained" 
+                onClick={() => handleSave()}
+                disabled={(formData.instrumentType === 'options' && !formData.strategyType) || loading || (initialData && !hasUnsavedChanges) || !isFormValid(formData, selectedInstruments)}
+              >
+                {loading ? <CircularProgress size={24} /> : 'Save'}
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         <Tooltip title={
           (formData.instrumentType === 'options' && !formData.strategyType) ? "Please select a strategy type first" :
           !isFormValid(formData, selectedInstruments) ? "Please fill in all required fields to run backtest" : ""

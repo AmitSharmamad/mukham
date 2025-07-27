@@ -62,7 +62,6 @@ const PositionsMetricsDashboard: React.FC<PositionsMetricsDashboardProps> = ({
   } = usePositionsUpdater();
   
   const [tabValue, setTabValue] = useState(0);
-  const [selectedPositions, setSelectedPositions] = useState<number[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [lastEventProcessed, setLastEventProcessed] = useState<string>('');
   
@@ -175,26 +174,6 @@ const PositionsMetricsDashboard: React.FC<PositionsMetricsDashboardProps> = ({
     setTabValue(newValue);
   };
 
-  const handlePositionSelect = (positionIds: number[]) => {
-    setSelectedPositions(positionIds);
-  };
-
-  const handleBulkClose = async () => {
-    if (!onClosePosition) return;
-    
-    const positionsToClose = updatedPositions.filter(p => selectedPositions.includes(p.id));
-    
-    for (const position of positionsToClose) {
-      try {
-        await onClosePosition(position);
-      } catch (error) {
-        console.error(`Failed to close position ${position.id}:`, error);
-      }
-    }
-    
-    setSelectedPositions([]);
-  };
-
   // Desktop Layout (Full-width table)
   if (isDesktop) {
     return (
@@ -214,8 +193,6 @@ const PositionsMetricsDashboard: React.FC<PositionsMetricsDashboardProps> = ({
             positions={updatedPositions}
             loading={positionsLoading}
             onClosePosition={onClosePosition}
-            selectedPositions={selectedPositions}
-            onPositionSelect={handlePositionSelect}
             realtimeMetrics={realtimeMetrics}
           />
         </Box>
@@ -274,8 +251,6 @@ const PositionsMetricsDashboard: React.FC<PositionsMetricsDashboardProps> = ({
             positions={openPositions}
             loading={positionsLoading}
             onClosePosition={onClosePosition}
-            selectedPositions={selectedPositions}
-            onPositionSelect={handlePositionSelect}
             realtimeMetrics={realtimeMetrics}
             compact={isMobile}
           />
@@ -286,8 +261,6 @@ const PositionsMetricsDashboard: React.FC<PositionsMetricsDashboardProps> = ({
             positions={updatedPositions}
             loading={positionsLoading}
             onClosePosition={onClosePosition}
-            selectedPositions={selectedPositions}
-            onPositionSelect={handlePositionSelect}
             realtimeMetrics={realtimeMetrics}
             compact={isMobile}
           />

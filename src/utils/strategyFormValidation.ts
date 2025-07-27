@@ -202,8 +202,8 @@ export const isSectionComplete = (sectionId: string, formData: FormData, selecte
           !!formData.tradeType
         );
       } else if (formData.instrumentType === 'options' && formData.strategyType === 'time-based') {
-        // For F&O Time-based: Only need instruments, no other fields
-        isPositionsComplete = selectedInstruments.length > 0;
+        // For F&O Time-based: Instruments are managed through option legs, not traditional instrument selection
+        isPositionsComplete = true; // Always complete as instruments are selected in legs
       } else {
         // For Equity: Need all fields including position type and max allocation/quantity
         isPositionsComplete = (

@@ -8,7 +8,7 @@ export const Footer = () => {
     <Box
       component="footer"
       sx={{
-        py: 6,
+        py: { xs: 4, md: 6 }, // Smaller padding on mobile
         px: 2,
         backgroundColor: (theme) =>
           theme.palette.mode === 'light'
@@ -20,7 +20,7 @@ export const Footer = () => {
       }}
     >
       <Container maxWidth="lg">
-        <Grid container spacing={4}>
+        <Grid container spacing={{ xs: 3, md: 4 }}> {/* Responsive spacing */}
           {/* Company Info */}
           <Grid item xs={12} md={4}>
             <Typography variant="h6" component="div" gutterBottom>
@@ -51,9 +51,6 @@ export const Footer = () => {
               Product
             </Typography>
             <Stack spacing={1}>
-              <Link href="/features" color="text.secondary" underline="hover">
-                Features
-              </Link>
               <Link href="/pricing" color="text.secondary" underline="hover">
                 Pricing
               </Link>
@@ -108,26 +105,6 @@ export const Footer = () => {
             </Stack>
           </Grid>
 
-          {/* Legal */}
-          <Grid item xs={12} sm={6} md={2}>
-            <Typography variant="h6" component="div" gutterBottom>
-              Legal
-            </Typography>
-            <Stack spacing={1}>
-              <Link href="/privacy" color="text.secondary" underline="hover">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" color="text.secondary" underline="hover">
-                Terms of Service
-              </Link>
-              <Link href="/cookies" color="text.secondary" underline="hover">
-                Cookie Policy
-              </Link>
-              <Link href="/disclaimer" color="text.secondary" underline="hover">
-                Disclaimer
-              </Link>
-            </Stack>
-          </Grid>
         </Grid>
 
         {/* Bottom Section */}
@@ -144,19 +121,8 @@ export const Footer = () => {
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            © {currentYear} Sutram. All rights reserved.
+            © {currentYear} DIGANTHA INNOVATIVE TECHNOLOGIES PRIVATE LIMITED. All rights reserved.
           </Typography>
-          <Stack direction="row" spacing={3}>
-            <Link href="/status" color="text.secondary" underline="hover">
-              Status
-            </Link>
-            <Link href="/security" color="text.secondary" underline="hover">
-              Security
-            </Link>
-            <Link href="/api" color="text.secondary" underline="hover">
-              API
-            </Link>
-          </Stack>
         </Box>
       </Container>
     </Box>

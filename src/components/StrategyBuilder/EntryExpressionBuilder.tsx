@@ -9,6 +9,7 @@ interface EntryExpressionBuilderProps {
   error?: boolean;
   helperText?: string;
   required?: boolean;
+  readOnly?: boolean;
 }
 
 export const EntryExpressionBuilder: React.FC<EntryExpressionBuilderProps> = ({
@@ -17,6 +18,7 @@ export const EntryExpressionBuilder: React.FC<EntryExpressionBuilderProps> = ({
   error,
   helperText,
   required = false,
+  readOnly = false,
 }) => {
   return (
     <Box>
@@ -31,6 +33,7 @@ export const EntryExpressionBuilder: React.FC<EntryExpressionBuilderProps> = ({
         helperText={helperText}
         required={required}
         isOptional={false}
+        readOnly={readOnly}
       />
     </Box>
   );

@@ -15,6 +15,7 @@ interface NameProps {
   onFieldChange: (field: keyof FormData) => (value: any) => void;
   onInstrumentSelectorOpen: () => void;
   onInstrumentDelete: (instrumentId: number) => void;
+  readOnly?: boolean;
 }
 
 export const Name: React.FC<NameProps> = ({
@@ -25,6 +26,7 @@ export const Name: React.FC<NameProps> = ({
   onFieldChange,
   onInstrumentSelectorOpen,
   onInstrumentDelete,
+  readOnly = false,
 }) => {
   const renderNameAndDescription = () => (
     <Box sx={{ mb: 3 }}>
@@ -39,6 +41,7 @@ export const Name: React.FC<NameProps> = ({
             required
             error={!!(attemptedSubmit && errors.name)}
             helperText={attemptedSubmit && errors.name ? errors.name : undefined}
+            disabled={readOnly}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -50,6 +53,7 @@ export const Name: React.FC<NameProps> = ({
             rows={4}
             value={formData.description}
             onChange={(e) => onFieldChange('description')(e.target.value)}
+            disabled={readOnly}
           />
         </Grid>
       </Grid>
@@ -65,20 +69,23 @@ export const Name: React.FC<NameProps> = ({
         justifyContent: 'center',
         minHeight: '56px'
       }}>
-        <Button
-          variant="outlined"
-          startIcon={<Add />}
-          onClick={onInstrumentSelectorOpen}
-        >
-          Add Instrument
-        </Button>
+        {/* Hide Add Instrument button for F&O Time-based strategy */}
+        {!(formData.instrumentType === 'options' && formData.strategyType === 'time-based') && (
+          <Button
+            variant="outlined"
+            startIcon={<Add />}
+            onClick={onInstrumentSelectorOpen}
+          >
+            Add Instrument
+          </Button>
+        )}
         
         <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
           {selectedInstruments.map((instrument) => (
             <Chip
               key={instrument.exchange_security_id}
               label={instrument.symbol}
-              onDelete={() => onInstrumentDelete(instrument.exchange_security_id)}
+              onDelete={readOnly ? undefined : () => onInstrumentDelete(instrument.exchange_security_id)}
             />
           ))}
         </Box>
@@ -89,7 +96,7 @@ export const Name: React.FC<NameProps> = ({
   const renderPositionType = () => (
     <Box sx={{ mb: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 4, minHeight: '56px' }}>
-        <FormControl component="fieldset">
+        <FormControl component="fieldset" disabled={readOnly}>
           <FormLabel component="legend">Position Type</FormLabel>
           <RadioGroup
             row
@@ -114,6 +121,7 @@ export const Name: React.FC<NameProps> = ({
             variant="outlined"
             startIcon={<Add />}
             onClick={onInstrumentSelectorOpen}
+            disabled={readOnly}
           >
             Add Instrument
           </Button>
@@ -123,7 +131,7 @@ export const Name: React.FC<NameProps> = ({
               <Chip
                 key={instrument.exchange_security_id}
                 label={instrument.symbol}
-                onDelete={() => onInstrumentDelete(instrument.exchange_security_id)}
+                onDelete={readOnly ? undefined : () => onInstrumentDelete(instrument.exchange_security_id)}
               />
             ))}
           </Box>
@@ -147,6 +155,7 @@ export const Name: React.FC<NameProps> = ({
             value={formData.candlestickType}
             onChange={onFieldChange('candlestickType')}
             required
+            disabled={readOnly}
           />
           {attemptedSubmit && errors.candlestickType && (
             <Typography color="error" variant="caption" sx={{ display: 'block', mt: 1 }}>
@@ -167,6 +176,7 @@ export const Name: React.FC<NameProps> = ({
               error={!!(attemptedSubmit && errors.brickSize)}
               helperText={attemptedSubmit && errors.brickSize ? errors.brickSize : undefined}
               inputProps={{ min: 0.1, step: 0.1 }}
+              disabled={readOnly}
             />
           </Grid>
         )}
@@ -179,6 +189,7 @@ export const Name: React.FC<NameProps> = ({
             value={formData.timeframe}
             onChange={onFieldChange('timeframe')}
             required
+            disabled={readOnly}
           />
           {attemptedSubmit && errors.timeframe && (
             <Typography color="error" variant="caption" sx={{ display: 'block', mt: 1 }}>
@@ -198,6 +209,7 @@ export const Name: React.FC<NameProps> = ({
             value={formData.tradeType}
             onChange={onFieldChange('tradeType')}
             required
+            disabled={readOnly}
           />
           {attemptedSubmit && errors.tradeType && (
             <Typography color="error" variant="caption" sx={{ display: 'block', mt: 1 }}>
@@ -224,6 +236,7 @@ export const Name: React.FC<NameProps> = ({
             error={!!(attemptedSubmit && errors.maxAllocation)}
             helperText={attemptedSubmit && errors.maxAllocation ? errors.maxAllocation : undefined}
             inputProps={{ min: 0, max: 100 }}
+            disabled={readOnly}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -238,6 +251,7 @@ export const Name: React.FC<NameProps> = ({
             error={!!(attemptedSubmit && errors.maxQuantity)}
             helperText={attemptedSubmit && errors.maxQuantity ? errors.maxQuantity : undefined}
             inputProps={{ min: 1, step: 1 }}
+            disabled={readOnly}
           />
         </Grid>
       </Grid>

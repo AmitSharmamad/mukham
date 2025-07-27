@@ -16,6 +16,7 @@ interface EntryProps {
   onFieldChange: (field: keyof FormData) => (value: any) => void;
   onTimeChange: (field: 'entryStartTime' | 'entryEndTime') => (value: Dayjs | null) => void;
   onClearTime: (field: 'entryStartTime' | 'entryEndTime') => () => null;
+  readOnly?: boolean;
 }
 
 export const Entry: React.FC<EntryProps> = ({
@@ -25,6 +26,7 @@ export const Entry: React.FC<EntryProps> = ({
   onFieldChange,
   onTimeChange,
   onClearTime,
+  readOnly = false,
 }) => {
   // For F&O Expression: Add Entry Expression Builder and Legs Builder
   if (formData.instrumentType === 'options' && formData.strategyType === 'expression') {
@@ -34,13 +36,15 @@ export const Entry: React.FC<EntryProps> = ({
           <Expression
             formData={formData}
             onFieldChange={onFieldChange}
+            label=""
+            readOnly={readOnly}
           />
         </Box>
         
         <Box sx={{ mb: 3 }}>
           <LegsBuilder
             value={formData.entryOptionLegs}
-            onChange={onFieldChange('entryOptionLegs')}
+            onChange={readOnly ? () => {} : onFieldChange('entryOptionLegs')}
           />
         </Box>
 
@@ -51,6 +55,7 @@ export const Entry: React.FC<EntryProps> = ({
             onFieldChange={onFieldChange}
             onTimeChange={onTimeChange}
             onClearTime={onClearTime}
+            readOnly={readOnly}
           />
         </Box>
       </Box>
@@ -70,6 +75,7 @@ export const Entry: React.FC<EntryProps> = ({
               onClearTime={onClearTime}
               label="Entry Time"
               required={true}
+              readOnly={readOnly}
             />
             
             <EntryEndTime
@@ -79,6 +85,7 @@ export const Entry: React.FC<EntryProps> = ({
               onClearTime={onClearTime}
               label="Exit Time"
               required={true}
+              readOnly={readOnly}
             />
           </Grid>
         </Box>
@@ -86,7 +93,7 @@ export const Entry: React.FC<EntryProps> = ({
         <Box sx={{ mb: 3 }}>
           <OptionsLegBuilder
             value={formData.entryOptionLegs}
-            onChange={onFieldChange('entryOptionLegs')}
+            onChange={readOnly ? () => {} : onFieldChange('entryOptionLegs')}
             label="Legs"
           />
         </Box>
@@ -101,8 +108,9 @@ export const Entry: React.FC<EntryProps> = ({
         <Expression
           formData={formData}
           onFieldChange={onFieldChange}
-          label="Entry Conditions"
+          label=""
           isOptional={false}
+          readOnly={readOnly}
         />
       </Box>
       
@@ -113,6 +121,7 @@ export const Entry: React.FC<EntryProps> = ({
             errors={errors}
             onTimeChange={onTimeChange}
             onClearTime={onClearTime}
+            readOnly={readOnly}
           />
           
           <EntryEndTime
@@ -120,6 +129,7 @@ export const Entry: React.FC<EntryProps> = ({
             errors={errors}
             onTimeChange={onTimeChange}
             onClearTime={onClearTime}
+            readOnly={readOnly}
           />
         </Grid>
       </Box>

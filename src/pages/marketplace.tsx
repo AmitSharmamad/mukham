@@ -66,6 +66,26 @@ function a11yProps(index: number) {
 }
 
 export default function Marketplace() {
+  return (
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '60vh',
+        textAlign: 'center'
+      }}
+    >
+      <Typography variant="h2" component="h1" sx={{ mb: 2, fontWeight: 600 }}>
+        🛒 Coming Soon
+      </Typography>
+      <Typography variant="h5" color="text.secondary">
+        Marketplace features are under development
+      </Typography>
+    </Box>
+  );
+  
   const router = useRouter();
   const [tabValue, setTabValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');

@@ -75,6 +75,7 @@ export interface Position {
   entry_time: string;
   exit_price?: number;
   exit_time?: string;
+  exit_reason?: string;
   pnl?: number;
   status: 'OPEN' | 'CLOSED' | 'CANCELLED';
   metadata: Record<string, any>;
@@ -242,8 +243,13 @@ export const createDeployment = async (deploymentData: Omit<Deployment, 'id' | '
   try {
     const response = await apiClient.post('/deployment', deploymentData);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating deployment:', error);
+    // Re-throw the error with the original error details preserved
+    // This allows the calling code to handle specific error messages
+    if (error?.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
     throw error;
   }
 };
@@ -252,8 +258,12 @@ export const updateDeployment = async (id: string, deploymentData: Partial<Deplo
   try {
     const response = await apiClient.put(`/deployment/${id}`, deploymentData);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating deployment:', error);
+    // Re-throw the error with the original error details preserved
+    if (error?.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
     throw error;
   }
 };
@@ -363,27 +373,8 @@ export const closePosition = async (deploymentId: string, positionId: number): P
 
 export const exitDeployment = async (deploymentId: string): Promise<ApiResponse> => {
   try {
-    // First, get all open positions for this deployment
-    const positions = await getDeploymentPositions(deploymentId);
-    const openPositions = positions.filter(position => position.status === 'OPEN');
-    
-    // Close all open positions
-    if (openPositions.length > 0) {
-      await Promise.all(
-        openPositions.map(position => 
-          closePosition(deploymentId, position.id)
-        )
-      );
-    }
-    
-    // Then deactivate the deployment
-    const response = await deactivateDeployment(deploymentId);
-    
-    return {
-      success: true,
-      message: `Deployment exited successfully. ${openPositions.length} positions closed.`,
-      data: response.data
-    };
+    const response = await apiClient.post(`/deployment/${deploymentId}/exit`);
+    return response.data;
   } catch (error) {
     console.error('Error exiting deployment:', error);
     throw error;

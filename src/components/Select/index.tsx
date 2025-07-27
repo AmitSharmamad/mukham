@@ -25,12 +25,15 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
   },
 }));
 
-export const Select = ({ label, options, onChange, required, ...props }: SelectProps) => {
+export const Select = ({ label, options, onChange, required, size = 'medium', ...props }: SelectProps) => {
+  const labelSize = size === 'small' ? 'small' : 'normal';
+  
   return (
-    <StyledFormControl fullWidth required={required}>
-      {label && <InputLabel required={required}>{label}</InputLabel>}
+    <StyledFormControl fullWidth required={required} size={size}>
+      {label && <InputLabel required={required} size={labelSize}>{label}</InputLabel>}
       <StyledSelect
         label={label}
+        size={size}
         onChange={(e) => onChange?.(e.target.value as string | number)}
         {...props}
       >

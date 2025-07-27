@@ -37,7 +37,6 @@ import {
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { DashboardWidget } from '../components/DashboardWidget';
-import { checkPageAuth } from '../utils/pageAuthUtils';
 import { dashboardService } from '../services/dashboardService';
 import { DashboardStatistics } from '../types/dashboard';
 
@@ -47,7 +46,6 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const theme = useTheme();
   const router = useRouter();
-  const [authChecked, setAuthChecked] = useState(false);
   
   const fetchDashboardData = async () => {
     try {
@@ -68,26 +66,12 @@ export default function Home() {
   };
   
   useEffect(() => {
-    // Check authentication
-    const checkAuth = async () => {
-      try {
-        const isAuthed = await checkPageAuth(router);
-        // If checkPageAuth returns false, it will automatically redirect to login
-        if (!isAuthed) return;
-        setAuthChecked(true);
-        
-        // Fetch dashboard data after auth check
-        await fetchDashboardData();
-      } catch (error) {
-        console.error('Auth check error:', error);
-        setLoading(false);
-      }
-    };
-    
-    checkAuth();
-  }, [router]);
+    // Fetch dashboard data on component mount
+    // AuthGuard handles authentication for this protected route
+    fetchDashboardData();
+  }, []);
   
-  if (!authChecked || loading) {
+  if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
         <CircularProgress />
@@ -133,7 +117,7 @@ export default function Home() {
   };
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <>
       <Typography variant="h4" gutterBottom>
         Trading Dashboard
       </Typography>
@@ -331,101 +315,8 @@ export default function Home() {
               </Box>
             </CardContent>
           </Card>
-          
-          {/* Recent Deployments */}
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Recent Deployment Events
-            </Typography>
-            {dashboardData.recent_activity.deployment_events.slice(0, 5).map((event) => (
-              <Box key={event.event_id} sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                py: 1,
-                borderBottom: '1px solid',
-                borderColor: 'divider'
-              }}>
-                <Box>
-                  <Typography variant="body2" fontWeight="medium">
-                    {event.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {event.description}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    {new Date(event.timestamp).toLocaleDateString()}
-                  </Typography>
-                </Box>
-                <Box sx={{
-                  px: 1,
-                  py: 0.5,
-                  borderRadius: 1,
-                  bgcolor: 'success.light',
-                  color: 'success.dark'
-                }}>
-                  <Typography variant="caption" fontWeight="medium">
-                    {event.event_type.toUpperCase()}
-                  </Typography>
-                </Box>
-              </Box>
-            ))}
-          </Paper>
-          
-          {/* Quick Navigation */}
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Quick Navigation
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Card 
-                  sx={{ 
-                    p: 2, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: 'action.hover' }
-                  }}
-                  onClick={() => router.push('/deployment')}
-                >
-                  <Build 
-                    sx={{ fontSize: 32, color: 'primary.main', mr: 2 }} 
-                  />
-                  <Box>
-                    <Typography variant="h6">Deployments</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Manage your active trading deployments
-                    </Typography>
-                  </Box>
-                </Card>
-              </Grid>
-              <Grid item xs={12}>
-                <Card 
-                  sx={{ 
-                    p: 2, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: 'action.hover' }
-                  }}
-                  onClick={() => router.push('/reports')}
-                >
-                  <Assessment 
-                    sx={{ fontSize: 32, color: 'secondary.main', mr: 2 }} 
-                  />
-                  <Box>
-                    <Typography variant="h6">Reports</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      View detailed performance analytics
-                    </Typography>
-                  </Box>
-                </Card>
-              </Grid>
-            </Grid>
-          </Box>
         </Grid>
       </Grid>
-    </Box>
+    </>
   );
 }
