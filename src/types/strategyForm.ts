@@ -83,6 +83,7 @@ export interface ApiFormData {
   slippage?: number;
   entry_start_time: string | null;
   entry_end_time: string | null;
+  trading_days: string[];
   start_date: string | null;
   end_date: string | null;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid, Box } from '@mui/material';
+import { Grid, Box, Typography, ButtonGroup, Button as MuiButton } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -102,6 +102,55 @@ export const BacktestParameters: React.FC<BacktestParametersProps> = ({
               />
             </Box>
           </Grid>
+          {/* Trading Days Section - Only show for Equity strategies (hide for all F&O strategies) */}
+          {formData.instrumentType !== 'options' && (
+            <Grid item xs={12}>
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                  Trading Days
+                </Typography>
+                <Box sx={{ minHeight: '56px', display: 'flex', alignItems: 'center' }}>
+                  <ButtonGroup 
+                    variant="outlined" 
+                    size="medium" 
+                    sx={{ 
+                      flexWrap: 'wrap',
+                      '& .MuiButton-root': {
+                        minWidth: '48px',
+                        height: '48px',
+                        fontSize: '0.875rem',
+                      }
+                    }}
+                  >
+                    {[
+                      { label: 'M', value: 'MON' },
+                      { label: 'T', value: 'TUE' },
+                      { label: 'W', value: 'WED' },
+                      { label: 'T', value: 'THU' },
+                      { label: 'F', value: 'FRI' }
+                    ].map((day) => (
+                      <MuiButton
+                        key={day.value}
+                        variant={formData.tradingDays.includes(day.value) ? 'contained' : 'outlined'}
+                        onClick={() => {
+                          if (!readOnly) {
+                            const currentDays = formData.tradingDays;
+                            const updatedDays = currentDays.includes(day.value)
+                              ? currentDays.filter(d => d !== day.value)
+                              : [...currentDays, day.value];
+                            onFieldChange('tradingDays')(updatedDays);
+                          }
+                        }}
+                        disabled={readOnly}
+                      >
+                        {day.label}
+                      </MuiButton>
+                    ))}
+                  </ButtonGroup>
+                </Box>
+              </Box>
+            </Grid>
+          )}
         </Grid>
       </LocalizationProvider>
     </Box>

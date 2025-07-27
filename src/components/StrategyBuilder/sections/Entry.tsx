@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Grid } from '@mui/material';
+import { Box, Grid, Typography, ButtonGroup, Button as MuiButton } from '@mui/material';
 import { Expression } from './Expression';
 import { TradeDayAndTime } from './TradeDayAndTime';
 import { EntryStartTime } from './EntryStartTime';
@@ -88,6 +88,52 @@ export const Entry: React.FC<EntryProps> = ({
               readOnly={readOnly}
             />
           </Grid>
+        </Box>
+
+        {/* Trading Days Section for Time-based Strategies */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+            Trading Days
+          </Typography>
+          <Box sx={{ minHeight: '56px', display: 'flex', alignItems: 'center' }}>
+            <ButtonGroup 
+              variant="outlined" 
+              size="medium" 
+              sx={{ 
+                flexWrap: 'wrap',
+                '& .MuiButton-root': {
+                  minWidth: '48px',
+                  height: '48px',
+                  fontSize: '0.875rem',
+                }
+              }}
+            >
+              {[
+                { label: 'M', value: 'MON' },
+                { label: 'T', value: 'TUE' },
+                { label: 'W', value: 'WED' },
+                { label: 'T', value: 'THU' },
+                { label: 'F', value: 'FRI' }
+              ].map((day) => (
+                <MuiButton
+                  key={day.value}
+                  variant={formData.tradingDays.includes(day.value) ? 'contained' : 'outlined'}
+                  onClick={() => {
+                    if (!readOnly) {
+                      const currentDays = formData.tradingDays;
+                      const updatedDays = currentDays.includes(day.value)
+                        ? currentDays.filter(d => d !== day.value)
+                        : [...currentDays, day.value];
+                      onFieldChange('tradingDays')(updatedDays);
+                    }
+                  }}
+                  disabled={readOnly}
+                >
+                  {day.label}
+                </MuiButton>
+              ))}
+            </ButtonGroup>
+          </Box>
         </Box>
         
         <Box sx={{ mb: 3 }}>
