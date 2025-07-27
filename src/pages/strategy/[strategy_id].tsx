@@ -6,6 +6,7 @@ import type { Strategy } from '../../types/strategy';
 import dayjs from 'dayjs';
 import { mapTimeframeToDisplay } from '../../constants';
 import { checkPageAuth } from '../../utils/pageAuthUtils';
+import { getApiErrorMessage } from '../../utils/apiErrorHandler';
 
 interface Instrument {
   exchange_security_id: number;
@@ -43,6 +44,7 @@ interface FormattedStrategy {
   endDate: string;
   brokerage: string;
   slippage: string;
+  is_readonly?: boolean; // Add the is_readonly property
 }
 
 export default function EditStrategy() {
@@ -58,7 +60,8 @@ export default function EditStrategy() {
       const response = await fetch(`/api/instrument-master/by-exchange-security-ids?exchange_security_ids=${instrumentIds.join(',')}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -79,7 +82,8 @@ export default function EditStrategy() {
       const response = await fetch(`/api/strategy/${id}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -113,6 +117,7 @@ export default function EditStrategy() {
           brickSize: strategyData.brick_size?.toString() || '',
           brokerage: strategyData.brokerage?.toString() || '20',
           slippage: strategyData.slippage?.toString() || '0.5',
+          is_readonly: strategyData.is_readonly, // Add the is_readonly property
         };
         
         setStrategy(formData);

@@ -105,6 +105,7 @@ export interface Position {
   pnl: number;
   direction: 'LONG' | 'SHORT';
   created_at: string;
+  exit_reason?: string;
 }
 
 export interface DailyPnL {

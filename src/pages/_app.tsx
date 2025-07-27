@@ -9,6 +9,7 @@ import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
 import { DeploymentProvider } from '../context/DeploymentContext';
+import { TourProvider } from '../context/TourContext';
 import AuthGuard from '../components/AuthGuard';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
@@ -75,7 +76,9 @@ function MyApp(props: AppProps) {
       <ThemeProvider>
         <ToastProvider>
           <DeploymentProvider>
-            <AppContent {...props} />
+            <TourProvider>
+              <AppContent {...props} />
+            </TourProvider>
           </DeploymentProvider>
         </ToastProvider>
       </ThemeProvider>

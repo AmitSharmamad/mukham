@@ -20,7 +20,7 @@ export default function Offline() {
       <Head>
         <title>Offline - Mukham</title>
       </Head>
-      <Container maxWidth="sm" sx={{ mt: 8, textAlign: 'center' }}>
+      <Container maxWidth="sm" sx={{ mt: 8, mb: 8, textAlign: 'center' }}>
         <Box 
           sx={{ 
             backgroundColor: theme.palette.background.paper,

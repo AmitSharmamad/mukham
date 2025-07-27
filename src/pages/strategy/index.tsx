@@ -31,8 +31,8 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { useToastContext } from '../../context/ToastContext';
+import { getApiErrorMessage } from '../../utils/apiErrorHandler';
 import type { Strategy } from '../../types/strategy';
-import { checkPageAuth } from '../../utils/pageAuthUtils';
 
 export default function StrategyList() {
   const router = useRouter();
@@ -62,7 +62,8 @@ export default function StrategyList() {
       const response = await fetch('/api/strategy');
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -90,7 +91,8 @@ export default function StrategyList() {
       const response = await fetch('/api/strategy/default');
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -111,14 +113,10 @@ export default function StrategyList() {
 
   useEffect(() => {
     const initPage = async () => {
-      // Check authentication once when the page loads
-      const isAuthed = await checkPageAuth(router);
-      
-      // If authenticated, fetch strategies
-      if (isAuthed) {
-        await fetchUserStrategies();
-        await fetchDefaultStrategies();
-      }
+      // AuthGuard handles authentication for this protected route
+      // Fetch strategies directly since user is already authenticated
+      await fetchUserStrategies();
+      await fetchDefaultStrategies();
     };
     
     initPage();
@@ -184,6 +182,11 @@ export default function StrategyList() {
         method: 'DELETE'
       });
 
+      if (!response.ok) {
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
+      }
+
       const data = await response.json();
       if (data.success) {
         // Display the API response message
@@ -195,7 +198,8 @@ export default function StrategyList() {
         showToast(data.message || data.error || 'Failed to delete strategy', 'error');
       }
     } catch (err) {
-      showToast('Error deleting strategy', 'error');
+      const errorMessage = err instanceof Error ? err.message : 'Error deleting strategy';
+      showToast(errorMessage, 'error');
     } finally {
       setDeleting(null);
     }
@@ -215,6 +219,11 @@ export default function StrategyList() {
         method: 'POST'
       });
 
+      if (!response.ok) {
+        const errorMessage = await getApiErrorMessage(response);
+        throw new Error(errorMessage);
+      }
+
       const data = await response.json();
       if (data.success) {
         // Display the API response message
@@ -224,7 +233,8 @@ export default function StrategyList() {
         showToast(data.message || data.error || 'Failed to clone strategy', 'error');
       }
     } catch (err) {
-      showToast('Error cloning strategy', 'error');
+      const errorMessage = err instanceof Error ? err.message : 'Error cloning strategy';
+      showToast(errorMessage, 'error');
     } finally {
       setCloning(null);
     }
@@ -378,14 +388,14 @@ export default function StrategyList() {
   }
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <>
       {/* Page Header */}
       <Box 
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          mb: 4
+          mb: 3
         }}
       >
         <Typography variant="h4" component="h1">
@@ -547,6 +557,6 @@ export default function StrategyList() {
       </Dialog>
 
       {/* Toast is now provided by ToastContext */}
-    </Box>
+    </>
   );
 }

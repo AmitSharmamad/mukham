@@ -10,6 +10,7 @@ interface ExpressionProps {
   onFieldChange: (field: keyof FormData) => (value: any) => void;
   label?: string;
   isOptional?: boolean;
+  readOnly?: boolean;
 }
 
 export const Expression: React.FC<ExpressionProps> = ({
@@ -17,6 +18,7 @@ export const Expression: React.FC<ExpressionProps> = ({
   onFieldChange,
   label = "Entry Conditions",
   isOptional = false,
+  readOnly = false,
 }) => {
   // For F&O Expression strategies, use EntryExpressionBuilder
   if (formData.instrumentType === 'options' && formData.strategyType === 'expression') {
@@ -24,7 +26,8 @@ export const Expression: React.FC<ExpressionProps> = ({
       <Box sx={{ mb: 3 }}>
         <EntryExpressionBuilder
           value={formData.entryConditions}
-          onChange={onFieldChange('entryConditions')}
+          onChange={readOnly ? () => {} : onFieldChange('entryConditions')}
+          readOnly={readOnly}
         />
       </Box>
     );
@@ -35,9 +38,10 @@ export const Expression: React.FC<ExpressionProps> = ({
     <Box sx={{ mb: 3 }}>
       <IndicatorExpressionBuilder
         value={formData.entryConditions}
-        onChange={onFieldChange('entryConditions')}
+        onChange={readOnly ? () => {} : onFieldChange('entryConditions')}
         label={label}
         isOptional={isOptional}
+        readOnly={readOnly}
       />
     </Box>
   );

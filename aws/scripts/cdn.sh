@@ -41,7 +41,7 @@ if [[ -z "$CERTIFICATE_ARN" && "$ENVIRONMENT" == "prod" ]]; then
     # Request certificate
     CERTIFICATE_ARN=$(aws acm request-certificate \
         --domain-name "sutram.co" \
-        --domain-name "*.sutram.co" \
+        --subject-alternative-names "*.sutram.co" "mukham.sutram.co" \
         --validation-method DNS \
         --region us-east-1 \
         --query 'CertificateArn' \
@@ -93,7 +93,11 @@ if [[ $? -eq 0 ]]; then
     
     if [[ "$ENVIRONMENT" == "prod" ]]; then
         print_info "Production domain: https://sutram.co"
+        print_info "Mukham subdomain: https://mukham.sutram.co"
         print_warning "DNS propagation may take up to 24 hours"
+    else
+        print_info "Development domain: https://dev.sutram.co"
+        print_info "Mukham subdomain: https://mukham.dev.sutram.co"
     fi
     
     # Check status

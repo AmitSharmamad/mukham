@@ -12,6 +12,13 @@ const StyledCard = styled(MuiCard)<CardProps>(({ theme }) => ({
   transition: 'all 0.3s ease-in-out',
   '&:hover': {
     transform: 'translateY(-2px)',
+  },
+  // Mobile-friendly adjustments
+  [theme.breakpoints.down('md')]: {
+    borderRadius: theme.shape.borderRadius,
+    '&:hover': {
+      transform: 'none', // Disable hover effects on mobile
+    }
   }
 }));
 

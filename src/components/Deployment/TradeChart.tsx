@@ -131,7 +131,7 @@ const TradeChart: React.FC<TradeChartProps> = ({ trades }) => {
             const timestamp = tradeData.timestamps[index];
             // Convert numeric timestamp to ISO string if needed
             const dateString = typeof timestamp === 'number' 
-              ? new Date(timestamp * 1000).toISOString()  // Assuming Unix timestamp in seconds
+              ? new Date(timestamp).toISOString()  // Timestamp is already in milliseconds
               : timestamp;
             return formatDate(dateString);
           },
@@ -139,8 +139,6 @@ const TradeChart: React.FC<TradeChartProps> = ({ trades }) => {
             const label = context.dataset.label || '';
             const value = context.parsed.y;
             return `${label}: ${value.toLocaleString('en-US', { 
-              style: 'currency', 
-              currency: 'USD',
               minimumFractionDigits: 0,
               maximumFractionDigits: 2
             })}`;
@@ -171,7 +169,7 @@ const TradeChart: React.FC<TradeChartProps> = ({ trades }) => {
       y: {
         title: {
           display: true,
-          text: 'Capital ($)',
+          text: 'Capital',
           color: theme.palette.text.secondary,
           font: {
             family: theme.typography.fontFamily,
@@ -184,8 +182,6 @@ const TradeChart: React.FC<TradeChartProps> = ({ trades }) => {
           },
           callback: (value) => {
             return (value as number).toLocaleString('en-US', {
-              style: 'currency',
-              currency: 'USD',
               minimumFractionDigits: 0,
               maximumFractionDigits: 0
             });

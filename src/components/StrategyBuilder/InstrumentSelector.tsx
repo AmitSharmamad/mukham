@@ -48,6 +48,10 @@ interface InstrumentSelectorProps {
 }
 
 const exchanges = ['NSE', 'BSE', 'MCX'];
+const instrumentTypes = [
+  { label: 'Stock', value: 'Stock' },
+  { label: 'Index', value: 'Index' }
+];
 
 const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   open,
@@ -58,6 +62,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
 }) => {
   const [tempSelected, setTempSelected] = useState<Instrument[]>(Array.isArray(selectedInstruments) ? selectedInstruments : []);
   const [selectedExchange, setSelectedExchange] = useState<string | null>(null);
+  const [selectedInstrumentType, setSelectedInstrumentType] = useState<{ label: string; value: string } | null>(null);
   const [instruments, setInstruments] = useState<Instrument[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -93,7 +98,14 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
       setPage(1);
       setHasMore(true);
     }
-  }, [searchQuery, selectedExchange]);
+  }, [searchQuery, selectedExchange, selectedInstrumentType]);
+
+  // Reset instrument type when exchange is not NSE or BSE
+  useEffect(() => {
+    if (selectedExchange && selectedExchange !== 'NSE' && selectedExchange !== 'BSE') {
+      setSelectedInstrumentType(null);
+    }
+  }, [selectedExchange]);
 
   useEffect(() => {
     if (!open) {
@@ -120,6 +132,10 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
         
         if (searchQuery) {
           queryParams.append('query', searchQuery);
+        }
+
+        if (selectedInstrumentType && (selectedExchange === 'NSE' || selectedExchange === 'BSE')) {
+          queryParams.append('instrumentType', selectedInstrumentType.value);
         }
 
         const response = await fetch(`/api/instrument-master?${queryParams.toString()}`);
@@ -177,13 +193,14 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
       active = false;
       clearTimeout(debounceTimeout);
     };
-  }, [selectedExchange, page, searchQuery, open, pageSize, hasMore]);
+  }, [selectedExchange, selectedInstrumentType, page, searchQuery, open, pageSize, hasMore]);
 
   const handleClose = () => {
     setPage(1);
     setSearchQuery('');
     setInstruments([]);
     setSelectedExchange(null);
+    setSelectedInstrumentType(null);
     setHasMore(true);
     setTempSelected(Array.isArray(selectedInstruments) ? selectedInstruments : []); // Reset to original selection
     onClose();
@@ -239,7 +256,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
       <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ flexGrow: 1, overflow: 'auto', mb: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Autocomplete
                 disablePortal
                 options={exchanges}
@@ -258,7 +275,29 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Grid item xs={12} md={4}>
+              <Autocomplete
+                disablePortal
+                options={instrumentTypes}
+                value={selectedInstrumentType}
+                onChange={(_, newValue) => {
+                  setSelectedInstrumentType(newValue);
+                  setPage(1);
+                }}
+                getOptionLabel={(option) => option.label}
+                isOptionEqualToValue={(option, value) => option.value === value.value}
+                disabled={!selectedExchange || (selectedExchange !== 'NSE' && selectedExchange !== 'BSE')}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="outlined"
+                    label="Instrument Type"
+                    placeholder="Select type"
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Button onClick={handleSelect} variant="contained" color="primary" size="large">
                 Select {tempSelected.length > 0 ? `(${tempSelected.length})` : ''}
               </Button>

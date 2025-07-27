@@ -9,6 +9,7 @@ interface Position {
   entry_time: string;
   exit_price?: number;
   exit_time?: string;
+  exit_reason?: string;
   pnl?: number;
   status: 'OPEN' | 'CLOSED' | 'CANCELLED';
   metadata: Record<string, any>;
@@ -45,6 +46,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     entry_time: "2025-05-20T10:30:45Z",
     exit_price: closingPrice,
     exit_time: "2025-05-23T14:30:45Z",
+    exit_reason: "USER_REQUESTED",
     pnl: pnl,
     status: "CLOSED",
     metadata: {

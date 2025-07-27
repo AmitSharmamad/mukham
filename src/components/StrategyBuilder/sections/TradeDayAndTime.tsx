@@ -12,6 +12,7 @@ interface TradeDayAndTimeProps {
   onFieldChange: (field: keyof FormData) => (value: any) => void;
   onTimeChange: (field: 'entryStartTime' | 'entryEndTime') => (value: Dayjs | null) => void;
   onClearTime: (field: 'entryStartTime' | 'entryEndTime') => () => null;
+  readOnly?: boolean;
 }
 
 export const TradeDayAndTime: React.FC<TradeDayAndTimeProps> = ({
@@ -20,6 +21,7 @@ export const TradeDayAndTime: React.FC<TradeDayAndTimeProps> = ({
   onFieldChange,
   onTimeChange,
   onClearTime,
+  readOnly = false,
 }) => {
   return (
     <Box>
