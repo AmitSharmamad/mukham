@@ -40,26 +40,25 @@ Parameters:
   PrivateSubnet2Id:
     Type: String
     Description: Private Subnet 2 ID for ECS tasks
+  ECSClusterName:
+    Type: String
+    Description: Name of the existing ECS cluster
+    Default: sutram-dev-cluster
+  ECSTaskExecutionRoleArn:
+    Type: String
+    Description: ARN of the existing ECS Task Execution Role (optional)
+    Default: ""
+  ECSTaskRoleArn:
+    Type: String
+    Description: ARN of the existing ECS Task Role (optional)
+    Default: ""
 
 Resources:
-  # ECS Cluster
-  ECSCluster:
-    Type: AWS::ECS::Cluster
-    Properties:
-      ClusterName: !Sub "${ProjectName}-${Environment}-cluster"
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
-      DefaultCapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
-      Tags:
-        - Key: Name
-          Value: !Sub "${ProjectName}-${Environment}-cluster"
 
-  # ECS Task Execution Role
+  # ECS Task Execution Role (conditional)
   ECSTaskExecutionRole:
     Type: AWS::IAM::Role
+    Condition: CreateTaskExecutionRole
     Properties:
       RoleName: !Sub "${ProjectName}-${Environment}-ecs-execution-role"
       AssumeRolePolicyDocument:
@@ -75,9 +74,10 @@ Resources:
         - Key: Name
           Value: !Sub "${ProjectName}-${Environment}-ecs-execution-role"
 
-  # ECS Task Role
+  # ECS Task Role (conditional)
   ECSTaskRole:
     Type: AWS::IAM::Role
+    Condition: CreateTaskRole
     Properties:
       RoleName: !Sub "${ProjectName}-${Environment}-ecs-task-role"
       AssumeRolePolicyDocument:
@@ -182,8 +182,8 @@ Resources:
         - FARGATE
       Cpu: !Ref CPU
       Memory: !Ref Memory
-      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
-      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      ExecutionRoleArn: !If [CreateTaskExecutionRole, !GetAtt ECSTaskExecutionRole.Arn, !Ref ECSTaskExecutionRoleArn]
+      TaskRoleArn: !If [CreateTaskRole, !GetAtt ECSTaskRole.Arn, !Ref ECSTaskRoleArn]
       ContainerDefinitions:
         - Name: mukham
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ProjectName}-${Environment}-mukham:${ImageTag}"
@@ -217,7 +217,7 @@ Resources:
     DependsOn: Listener
     Properties:
       ServiceName: !Sub "${ProjectName}-${Environment}-mukham"
-      Cluster: !Ref ECSCluster
+      Cluster: !Ref ECSClusterName
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: !If [IsProd, 2, 1]
       LaunchType: FARGATE
@@ -246,6 +246,8 @@ Resources:
           Value: !Ref Environment
 
 Conditions:
+  CreateTaskExecutionRole: !Equals [!Ref ECSTaskExecutionRoleArn, ""]
+  CreateTaskRole: !Equals [!Ref ECSTaskRoleArn, ""]
   IsProd: !Equals [!Ref Environment, prod]
 
 Outputs:
