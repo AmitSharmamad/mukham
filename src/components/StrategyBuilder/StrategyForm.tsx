@@ -547,6 +547,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           
           // Log the API data to console for debugging
           console.log('Submitting strategy data:', apiData);
+          console.log('Option legs being sent:', apiData.option_legs);
           
           const response = await fetch(url, {
             method: isEdit ? 'PUT' : 'POST',
@@ -646,6 +647,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         
         // Create SSE connection for backtest using POST data
         const formDataToSend = convertFormToApiData(formData);
+        
+        // Log the backtest data to console for debugging
+        console.log('Submitting backtest data:', formDataToSend);
+        console.log('Option legs for backtest:', formDataToSend.option_legs);
         
         // First, send the POST request to initiate the backtest and handle SSE stream directly
         const response = await fetch(`/api/backtest/run?strategy_id=${currentStrategyId}`, {
