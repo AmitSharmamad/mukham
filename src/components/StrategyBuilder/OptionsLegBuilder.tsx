@@ -294,40 +294,39 @@ export const OptionsLegBuilder: React.FC<OptionsLegBuilderProps> = ({
 
                         {/* Instrument Type Button Group */}
                         <Grid item xs={12} sm={4} md={2}>
-                          <Box>
-                            <ButtonGroup variant="outlined" size="small" fullWidth sx={{ height: '40px' }}>
-                              <Button
-                                variant={leg.instrumentType === 'Index' ? 'contained' : 'outlined'}
-                                onClick={() => {
-                                  updateLeg(leg.id, 'instrumentType', 'Index');
-                                  updateLeg(leg.id, 'selectedInstrument', null); // Reset instrument when type changes
-                                }}
-                                sx={{ 
-                                  height: '40px',
-                                  fontSize: '0.75rem',
-                                  minWidth: '50px',
-                                  flex: 1
-                                }}
-                              >
-                                Index
-                              </Button>
-                              <Button
-                                variant={leg.instrumentType === 'Stock' ? 'contained' : 'outlined'}
-                                onClick={() => {
-                                  updateLeg(leg.id, 'instrumentType', 'Stock');
-                                  updateLeg(leg.id, 'selectedInstrument', null); // Reset instrument when type changes
-                                }}
-                                sx={{ 
-                                  height: '40px',
-                                  fontSize: '0.75rem',
-                                  minWidth: '50px',
-                                  flex: 1
-                                }}
-                              >
-                                Stock
-                              </Button>
-                            </ButtonGroup>
-                          </Box>
+                          <ButtonGroup variant="outlined" size="small" fullWidth sx={{ height: '40px' }}>
+                            <Button
+                              variant={leg.instrumentType === 'Index' ? 'contained' : 'outlined'}
+                              onClick={() => {
+                                updateLeg(leg.id, 'instrumentType', 'Index');
+                                updateLeg(leg.id, 'selectedInstrument', null); // Reset instrument when type changes
+                              }}
+                              sx={{ 
+                                height: '40px',
+                                fontSize: '0.75rem',
+                                minWidth: '50px',
+                                flex: 1
+                              }}
+                            >
+                              Index
+                            </Button>
+                            <Button
+                              variant={leg.instrumentType === 'Stock' ? 'contained' : 'outlined'}
+                              onClick={() => {
+                                console.log('Stock button clicked'); // Debug log
+                                updateLeg(leg.id, 'instrumentType', 'Stock');
+                                updateLeg(leg.id, 'selectedInstrument', null); // Reset instrument when type changes
+                              }}
+                              sx={{ 
+                                height: '40px',
+                                fontSize: '0.75rem',
+                                minWidth: '50px',
+                                flex: 1
+                              }}
+                            >
+                              Stock
+                            </Button>
+                          </ButtonGroup>
                         </Grid>
 
                         {/* Add Instrument Dropdown */}

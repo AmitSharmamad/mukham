@@ -76,6 +76,38 @@ export const convertFormToApiData = (formData: FormData): ApiFormData => {
     }
   };
 
+  // Transform option legs for API
+  // This function converts the option legs from the form format to the API format
+  // and combines entry and exit legs into a single array for the API
+  const transformOptionLegs = (legs: any[]): any[] => {
+    if (!legs || !Array.isArray(legs)) return [];
+    
+    return legs.map((leg, index) => ({
+      id: crypto.randomUUID(), // Generate a new UUID for each leg
+      leg_sequence: index + 1, // Sequential numbering for legs
+      select_index: leg.selectedInstrument?.symbol || leg.selectedInstrument?.instrument || 'NIFTY', // Default to NIFTY if not available
+      exchange_security_id: leg.selectedInstrument?.exchange_security_id || leg.selectedInstrument?.value, // From Add Instrument dropdown
+      asset: leg.instrumentType?.toUpperCase() || 'INDEX', // Convert 'Index'/'Stock' to 'INDEX'/'STOCK'
+      exchange: leg.exchange || 'NSE', // Exchange from the leg
+      instrument_type: leg.segment === 'Options' ? 'OPTIONS' : leg.segment?.toUpperCase(), // Convert segment to uppercase
+      segment: leg.segment === 'Options' ? 'F&O' : leg.segment,
+      option_type: leg.optionType === 'CE' ? 'CALL' : leg.optionType === 'PE' ? 'PUT' : leg.optionType,
+      action_type: leg.buySell?.toUpperCase(), // 'BUY' or 'SELL'
+      strike_type: leg.strikeType, // 'ATM', 'OTM', 'ITM', etc.
+      strike_offset: leg.strikeType ? parseInt(leg.strikeType.replace(/[^\d]/g, '')) || 0 : 0, // Extract numeric offset from strike type
+      total_lot: parseInt(leg.lots) || 1,
+      order_type: 'MARKET', // Default to MARKET order
+      expiry_type: leg.expiryType?.toUpperCase() || 'MONTHLY',
+      expiry_cycle: leg.expiry ? leg.expiry.toUpperCase() : 'CURRENT',
+    }));
+  };
+
+  // Combine entry and exit option legs
+  const allOptionLegs = [
+    ...(formData.entryOptionLegs || []),
+    ...(formData.exitOptionLegs || [])
+  ];
+
   return {
     id: formData.id,
     name: formData.name,
@@ -93,8 +125,7 @@ export const convertFormToApiData = (formData: FormData): ApiFormData => {
     max_allocation: parseFloat(formData.maxAllocation),
     entry_expression: stringifyConditions(formData.entryConditions),
     exit_expression: stringifyConditions(formData.exitConditions),
-    entry_option_legs: formData.entryOptionLegs,
-    exit_option_legs: formData.exitOptionLegs,
+    option_legs: transformOptionLegs(allOptionLegs), // Transformed combined option legs
     expiration_strategy: formData.expirationStrategy,
     target_profit: parseFloat(formData.targetProfit),
     target_profit_type: formData.targetProfitType,
