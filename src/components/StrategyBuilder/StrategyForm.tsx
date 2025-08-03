@@ -546,8 +546,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           const url = isEdit ? `/api/strategy/${initialData.id}` : '/api/strategy';
           
           // Log the API data to console for debugging
+          console.log('=== STRATEGY SUBMISSION DEBUG ===');
+          console.log('Is Edit Mode:', isEdit);
+          console.log('Form Data Option Legs:', modifiedFormData.entryOptionLegs);
           console.log('Submitting strategy data:', apiData);
           console.log('Option legs being sent:', apiData.option_legs);
+          console.log('Option legs details:', JSON.stringify(apiData.option_legs, null, 2));
           
           const response = await fetch(url, {
             method: isEdit ? 'PUT' : 'POST',
@@ -1021,6 +1025,33 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         const entryConditions = parseExpressions(strategyData.entry_expression);
         const exitConditions = parseExpressions(strategyData.exit_expression);
         
+        // Transform API option legs to form format  
+        const transformApiOptionLegsToForm = (apiOptionLegs: any[] = []) => {
+          return apiOptionLegs.map((apiLeg: any) => ({
+            id: apiLeg.id || `leg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            exchange: apiLeg.exchange || 'NSE',
+            instrumentType: (apiLeg.asset === 'INDEX' ? 'Index' : 'Stock') as 'Index' | 'Stock',
+            selectedInstrument: {
+              exchange_security_id: apiLeg.exchange_security_id,
+              exchange: apiLeg.exchange,
+              segment: apiLeg.segment,
+              symbol: apiLeg.select_index,
+              instrument: apiLeg.select_index,
+              label: `${apiLeg.select_index} - ${apiLeg.exchange}`,
+              value: apiLeg.exchange_security_id
+            },
+            segment: (apiLeg.instrument_type === 'OPTIONS' ? 'Options' : 'Futures') as 'Futures' | 'Options',
+            buySell: (apiLeg.action_type === 'BUY' ? 'Buy' : 'Sell') as 'Buy' | 'Sell',
+            expiry: (apiLeg.expiry_cycle === 'CURRENT' ? 'Current' : 'Next') as 'Current' | 'Next',
+            lots: apiLeg.total_lot?.toString() || '1',
+            optionType: apiLeg.option_type === 'CALL' ? 'CE' as 'CE' | 'PE' : apiLeg.option_type === 'PUT' ? 'PE' as 'CE' | 'PE' : undefined,
+            expiryType: (apiLeg.expiry_type === 'WEEKLY' ? 'Weekly' : 'Monthly') as 'Weekly' | 'Monthly',
+            strikeType: apiLeg.strike_type || 'ATM'
+          }));
+        };
+
+        const optionLegs = transformApiOptionLegsToForm(strategyData.option_legs || []);
+        
         const formData: FormData = {
           id: strategyData.id,
           name: strategyData.name,
@@ -1036,8 +1067,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           maxQuantity: strategyData.qty?.toString() || '',
           entryConditions,
           exitConditions,
-          entryOptionLegs: strategyData.entry_option_legs || [],
-          exitOptionLegs: strategyData.exit_option_legs || [],
+          entryOptionLegs: optionLegs, // Use transformed option legs
+          exitOptionLegs: [], // Empty for now, can be refined later if needed
           expirationStrategy: strategyData.expiration_strategy || 'CLOSE',
           stopLoss: strategyData.stop_loss?.toString() || '',
           stopLossType: strategyData.stop_loss_type || 'ABSOLUTE',
@@ -1451,6 +1482,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         onClose={() => setInstrumentSelectorOpen(false)}
         onSelect={handleInstrumentSelect}
         selectedInstruments={selectedInstruments}
+        segment={formData.instrumentType === 'options' || formData.instrumentType === 'futures' ? 'F&O' : 'EQ'}
+        anchor="right"
       />
       
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
