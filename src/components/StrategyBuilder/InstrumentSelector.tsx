@@ -45,6 +45,7 @@ interface InstrumentSelectorProps {
   onSelect: (instruments: Instrument[]) => void;
   selectedInstruments: Instrument[];
   anchor?: 'left' | 'right'; // Optional prop to determine which side the drawer opens from
+  segment?: string; // Strategy segment (EQ or F&O) to determine market parameter
 }
 
 const exchanges = ['NSE', 'BSE', 'MCX'];
@@ -59,6 +60,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
   onSelect,
   selectedInstruments,
   anchor = 'right', // Default to right side
+  segment = 'EQ', // Default to EQ segment
 }) => {
   const [tempSelected, setTempSelected] = useState<Instrument[]>(Array.isArray(selectedInstruments) ? selectedInstruments : []);
   const [selectedExchange, setSelectedExchange] = useState<string | null>(null);
@@ -130,6 +132,13 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
           queryParams.append('exchange', selectedExchange);
         }
         
+        // Map segment to market parameter
+        const market = segment === 'F&O' ? 'F&O' : 'EQ';
+        queryParams.append('market', market);
+        
+        // Default contract to Spot as requested
+        queryParams.append('contract', 'Spot');
+        
         if (searchQuery) {
           queryParams.append('query', searchQuery);
         }
@@ -149,13 +158,14 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
               exchange_security_id: item.exchange_security_id,
               exchange: item.exchange,
               segment: item.segment,
-              symbol: item.tradingSymbol || item.symbol,
-              instrument: item.name || item.tradingSymbol || item.symbol,
-              instrument_id: item.instrumentToken || item.exchange_security_id,
+              symbol: item.symbol,
+              instrument: item.name || item.symbol,
+              instrument_id: item.exm_exch_id || item.exchange_security_id,
               start_date: item.start_date || '',
-              expiry: item.expiryDate || item.expiry || '',
-              lotSize: item.lotSize,
-              tickSize: item.tickSize
+              expiry: item.expiry || '',
+              lotSize: item.lot_units,
+              tickSize: item.tick_size,
+              tradingSymbol: item.trading_symbol
             }));
 
             // Append new data to existing data for infinite scroll
@@ -193,7 +203,7 @@ const InstrumentSelector: React.FC<InstrumentSelectorProps> = ({
       active = false;
       clearTimeout(debounceTimeout);
     };
-  }, [selectedExchange, selectedInstrumentType, page, searchQuery, open, pageSize, hasMore]);
+  }, [selectedExchange, selectedInstrumentType, page, searchQuery, open, pageSize, hasMore, segment]);
 
   const handleClose = () => {
     setPage(1);

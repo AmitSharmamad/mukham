@@ -82,24 +82,43 @@ export const convertFormToApiData = (formData: FormData): ApiFormData => {
   const transformOptionLegs = (legs: any[]): any[] => {
     if (!legs || !Array.isArray(legs)) return [];
     
-    return legs.map((leg, index) => ({
-      id: crypto.randomUUID(), // Generate a new UUID for each leg
-      leg_sequence: index + 1, // Sequential numbering for legs
-      select_index: leg.selectedInstrument?.symbol || leg.selectedInstrument?.instrument || 'NIFTY', // Default to NIFTY if not available
-      exchange_security_id: leg.selectedInstrument?.exchange_security_id || leg.selectedInstrument?.value, // From Add Instrument dropdown
-      asset: leg.instrumentType?.toUpperCase() || 'INDEX', // Convert 'Index'/'Stock' to 'INDEX'/'STOCK'
-      exchange: leg.exchange || 'NSE', // Exchange from the leg
-      instrument_type: leg.segment === 'Options' ? 'OPTIONS' : leg.segment?.toUpperCase(), // Convert segment to uppercase
-      segment: leg.segment === 'Options' ? 'F&O' : leg.segment,
-      option_type: leg.optionType === 'CE' ? 'CALL' : leg.optionType === 'PE' ? 'PUT' : leg.optionType,
-      action_type: leg.buySell?.toUpperCase(), // 'BUY' or 'SELL'
-      strike_type: leg.strikeType, // 'ATM', 'OTM', 'ITM', etc.
-      strike_offset: leg.strikeType ? parseInt(leg.strikeType.replace(/[^\d]/g, '')) || 0 : 0, // Extract numeric offset from strike type
-      total_lot: parseInt(leg.lots) || 1,
-      order_type: 'MARKET', // Default to MARKET order
-      expiry_type: leg.expiryType?.toUpperCase() || 'MONTHLY',
-      expiry_cycle: leg.expiry ? leg.expiry.toUpperCase() : 'CURRENT',
-    }));
+    return legs.map((leg, index) => {
+      // Only include id if it's a valid UUID (not the temporary leg_* format)
+      const isValidUUID = leg.id && leg.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+      
+      // Determine the correct segment value based on leg type
+      let segmentValue: string;
+      if (leg.segment === 'Options' || leg.segment === 'Futures') {
+        segmentValue = 'F&O';
+      } else {
+        segmentValue = 'EQ'; // Default to EQ for equity or any other type
+      }
+      
+      const legData: any = {
+        leg_sequence: index + 1, // Sequential numbering for legs
+        select_index: leg.selectedInstrument?.symbol || leg.selectedInstrument?.instrument || 'NIFTY', // Default to NIFTY if not available
+        exchange_security_id: leg.selectedInstrument?.exchange_security_id || leg.selectedInstrument?.value, // From Add Instrument dropdown
+        asset: leg.instrumentType?.toUpperCase() || 'INDEX', // Convert 'Index'/'Stock' to 'INDEX'/'STOCK'
+        exchange: leg.exchange || 'NSE', // Exchange from the leg
+        instrument_type: leg.segment === 'Options' ? 'OPTIONS' : leg.segment?.toUpperCase(), // Convert segment to uppercase
+        segment: segmentValue, // Always set to either "F&O" or "EQ"
+        option_type: leg.optionType === 'CE' ? 'CALL' : leg.optionType === 'PE' ? 'PUT' : leg.optionType,
+        action_type: leg.buySell?.toUpperCase(), // 'BUY' or 'SELL'
+        strike_type: leg.strikeType || 'ATM', // Always include strikeType, default to 'ATM' if not provided
+        strike_offset: leg.strikeType ? parseInt(leg.strikeType.replace(/[^\d]/g, '')) || 0 : 0, // Extract numeric offset from strike type
+        total_lot: parseInt(leg.lots) || 1,
+        order_type: 'MARKET', // Default to MARKET order
+        expiry_type: leg.expiryType?.toUpperCase() || 'MONTHLY',
+        expiry_cycle: leg.expiry ? leg.expiry.toUpperCase() : 'CURRENT',
+      };
+      
+      // Only include id for existing legs (when editing), not for new legs
+      if (isValidUUID) {
+        legData.id = leg.id;
+      }
+      
+      return legData;
+    });
   };
 
   // Combine entry and exit option legs

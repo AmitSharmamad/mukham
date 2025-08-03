@@ -132,6 +132,8 @@ export const OptionsLegBuilder: React.FC<OptionsLegBuilderProps> = ({
         instrumentType,
         page: '1',
         pageSize: '50',
+        market: 'F&O', // Always F&O for options legs
+        contract: 'Spot', // Default to Spot as requested
       });
       
       if (searchQuery) {
@@ -146,10 +148,10 @@ export const OptionsLegBuilder: React.FC<OptionsLegBuilderProps> = ({
           exchange_security_id: item.exchange_security_id,
           exchange: item.exchange,
           segment: item.segment,
-          symbol: item.tradingSymbol || item.symbol,
-          instrument: item.name || item.tradingSymbol || item.symbol,
-          instrument_id: item.instrumentToken || item.exchange_security_id,
-          label: `${item.tradingSymbol || item.symbol} - ${item.exchange}`,
+          symbol: item.symbol,
+          instrument: item.name || item.symbol,
+          instrument_id: item.exm_exch_id || item.exchange_security_id,
+          label: `${item.symbol} - ${item.exchange}`,
           value: item.exchange_security_id
         }));
         

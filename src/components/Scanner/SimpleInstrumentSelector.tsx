@@ -84,6 +84,8 @@ export function SimpleInstrumentSelector({ selectedInstruments, onChange }) {
         onClose={handleCloseSelector}
         onSelect={handleSelect}
         selectedInstruments={selectedInstruments}
+        segment="EQ"
+        anchor="right"
       />
     </Box>
   );
