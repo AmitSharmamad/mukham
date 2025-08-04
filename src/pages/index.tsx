@@ -225,81 +225,36 @@ export default function Index() {
                   zIndex: 1
                 }}
               />
-              {/* Bull image in the current place of green circle (top left) */}
-              <motion.div
-                animate={{
-                  y: [0, -8, 0],
-                  rotate: [0, 5, 0]
-                }}
-                transition={{
-                  duration: 3.5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                style={{
-                  position: 'absolute',
-                  top: '10%',
-                  left: '10%',
-                  width: '120px',
-                  height: '120px',
-                  zIndex: 2,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(56, 142, 60, 0.3))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid rgba(76, 175, 80, 0.4)',
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: '0 8px 24px rgba(76, 175, 80, 0.2)'
-                }}
-              >
-                <img 
-                  src="/bull.jpeg" 
-                  alt="Bull market indicator"
-                  style={{
-                    width: '80%',
-                    height: '80%',
-                    objectFit: 'contain',
-                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3)) saturate(1.5) contrast(2) brightness(0.9) hue-rotate(10deg)',
-                    background: 'transparent',
-                    mixBlendMode: 'screen',
-                    opacity: 0.95
-                  }}
-                />
-              </motion.div>
-              {/* Bear image in the current place of red circle (middle right) */}
-              <motion.div
-                animate={{
-                  y: [0, 12, 0],
-                  rotate: [0, -3, 0]
-                }}
-                transition={{
-                  duration: 4.2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.8
-                }}
-                style={{
-                  position: 'absolute',
-                  top: '60%',
-                  right: '15%',
-                  width: '100px',
-                  height: '100px',
-                  zIndex: 2
-                }}
-              >
-                <img 
-                  src="/bear.png" 
-                  alt="Bear market indicator"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain'
-                  }}
-                />
-              </motion.div>
+
               
               <Box sx={{ position: 'relative', zIndex: 2 }}>
+                {/* Promotional Offer Banner */}
+                <motion.div variants={fadeInUp}>
+                  <Chip
+                    label="LIMITED TIME: 20% Flat Off for First 6 Months who sign up for Beta"
+                    sx={{
+                      mb: 4,
+                      fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' },
+                      fontWeight: 600,
+                      py: 1,
+                      px: { xs: 2, sm: 3 },
+                      height: 'auto',
+                      minHeight: 'auto',
+                      bgcolor: 'warning.light',
+                      color: 'warning.contrastText',
+                      maxWidth: { xs: '100%', sm: 'none' },
+                      '& .MuiChip-label': {
+                        py: 1,
+                        px: { xs: 1, sm: 2 },
+                        whiteSpace: 'normal',
+                        textAlign: 'center',
+                        lineHeight: 1.3,
+                        wordBreak: 'break-word'
+                      }
+                    }}
+                  />
+                </motion.div>
+
                 <motion.div variants={fadeInUp}>
                   <Typography 
                     variant="h1" 
