@@ -19,8 +19,12 @@ Parameters:
     Default: ""
   ExistingHostedZoneId:
     Type: String
+    Default: Z00071212ZK17YVJG7UEW
+    Description: Existing Route 53 Hosted Zone ID
+  MukhamBackendURL:
+    Type: String
+    Description: Backend ALB URL for Mukham service
     Default: ""
-    Description: Existing Route 53 Hosted Zone ID (leave empty to create new)
 
 Resources:
   # CloudFront Distribution
@@ -34,9 +38,7 @@ Resources:
             - IsProd
             - - !Ref BaseDomainName
               - !Sub "www.${BaseDomainName}"
-              - !Sub "mukham.${BaseDomainName}"
             - - !Sub "dev.${BaseDomainName}"
-              - !Sub "mukham.dev.${BaseDomainName}"
           - !Ref "AWS::NoValue"
         Comment: !Sub "${ProjectName} ${Environment} CDN"
         Enabled: true
@@ -47,7 +49,10 @@ Resources:
         # Default Origin - Points to Mukham ECS
         Origins:
           - Id: mukham-ecs-origin
-            DomainName:
+            DomainName: !If
+              - HasMukhamBackend
+              - !Ref MukhamBackendURL
+              - !Sub "${ProjectName}-${Environment}-mukham-alb-dns.${AWS::Region}.elb.amazonaws.com"
               Fn::ImportValue: !Sub "${ProjectName}-${Environment}-mukham-alb-dns"
             CustomOriginConfig:
               HTTPPort: 80
@@ -168,7 +173,7 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
 
-  # Route 53 Hosted Zone (if needed)
+  # Route 53 Hosted Zone (only if needed)
   HostedZone:
     Type: AWS::Route53::HostedZone
     Condition: CreateHostedZone
@@ -229,24 +234,8 @@ Resources:
         EvaluateTargetHealth: false
         HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
 
-  # Route 53 Records for Mukham subdomain - Production
-  MukhamProdAliasRecord:
-    Type: AWS::Route53::RecordSet
-    Condition: HasCustomCertificateAndProd
-    Properties:
-      HostedZoneId: !If
-        - CreateHostedZone
-        - !Ref HostedZone
-        - !Ref ExistingHostedZoneId
-      Name: !Sub "mukham.${BaseDomainName}"
-      Type: A
-      AliasTarget:
-        DNSName: !GetAtt CloudFrontDistribution.DomainName
-        EvaluateTargetHealth: false
-        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
-
-  # Route 53 Records for Mukham subdomain - Development
-  MukhamDevAliasRecord:
+  # Root domain points to dev environment for now (requirement 6)
+  RootToDevRecord:
     Type: AWS::Route53::RecordSet
     Condition: HasCustomCertificateAndDev
     Properties:
@@ -254,7 +243,7 @@ Resources:
         - CreateHostedZone
         - !Ref HostedZone
         - !Ref ExistingHostedZoneId
-      Name: !Sub "mukham.dev.${BaseDomainName}"
+      Name: !Ref BaseDomainName
       Type: A
       AliasTarget:
         DNSName: !GetAtt CloudFrontDistribution.DomainName
@@ -267,9 +256,8 @@ Conditions:
   IsDev: !Equals [!Ref Environment, dev]
   HasCustomCertificateAndProd: !And [!Condition HasCustomCertificate, !Condition IsProd]
   HasCustomCertificateAndDev: !And [!Condition HasCustomCertificate, !Condition IsDev]
-  CreateHostedZone: !And
-    - !Condition HasCustomCertificate
-    - !Equals [!Ref ExistingHostedZoneId, ""]
+  CreateHostedZone: !Equals [!Ref ExistingHostedZoneId, ""]
+  HasMukhamBackend: !Not [!Equals [!Ref MukhamBackendURL, ""]]
 
 Outputs:
   CloudFrontDistributionId:
