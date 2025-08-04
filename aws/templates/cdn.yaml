@@ -38,7 +38,11 @@ Resources:
             - IsProd
             - - !Ref BaseDomainName
               - !Sub "www.${BaseDomainName}"
-            - - !Sub "dev.${BaseDomainName}"
+              - !Sub "mukham.${BaseDomainName}"
+              - !Sub "web.${BaseDomainName}"
+            - - !Ref BaseDomainName
+              - !Sub "mukham.dev.${BaseDomainName}"
+              - !Sub "web.dev.${BaseDomainName}"
           - !Ref "AWS::NoValue"
         Comment: !Sub "${ProjectName} ${Environment} CDN"
         Enabled: true
@@ -52,8 +56,10 @@ Resources:
             DomainName: !If
               - HasMukhamBackend
               - !Ref MukhamBackendURL
-              - !Sub "${ProjectName}-${Environment}-mukham-alb-dns.${AWS::Region}.elb.amazonaws.com"
-              Fn::ImportValue: !Sub "${ProjectName}-${Environment}-mukham-alb-dns"
+              - !If
+                - IsProd
+                - !Sub "mukham.${BaseDomainName}"
+                - !Sub "mukham.dev.${BaseDomainName}"
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -61,7 +67,10 @@ Resources:
               OriginSSLProtocols:
                 - TLSv1.2
           - Id: web-api-origin
-            DomainName: !Sub "web.${BaseDomainName}"
+            DomainName: !If
+              - IsProd
+              - !Sub "web.${BaseDomainName}"
+              - !Sub "web.dev.${BaseDomainName}"
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -250,6 +259,70 @@ Resources:
         EvaluateTargetHealth: false
         HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
 
+  # Mukham subdomain for Production
+  MukhamProdAliasRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasCustomCertificateAndProd
+    Properties:
+      HostedZoneId: !If
+        - CreateHostedZone
+        - !Ref HostedZone
+        - !Ref ExistingHostedZoneId
+      Name: !Sub "mukham.${BaseDomainName}"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
+
+  # Mukham subdomain for Development
+  MukhamDevAliasRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasCustomCertificateAndDev
+    Properties:
+      HostedZoneId: !If
+        - CreateHostedZone
+        - !Ref HostedZone
+        - !Ref ExistingHostedZoneId
+      Name: !Sub "mukham.dev.${BaseDomainName}"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
+
+  # Web API subdomain for Production
+  WebProdAliasRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasCustomCertificateAndProd
+    Properties:
+      HostedZoneId: !If
+        - CreateHostedZone
+        - !Ref HostedZone
+        - !Ref ExistingHostedZoneId
+      Name: !Sub "web.${BaseDomainName}"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
+
+  # Web API subdomain for Development
+  WebDevAliasRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasCustomCertificateAndDev
+    Properties:
+      HostedZoneId: !If
+        - CreateHostedZone
+        - !Ref HostedZone
+        - !Ref ExistingHostedZoneId
+      Name: !Sub "web.dev.${BaseDomainName}"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
+
 Conditions:
   HasCustomCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
   IsProd: !Equals [!Ref Environment, prod]
@@ -291,6 +364,14 @@ Outputs:
       - IsProd
       - !Sub "https://mukham.${BaseDomainName}"
       - !Sub "https://mukham.dev.${BaseDomainName}"
+
+  WebAPISubdomainURL:
+    Condition: HasCustomCertificate
+    Description: Web API Subdomain URL
+    Value: !If
+      - IsProd
+      - !Sub "https://web.${BaseDomainName}"
+      - !Sub "https://web.dev.${BaseDomainName}"
 
   HostedZoneId:
     Condition: CreateHostedZone
