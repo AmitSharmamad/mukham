@@ -248,12 +248,12 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
               <ListItemText primary="Home" />
             </ListItemButton>
 
-            {/* <ListItemButton onClick={() => handleNavigate('/strategy')}>
+            <ListItemButton onClick={() => handleNavigate('/strategy')}>
               <ListItemIcon>
                 <BuildIcon />
               </ListItemIcon>
               <ListItemText primary="Strategy" />
-            </ListItemButton> */}
+            </ListItemButton>
 
             <ListItemButton onClick={() => handleNavigate('/deployment')}>
               <ListItemIcon>
@@ -536,14 +536,14 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                   </Button>
 
                   {/* Strategy */}
-                  {/* <Button 
+                  <Button 
                     color="inherit" 
                     component={Link} 
                     href="/strategy"
                     sx={{ fontSize: '1.1rem' }}
                   >
                     Strategy
-                  </Button> */}
+                  </Button>
 
                   {/* Deployment */}
                   <Button 
