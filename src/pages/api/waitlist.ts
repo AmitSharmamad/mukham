@@ -6,16 +6,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { email } = req.body;
+  const { email, nature_of_work, trading_type, experience_level, work_type, age } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ message: 'Email is required' });
+  if (!email || !nature_of_work || !trading_type || !experience_level || !work_type || !age) {
+    return res.status(400).json({ message: 'All fields are required' });
   }
 
   try {
     // Forward the request to the backend API
     const response = await axios.post('http://localhost:9090/api/waitlist', {
-      email
+      email,
+      nature_of_work,
+      trading_type,
+      experience_level,
+      work_type,
+      age
     }, {
       headers: {
         'Content-Type': 'application/json',

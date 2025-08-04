@@ -2,6 +2,11 @@ import axios from 'axios';
 
 interface WaitlistRequest {
   email: string;
+  nature_of_work: string;
+  trading_type: string;
+  experience_level: string;
+  work_type: string;
+  age: number;
 }
 
 interface WaitlistResponse {
@@ -9,11 +14,9 @@ interface WaitlistResponse {
   email: string;
 }
 
-export const joinWaitlist = async (email: string): Promise<WaitlistResponse> => {
+export const joinWaitlist = async (data: WaitlistRequest): Promise<WaitlistResponse> => {
   try {
-    const response = await axios.post('/api/waitlist', {
-      email
-    }, {
+    const response = await axios.post('/api/waitlist', data, {
       headers: {
         'Content-Type': 'application/json',
       },
