@@ -7,17 +7,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 # Check arguments
-if [[ $# -lt 1 || $# -gt 3 ]]; then
-    print_error "Usage: $0 <environment> [certificate_arn] [hosted_zone_id]"
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+    print_error "Usage: $0 <environment> [mukham_backend_url]"
     print_error "Environment: dev or prod"
-    print_error "Certificate ARN: optional, SSL certificate ARN (must be in us-east-1)"
-    print_error "Hosted Zone ID: optional, existing Route 53 hosted zone ID"
+    print_error "Mukham Backend URL: optional, backend ALB URL for origin"
     exit 1
 fi
 
 ENVIRONMENT="$1"
-CERTIFICATE_ARN="${2:-}"
-HOSTED_ZONE_ID="${3:-}"
+MUKHAM_BACKEND_URL="${2:-}"
 
 # Validate environment
 if [[ "$ENVIRONMENT" != "dev" && "$ENVIRONMENT" != "prod" ]]; then
@@ -34,14 +32,17 @@ check_aws
 
 print_info "Deploying CDN for $ENVIRONMENT environment"
 
+# Use certificate ARN from environment file or create new one
+CERTIFICATE_ARN="${CLOUDFRONT_CERTIFICATE_ARN:-}"
+
 # Create SSL certificate if not provided
-if [[ -z "$CERTIFICATE_ARN" && "$ENVIRONMENT" == "prod" ]]; then
-    print_info "Creating SSL certificate for production..."
+if [[ -z "$CERTIFICATE_ARN" ]]; then
+    print_info "Creating SSL certificate for CloudFront..."
     
-    # Request certificate
+    # Request certificate in us-east-1 (required for CloudFront)
     CERTIFICATE_ARN=$(aws acm request-certificate \
-        --domain-name "sutram.co" \
-        --subject-alternative-names "*.sutram.co" "mukham.sutram.co" \
+        --domain-name "${BASE_DOMAIN_NAME}" \
+        --subject-alternative-names "*.${BASE_DOMAIN_NAME}" "www.${BASE_DOMAIN_NAME}" "dev.${BASE_DOMAIN_NAME}" \
         --validation-method DNS \
         --region us-east-1 \
         --query 'CertificateArn' \
@@ -65,14 +66,16 @@ TEMPLATE_FILE="$SCRIPT_DIR/../templates/cdn.yaml"
 PARAMS=(
     "Environment=$ENVIRONMENT"
     "ProjectName=$PROJECT_NAME"
+    "BaseDomainName=${BASE_DOMAIN_NAME}"
+    "ExistingHostedZoneId=${PUBLIC_HOSTED_ZONE_ID}"
 )
 
 if [[ -n "$CERTIFICATE_ARN" ]]; then
     PARAMS+=("CertificateArn=$CERTIFICATE_ARN")
 fi
 
-if [[ -n "$HOSTED_ZONE_ID" ]]; then
-    PARAMS+=("ExistingHostedZoneId=$HOSTED_ZONE_ID")
+if [[ -n "$MUKHAM_BACKEND_URL" ]]; then
+    PARAMS+=("MukhamBackendURL=$MUKHAM_BACKEND_URL")
 fi
 
 print_info "Deploying CloudFormation stack: $STACK_NAME"
@@ -92,11 +95,12 @@ if [[ $? -eq 0 ]]; then
     print_info "CloudFront URL: https://$CLOUDFRONT_DOMAIN"
     
     if [[ "$ENVIRONMENT" == "prod" ]]; then
-        print_info "Production domain: https://sutram.co"
-        print_info "Mukham subdomain: https://mukham.sutram.co"
+        print_info "Production domain: https://${BASE_DOMAIN_NAME}"
+        print_info "WWW domain: https://www.${BASE_DOMAIN_NAME}"
         print_warning "DNS propagation may take up to 24 hours"
     else
-        print_info "Development domain: https://dev.sutram.co"
+        print_info "Development domain: https://dev.${BASE_DOMAIN_NAME}"
+        print_info "Root domain (pointing to dev): https://${BASE_DOMAIN_NAME}"
         print_info "Mukham subdomain: https://mukham.dev.sutram.co"
     fi
     
