@@ -492,6 +492,7 @@ export default function Index() {
                     <Card 
                       sx={{ 
                         height: '100%',
+                        minHeight: '180px',
                         p: 4,
                         borderRadius: 3,
                         boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
@@ -499,6 +500,8 @@ export default function Index() {
                         borderColor: 'divider',
                         position: 'relative',
                         transition: 'all 0.3s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
                         '&:hover': {
                           transform: 'translateY(-4px)',
                           boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
@@ -520,59 +523,61 @@ export default function Index() {
                           }}
                         />
                       )}
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                        <motion.div
-                          animate={{ 
-                            rotate: [0, 10, -10, 0]
-                          }}
-                          transition={{
-                            duration: 3,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                            delay: index * 0.3
-                          }}
-                        >
-                          <Box 
-                            sx={{ 
-                              width: 50,
-                              height: 50,
-                              borderRadius: 2,
-                              bgcolor: `${feature.color}20`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, height: '100%', flexDirection: 'column' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                          <motion.div
+                            animate={{ 
+                              rotate: [0, 10, -10, 0]
+                            }}
+                            transition={{
+                              duration: 3,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                              delay: index * 0.3
                             }}
                           >
-                            <feature.icon 
+                            <Box 
                               sx={{ 
-                                fontSize: 24,
-                                color: feature.color
-                              }} 
-                            />
-                          </Box>
-                        </motion.div>
-                        
-                        <Box>
-                          <Typography 
-                            variant="h6" 
-                            component="h3" 
-                            gutterBottom
-                            sx={{ 
-                              fontWeight: 'bold',
-                              color: feature.color
-                            }}
-                          >
-                            {feature.title}
-                          </Typography>
+                                width: 50,
+                                height: 50,
+                                borderRadius: 2,
+                                bgcolor: `${feature.color}20`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}
+                            >
+                              <feature.icon 
+                                sx={{ 
+                                  fontSize: 24,
+                                  color: feature.color
+                                }} 
+                              />
+                            </Box>
+                          </motion.div>
                           
-                          <Typography 
-                            variant="body1" 
-                            color="text.secondary"
-                            sx={{ lineHeight: 1.6 }}
-                          >
-                            {feature.description}
-                          </Typography>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography 
+                              variant="h6" 
+                              component="h3" 
+                              gutterBottom
+                              sx={{ 
+                                fontWeight: 'bold',
+                                color: feature.color
+                              }}
+                            >
+                              {feature.title}
+                            </Typography>
+                            
+                            <Typography 
+                              variant="body1" 
+                              color="text.secondary"
+                              sx={{ lineHeight: 1.6 }}
+                            >
+                              {feature.description}
+                            </Typography>
+                          </Box>
                         </Box>
                       </Box>
                     </Card>
