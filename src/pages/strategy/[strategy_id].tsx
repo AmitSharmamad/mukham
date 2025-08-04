@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import { mapTimeframeToDisplay } from '../../constants';
 import { checkPageAuth } from '../../utils/pageAuthUtils';
 import { getApiErrorMessage } from '../../utils/apiErrorHandler';
+import { segmentToInstrumentType, apiStrategyTypeToFormType } from '../../utils/strategyFormUtils';
 
 interface Instrument {
   exchange_security_id: number;
@@ -23,6 +24,8 @@ interface FormattedStrategy {
   id: string;
   name: string;
   description: string;
+  instrumentType: 'equity' | 'futures' | 'options';
+  strategyType: 'expression' | 'time-based' | '';
   buyOrSell: 'buy' | 'sell';
   instruments: number[];
   candlestickType: string;
@@ -33,6 +36,9 @@ interface FormattedStrategy {
   brickSize?: string;
   entryConditions: any;
   exitConditions: any;
+  entryOptionLegs: any[];
+  exitOptionLegs: any[];
+  expirationStrategy?: 'EXPIRE' | 'CLOSE' | 'EXERCISE';
   stopLoss: string;
   stopLossType: 'ABSOLUTE' | 'PERCENTAGE';
   targetProfit: string;
@@ -44,6 +50,7 @@ interface FormattedStrategy {
   endDate: string;
   brokerage: string;
   slippage: string;
+  tradingDays: string[];
   is_readonly?: boolean; // Add the is_readonly property
 }
 
@@ -92,10 +99,41 @@ export default function EditStrategy() {
         const strategyData = data.data;
         const isNullTime = (time: string) => !time || time === "0001-01-01T00:00:00Z" || time === "00:00:00";
         
+        // Transform API option legs to form format
+        const transformApiOptionLegsToForm = (apiOptionLegs: any[] = []) => {
+          return apiOptionLegs.map((apiLeg: any) => ({
+            id: apiLeg.id || `leg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            exchange: apiLeg.exchange || 'NSE',
+            instrumentType: (apiLeg.asset === 'INDEX' ? 'Index' : 'Stock') as 'Index' | 'Stock',
+            selectedInstrument: {
+              exchange_security_id: apiLeg.exchange_security_id,
+              exchange: apiLeg.exchange,
+              segment: apiLeg.segment,
+              symbol: apiLeg.select_index,
+              instrument: apiLeg.select_index,
+              label: `${apiLeg.select_index} - ${apiLeg.exchange}`,
+              value: apiLeg.exchange_security_id
+            },
+            segment: (apiLeg.instrument_type === 'OPTIONS' ? 'Options' : 'Futures') as 'Futures' | 'Options',
+            buySell: (apiLeg.action_type === 'BUY' ? 'Buy' : 'Sell') as 'Buy' | 'Sell',
+            expiry: (apiLeg.expiry_cycle === 'CURRENT' ? 'Current' : 'Next') as 'Current' | 'Next',
+            lots: apiLeg.total_lot?.toString() || '1',
+            optionType: apiLeg.option_type === 'CALL' ? 'CE' as 'CE' | 'PE' : apiLeg.option_type === 'PUT' ? 'PE' as 'CE' | 'PE' : undefined,
+            expiryType: (apiLeg.expiry_type === 'WEEKLY' ? 'Weekly' : 'Monthly') as 'Weekly' | 'Monthly',
+            strikeType: apiLeg.strike_type || 'ATM'
+          }));
+        };
+
+        const optionLegs = transformApiOptionLegsToForm(strategyData.option_legs || []);
+        
         const formData: FormattedStrategy = {
           id: strategyData.id,
           name: strategyData.name,
           description: strategyData.description,
+          instrumentType: segmentToInstrumentType(strategyData.segment),
+          strategyType: segmentToInstrumentType(strategyData.segment) === 'options' 
+            ? apiStrategyTypeToFormType(strategyData.strategy_type) 
+            : '',
           buyOrSell: strategyData.position_type === 'LONG' ? 'buy' : 'sell',
           instruments: strategyData.instruments, // These are already the correct ids
           candlestickType: strategyData.chart_type || 'CANDLESTICK',
@@ -105,6 +143,9 @@ export default function EditStrategy() {
           maxQuantity: strategyData.qty?.toString() || '',
           entryConditions: strategyData.entry_expression,
           exitConditions: strategyData.exit_expression,
+          entryOptionLegs: optionLegs, // For now, put all legs in entry - can be refined later based on leg type
+          exitOptionLegs: [], // Empty for now, can be refined later if needed
+          expirationStrategy: strategyData.expiration_strategy || 'CLOSE',
           stopLoss: strategyData.stop_loss?.toString() || '',
           stopLossType: strategyData.stop_loss_type || 'ABSOLUTE',
           targetProfit: strategyData.target_profit?.toString() || '',
@@ -117,6 +158,7 @@ export default function EditStrategy() {
           brickSize: strategyData.brick_size?.toString() || '',
           brokerage: strategyData.brokerage?.toString() || '20',
           slippage: strategyData.slippage?.toString() || '0.5',
+          tradingDays: strategyData.trading_days || [],
           is_readonly: strategyData.is_readonly, // Add the is_readonly property
         };
         

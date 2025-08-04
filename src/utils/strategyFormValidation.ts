@@ -41,24 +41,33 @@ export const validateForm = (formData: FormData, selectedInstruments: Instrument
     newErrors.instrumentType = 'Instrument type is required';
   }
   
-  if (!formData.buyOrSell) {
+  // Position type (buyOrSell) is only required for Equity strategies
+  if (formData.instrumentType === 'equity' && !formData.buyOrSell) {
     newErrors.buyOrSell = 'Position type is required';
   }
   
-  if (selectedInstruments.length === 0) {
+  // Instrument selection validation depends on strategy type
+  if (formData.instrumentType === 'options' && formData.strategyType === 'time-based') {
+    // For F&O Time-based: Instruments are managed through option legs, not traditional selection
+    // So we don't validate selectedInstruments here
+  } else if (selectedInstruments.length === 0) {
+    // For Equity and F&O Expression: Need at least one instrument selected
     newErrors.instruments = 'At least one instrument must be selected';
   }
   
   if (!formData.candlestickType) {
     newErrors.candlestickType = 'Candlestick type is required';
   }
-  
-  if (!formData.maxAllocation || formData.maxAllocation === '' || parseFloat(formData.maxAllocation) <= 0) {
-    newErrors.maxAllocation = 'Max Allocation is required and must be greater than 0';
-  }
 
-  if (!formData.maxQuantity || formData.maxQuantity === '' || parseFloat(formData.maxQuantity) <= 0) {
-    newErrors.maxQuantity = 'Max Quantity is required and must be greater than 0';
+  // Max allocation and quantity are only required for Equity strategies
+  if (formData.instrumentType === 'equity') {
+    if (!formData.maxAllocation || formData.maxAllocation === '' || parseFloat(formData.maxAllocation) <= 0) {
+      newErrors.maxAllocation = 'Max Allocation is required and must be greater than 0';
+    }
+
+    if (!formData.maxQuantity || formData.maxQuantity === '' || parseFloat(formData.maxQuantity) <= 0) {
+      newErrors.maxQuantity = 'Max Quantity is required and must be greater than 0';
+    }
   }
 
   if (isRenkoType && (!formData.brickSize || formData.brickSize === '0')) {
@@ -87,10 +96,14 @@ export const validateForm = (formData: FormData, selectedInstruments: Instrument
   // Exit section validation
   if (formData.stopLoss === '') {
     newErrors.stopLoss = 'Stop loss is required';
+  } else if (isNaN(parseFloat(formData.stopLoss)) || parseFloat(formData.stopLoss) <= 0) {
+    newErrors.stopLoss = 'Stop loss must be a positive number';
   }
   
   if (formData.targetProfit === '') {
     newErrors.targetProfit = 'Target profit is required';
+  } else if (isNaN(parseFloat(formData.targetProfit)) || parseFloat(formData.targetProfit) <= 0) {
+    newErrors.targetProfit = 'Target profit must be a positive number';
   }
   
   // Backtest parameters validation
@@ -139,20 +152,46 @@ export const isFormValid = (formData: FormData, selectedInstruments: Instrument[
   // Check each section's mandatory fields
   const isNameSectionValid = !!formData.name.trim();
   
-  const isPositionsSectionValid = !!(
-    formData.instrumentType &&
-    formData.buyOrSell &&
-    selectedInstruments.length > 0 &&
-    formData.candlestickType &&
-    formData.timeframe &&
-    formData.tradeType &&
-    formData.maxAllocation &&
-    formData.maxAllocation !== '' &&
-    parseFloat(formData.maxAllocation) > 0 &&
-    formData.maxQuantity &&
-    formData.maxQuantity !== '' &&
-    parseFloat(formData.maxQuantity) > 0
-  );
+  // Check positions completion based on strategy type - same logic as isSectionComplete
+  let isPositionsSectionValid = false;
+  if (formData.instrumentType === 'options' && formData.strategyType === 'expression') {
+    // For F&O Expression: Only need instruments, chart settings, no max allocation/quantity
+    isPositionsSectionValid = !!(
+      formData.instrumentType &&
+      selectedInstruments.length > 0 &&
+      formData.candlestickType &&
+      formData.timeframe &&
+      formData.tradeType
+    );
+  } else if (formData.instrumentType === 'options' && formData.strategyType === 'time-based') {
+    // For F&O Time-based: Instruments are managed through option legs, not traditional instrument selection
+    // Just need basic chart settings
+    isPositionsSectionValid = !!(
+      formData.instrumentType &&
+      formData.candlestickType &&
+      formData.timeframe &&
+      formData.tradeType
+    );
+  } else if (formData.instrumentType === 'equity') {
+    // For Equity: Need all fields including position type and max allocation/quantity
+    isPositionsSectionValid = !!(
+      formData.instrumentType &&
+      formData.buyOrSell &&
+      selectedInstruments.length > 0 &&
+      formData.candlestickType &&
+      formData.timeframe &&
+      formData.tradeType &&
+      formData.maxAllocation &&
+      formData.maxAllocation !== '' &&
+      parseFloat(formData.maxAllocation) > 0 &&
+      formData.maxQuantity &&
+      formData.maxQuantity !== '' &&
+      parseFloat(formData.maxQuantity) > 0
+    );
+  } else {
+    // No instrument type selected yet
+    isPositionsSectionValid = false;
+  }
   
   const isEntrySectionValid = isOptionsType 
     ? (formData.entryOptionLegs.length > 0)
@@ -160,7 +199,13 @@ export const isFormValid = (formData: FormData, selectedInstruments: Instrument[
   
   const isExitSectionValid = !!(
     formData.stopLoss &&
-    formData.targetProfit
+    formData.stopLoss !== '' &&
+    !isNaN(parseFloat(formData.stopLoss)) &&
+    parseFloat(formData.stopLoss) > 0 &&
+    formData.targetProfit &&
+    formData.targetProfit !== '' &&
+    !isNaN(parseFloat(formData.targetProfit)) &&
+    parseFloat(formData.targetProfit) > 0
   );
   
   const isBacktestSectionValid = !!(
@@ -196,6 +241,7 @@ export const isSectionComplete = (sectionId: string, formData: FormData, selecte
       if (formData.instrumentType === 'options' && formData.strategyType === 'expression') {
         // For F&O Expression: Only need instruments, chart settings, no max allocation/quantity
         isPositionsComplete = (
+          !!formData.instrumentType &&
           selectedInstruments.length > 0 &&
           !!formData.candlestickType &&
           !!formData.timeframe &&
@@ -203,10 +249,17 @@ export const isSectionComplete = (sectionId: string, formData: FormData, selecte
         );
       } else if (formData.instrumentType === 'options' && formData.strategyType === 'time-based') {
         // For F&O Time-based: Instruments are managed through option legs, not traditional instrument selection
-        isPositionsComplete = true; // Always complete as instruments are selected in legs
-      } else {
+        // Just need basic chart settings
+        isPositionsComplete = (
+          !!formData.instrumentType &&
+          !!formData.candlestickType &&
+          !!formData.timeframe &&
+          !!formData.tradeType
+        );
+      } else if (formData.instrumentType === 'equity') {
         // For Equity: Need all fields including position type and max allocation/quantity
         isPositionsComplete = (
+          !!formData.instrumentType &&
           !!formData.buyOrSell &&
           selectedInstruments.length > 0 &&
           !!formData.candlestickType &&
@@ -219,22 +272,53 @@ export const isSectionComplete = (sectionId: string, formData: FormData, selecte
           formData.maxQuantity !== '' &&
           parseFloat(formData.maxQuantity) > 0
         );
+      } else {
+        // No instrument type selected yet
+        isPositionsComplete = false;
       }
       
       return isNameComplete && isPositionsComplete;
     
     case 'positions':
-      return (
-        !!formData.instrumentType &&
-        !!formData.buyOrSell &&
-        selectedInstruments.length > 0 &&
-        !!formData.candlestickType &&
-        !!formData.timeframe &&
-        !!formData.tradeType &&
-        !!formData.maxAllocation &&
-        formData.maxAllocation !== '' &&
-        parseFloat(formData.maxAllocation) > 0
-      );
+      // Check positions completion based on strategy type
+      if (formData.instrumentType === 'options' && formData.strategyType === 'expression') {
+        // For F&O Expression: Only need instruments, chart settings, no max allocation/quantity/buyOrSell
+        return (
+          !!formData.instrumentType &&
+          selectedInstruments.length > 0 &&
+          !!formData.candlestickType &&
+          !!formData.timeframe &&
+          !!formData.tradeType
+        );
+      } else if (formData.instrumentType === 'options' && formData.strategyType === 'time-based') {
+        // For F&O Time-based: Instruments are managed through option legs, not traditional instrument selection
+        // Just need basic chart settings
+        return (
+          !!formData.instrumentType &&
+          !!formData.candlestickType &&
+          !!formData.timeframe &&
+          !!formData.tradeType
+        );
+      } else if (formData.instrumentType === 'equity') {
+        // For Equity: Need all fields including position type and max allocation/quantity
+        return (
+          !!formData.instrumentType &&
+          !!formData.buyOrSell &&
+          selectedInstruments.length > 0 &&
+          !!formData.candlestickType &&
+          !!formData.timeframe &&
+          !!formData.tradeType &&
+          !!formData.maxAllocation &&
+          formData.maxAllocation !== '' &&
+          parseFloat(formData.maxAllocation) > 0 &&
+          !!formData.maxQuantity &&
+          formData.maxQuantity !== '' &&
+          parseFloat(formData.maxQuantity) > 0
+        );
+      } else {
+        // No instrument type selected yet
+        return false;
+      }
     
     case 'entry':
       return isOptionsType
@@ -244,7 +328,11 @@ export const isSectionComplete = (sectionId: string, formData: FormData, selecte
     case 'exit':
       return (
         formData.stopLoss !== '' &&
-        formData.targetProfit !== ''
+        !isNaN(parseFloat(formData.stopLoss)) &&
+        parseFloat(formData.stopLoss) > 0 &&
+        formData.targetProfit !== '' &&
+        !isNaN(parseFloat(formData.targetProfit)) &&
+        parseFloat(formData.targetProfit) > 0
       );
     
     case 'backtest':
@@ -278,14 +366,29 @@ export const getMissingSectionFields = (sectionId: string, formData: FormData, s
     
     case 'positions':
       if (!formData.instrumentType) missing.push('Instrument Type');
-      if (!formData.buyOrSell) missing.push('Position type');
-      if (selectedInstruments.length === 0) missing.push('Instruments');
+      
+      // Position type (buyOrSell) is only required for Equity
+      if (formData.instrumentType === 'equity' && !formData.buyOrSell) missing.push('Position type');
+      
+      // Instrument selection validation depends on strategy type
+      if (formData.instrumentType === 'options' && formData.strategyType === 'time-based') {
+        // For F&O Time-based: Instruments are managed through option legs, not traditional selection
+        // So we don't check selectedInstruments here
+      } else if (selectedInstruments.length === 0) {
+        // For Equity and F&O Expression: Need at least one instrument selected
+        missing.push('Instruments');
+      }
+      
       if (!formData.candlestickType) missing.push('Candlestick Type');
       if (isRenkoType && !formData.brickSize) missing.push('Brick Size');
       if (!formData.timeframe) missing.push('Timeframe');
       if (!formData.tradeType) missing.push('Trade Type');
-      if (!formData.maxAllocation) missing.push('Max Allocation');
-      if (!formData.maxQuantity) missing.push('Max Quantity');
+      
+      // Max allocation and quantity are only required for Equity
+      if (formData.instrumentType === 'equity') {
+        if (!formData.maxAllocation) missing.push('Max Allocation');
+        if (!formData.maxQuantity) missing.push('Max Quantity');
+      }
       break;
     
     case 'entry':
@@ -297,8 +400,8 @@ export const getMissingSectionFields = (sectionId: string, formData: FormData, s
       break;
     
     case 'exit':
-      if (formData.stopLoss === '') missing.push('Stop Loss');
-      if (formData.targetProfit === '') missing.push('Target Profit');
+      if (formData.stopLoss === '' || isNaN(parseFloat(formData.stopLoss)) || parseFloat(formData.stopLoss) <= 0) missing.push('Stop Loss');
+      if (formData.targetProfit === '' || isNaN(parseFloat(formData.targetProfit)) || parseFloat(formData.targetProfit) <= 0) missing.push('Target Profit');
       break;
     
     case 'backtest':

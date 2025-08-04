@@ -19,8 +19,12 @@ Parameters:
     Default: ""
   ExistingHostedZoneId:
     Type: String
+    Default: Z00000000000000000000
+    Description: Existing Route 53 Hosted Zone ID
+  MukhamBackendURL:
+    Type: String
+    Description: Backend ALB URL for Mukham service
     Default: ""
-    Description: Existing Route 53 Hosted Zone ID (leave empty to create new)
 
 Resources:
   # CloudFront Distribution
@@ -35,8 +39,10 @@ Resources:
             - - !Ref BaseDomainName
               - !Sub "www.${BaseDomainName}"
               - !Sub "mukham.${BaseDomainName}"
-            - - !Sub "dev.${BaseDomainName}"
+              - !Sub "web.${BaseDomainName}"
+            - - !Ref BaseDomainName
               - !Sub "mukham.dev.${BaseDomainName}"
+              - !Sub "web.dev.${BaseDomainName}"
           - !Ref "AWS::NoValue"
         Comment: !Sub "${ProjectName} ${Environment} CDN"
         Enabled: true
@@ -47,8 +53,13 @@ Resources:
         # Default Origin - Points to Mukham ECS
         Origins:
           - Id: mukham-ecs-origin
-            DomainName:
-              Fn::ImportValue: !Sub "${ProjectName}-${Environment}-mukham-alb-dns"
+            DomainName: !If
+              - HasMukhamBackend
+              - !Ref MukhamBackendURL
+              - !If
+                - IsProd
+                - !Sub "mukham.${BaseDomainName}"
+                - !Sub "mukham.dev.${BaseDomainName}"
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -56,7 +67,10 @@ Resources:
               OriginSSLProtocols:
                 - TLSv1.2
           - Id: web-api-origin
-            DomainName: !Sub "web.${BaseDomainName}"
+            DomainName: !If
+              - IsProd
+              - !Sub "web.${BaseDomainName}"
+              - !Sub "web.dev.${BaseDomainName}"
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -168,7 +182,7 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
 
-  # Route 53 Hosted Zone (if needed)
+  # Route 53 Hosted Zone (only if needed)
   HostedZone:
     Type: AWS::Route53::HostedZone
     Condition: CreateHostedZone
@@ -229,7 +243,23 @@ Resources:
         EvaluateTargetHealth: false
         HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
 
-  # Route 53 Records for Mukham subdomain - Production
+  # Root domain points to dev environment for now (requirement 6)
+  RootToDevRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasCustomCertificateAndDev
+    Properties:
+      HostedZoneId: !If
+        - CreateHostedZone
+        - !Ref HostedZone
+        - !Ref ExistingHostedZoneId
+      Name: !Ref BaseDomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
+
+  # Mukham subdomain for Production
   MukhamProdAliasRecord:
     Type: AWS::Route53::RecordSet
     Condition: HasCustomCertificateAndProd
@@ -245,7 +275,7 @@ Resources:
         EvaluateTargetHealth: false
         HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
 
-  # Route 53 Records for Mukham subdomain - Development
+  # Mukham subdomain for Development
   MukhamDevAliasRecord:
     Type: AWS::Route53::RecordSet
     Condition: HasCustomCertificateAndDev
@@ -261,15 +291,46 @@ Resources:
         EvaluateTargetHealth: false
         HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
 
+  # Web API subdomain for Production
+  WebProdAliasRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasCustomCertificateAndProd
+    Properties:
+      HostedZoneId: !If
+        - CreateHostedZone
+        - !Ref HostedZone
+        - !Ref ExistingHostedZoneId
+      Name: !Sub "web.${BaseDomainName}"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
+
+  # Web API subdomain for Development
+  WebDevAliasRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasCustomCertificateAndDev
+    Properties:
+      HostedZoneId: !If
+        - CreateHostedZone
+        - !Ref HostedZone
+        - !Ref ExistingHostedZoneId
+      Name: !Sub "web.dev.${BaseDomainName}"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
+
 Conditions:
   HasCustomCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
   IsProd: !Equals [!Ref Environment, prod]
   IsDev: !Equals [!Ref Environment, dev]
   HasCustomCertificateAndProd: !And [!Condition HasCustomCertificate, !Condition IsProd]
   HasCustomCertificateAndDev: !And [!Condition HasCustomCertificate, !Condition IsDev]
-  CreateHostedZone: !And
-    - !Condition HasCustomCertificate
-    - !Equals [!Ref ExistingHostedZoneId, ""]
+  CreateHostedZone: !Equals [!Ref ExistingHostedZoneId, ""]
+  HasMukhamBackend: !Not [!Equals [!Ref MukhamBackendURL, ""]]
 
 Outputs:
   CloudFrontDistributionId:
@@ -303,6 +364,14 @@ Outputs:
       - IsProd
       - !Sub "https://mukham.${BaseDomainName}"
       - !Sub "https://mukham.dev.${BaseDomainName}"
+
+  WebAPISubdomainURL:
+    Condition: HasCustomCertificate
+    Description: Web API Subdomain URL
+    Value: !If
+      - IsProd
+      - !Sub "https://web.${BaseDomainName}"
+      - !Sub "https://web.dev.${BaseDomainName}"
 
   HostedZoneId:
     Condition: CreateHostedZone

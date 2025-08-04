@@ -56,6 +56,8 @@ export interface ApiFormData {
   name: string;
   description: string;
   instrument_type: 'equity' | 'futures' | 'options';
+  segment: string; // Add segment parameter based on Equity/F&O selection
+  strategy_type: 'CONDITIONAL' | 'TIME_BASED'; // Add strategy_type field
   position_type: 'LONG' | 'SHORT';
   instruments: number[];
   chart_type: string;
@@ -66,8 +68,7 @@ export interface ApiFormData {
   max_allocation: number; // Added this property to match the form data
   entry_expression: string;
   exit_expression: string;
-  entry_option_legs?: OptionLeg[];
-  exit_option_legs?: OptionLeg[];
+  option_legs?: OptionLeg[]; // Combined option legs for API
   expiration_strategy?: 'EXPIRE' | 'CLOSE' | 'EXERCISE';
   target_profit: number;
   target_profit_type: 'ABSOLUTE' | 'PERCENTAGE';
@@ -81,6 +82,7 @@ export interface ApiFormData {
   slippage?: number;
   entry_start_time: string | null;
   entry_end_time: string | null;
+  trading_days: string[];
   start_date: string | null;
   end_date: string | null;
 }

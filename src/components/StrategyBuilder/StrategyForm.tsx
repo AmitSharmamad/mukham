@@ -77,7 +77,7 @@ import {
 } from '@mui/material';
 import { BacktestResult } from '../../types/strategy';
 import { createDeployment, ApiResponse } from '../../services/deploymentService';
-import { convertFormToApiData } from '../../utils/strategyFormUtils';
+import { convertFormToApiData, mapApiTradingDaysToForm } from '../../utils/strategyFormUtils';
 import { getApiErrorMessage } from '../../utils/apiErrorHandler';
 import { 
   validateForm, 
@@ -139,7 +139,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
     trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
     entryStartTime: initialData?.entryStartTime ? dayjs(initialData.entryStartTime, 'HH:mm:ss') : null,
     entryEndTime: initialData?.entryEndTime ? dayjs(initialData.entryEndTime, 'HH:mm:ss') : null,
-    tradingDays: initialData?.tradingDays || [],
+    tradingDays: mapApiTradingDaysToForm(initialData?.tradingDays || []),
     startDate: initialData?.startDate ? dayjs(initialData.startDate) : null,
     endDate: initialData?.endDate ? dayjs(initialData.endDate) : null,
     brokerage: initialData?.brokerage || '20',
@@ -215,7 +215,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         trailingStopLossType: initialData?.trailingStopLossType || 'PERCENTAGE',
         entryStartTime: isNullTime(initialData.entryStartTime) ? null : dayjs(initialData.entryStartTime, 'HH:mm:ss'),
         entryEndTime: isNullTime(initialData.entryEndTime) ? null : dayjs(initialData.entryEndTime, 'HH:mm:ss'),
-        tradingDays: initialData?.tradingDays || [],
+        tradingDays: mapApiTradingDaysToForm(initialData?.tradingDays || []),
         startDate: dayjs(initialData.startDate),
         endDate: dayjs(initialData.endDate),
         brokerage: initialData.brokerage || '20',
@@ -521,9 +521,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
       try {
         setLoading(true);
 
+        // Check if instruments are required for this strategy type
+        const instrumentsRequired = !(formData.instrumentType === 'options' && formData.strategyType === 'time-based');
+        
         // Make sure we have the instrument IDs correctly set in formData before sending
-        if (selectedInstruments.length > 0) {
-          // Update formData.instruments with the correct instrument IDs from selectedInstruments
+        if (selectedInstruments.length > 0 || !instrumentsRequired) {
+          // Update formData.instruments with the correct instrument IDs from selectedInstruments (if any)
           const instrumentIds = selectedInstruments.map(instrument => instrument.exchange_security_id);
           setFormData(prev => ({
             ...prev,
@@ -543,7 +546,12 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           const url = isEdit ? `/api/strategy/${initialData.id}` : '/api/strategy';
           
           // Log the API data to console for debugging
+          console.log('=== STRATEGY SUBMISSION DEBUG ===');
+          console.log('Is Edit Mode:', isEdit);
+          console.log('Form Data Option Legs:', modifiedFormData.entryOptionLegs);
           console.log('Submitting strategy data:', apiData);
+          console.log('Option legs being sent:', apiData.option_legs);
+          console.log('Option legs details:', JSON.stringify(apiData.option_legs, null, 2));
           
           const response = await fetch(url, {
             method: isEdit ? 'PUT' : 'POST',
@@ -643,6 +651,10 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         
         // Create SSE connection for backtest using POST data
         const formDataToSend = convertFormToApiData(formData);
+        
+        // Log the backtest data to console for debugging
+        console.log('Submitting backtest data:', formDataToSend);
+        console.log('Option legs for backtest:', formDataToSend.option_legs);
         
         // First, send the POST request to initiate the backtest and handle SSE stream directly
         const response = await fetch(`/api/backtest/run?strategy_id=${currentStrategyId}`, {
@@ -1013,6 +1025,33 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         const entryConditions = parseExpressions(strategyData.entry_expression);
         const exitConditions = parseExpressions(strategyData.exit_expression);
         
+        // Transform API option legs to form format  
+        const transformApiOptionLegsToForm = (apiOptionLegs: any[] = []) => {
+          return apiOptionLegs.map((apiLeg: any) => ({
+            id: apiLeg.id || `leg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            exchange: apiLeg.exchange || 'NSE',
+            instrumentType: (apiLeg.asset === 'INDEX' ? 'Index' : 'Stock') as 'Index' | 'Stock',
+            selectedInstrument: {
+              exchange_security_id: apiLeg.exchange_security_id,
+              exchange: apiLeg.exchange,
+              segment: apiLeg.segment,
+              symbol: apiLeg.select_index,
+              instrument: apiLeg.select_index,
+              label: `${apiLeg.select_index} - ${apiLeg.exchange}`,
+              value: apiLeg.exchange_security_id
+            },
+            segment: (apiLeg.instrument_type === 'OPTIONS' ? 'Options' : 'Futures') as 'Futures' | 'Options',
+            buySell: (apiLeg.action_type === 'BUY' ? 'Buy' : 'Sell') as 'Buy' | 'Sell',
+            expiry: (apiLeg.expiry_cycle === 'CURRENT' ? 'Current' : 'Next') as 'Current' | 'Next',
+            lots: apiLeg.total_lot?.toString() || '1',
+            optionType: apiLeg.option_type === 'CALL' ? 'CE' as 'CE' | 'PE' : apiLeg.option_type === 'PUT' ? 'PE' as 'CE' | 'PE' : undefined,
+            expiryType: (apiLeg.expiry_type === 'WEEKLY' ? 'Weekly' : 'Monthly') as 'Weekly' | 'Monthly',
+            strikeType: apiLeg.strike_type || 'ATM'
+          }));
+        };
+
+        const optionLegs = transformApiOptionLegsToForm(strategyData.option_legs || []);
+        
         const formData: FormData = {
           id: strategyData.id,
           name: strategyData.name,
@@ -1028,8 +1067,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           maxQuantity: strategyData.qty?.toString() || '',
           entryConditions,
           exitConditions,
-          entryOptionLegs: strategyData.entry_option_legs || [],
-          exitOptionLegs: strategyData.exit_option_legs || [],
+          entryOptionLegs: optionLegs, // Use transformed option legs
+          exitOptionLegs: [], // Empty for now, can be refined later if needed
           expirationStrategy: strategyData.expiration_strategy || 'CLOSE',
           stopLoss: strategyData.stop_loss?.toString() || '',
           stopLossType: strategyData.stop_loss_type || 'ABSOLUTE',
@@ -1039,7 +1078,7 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
           trailingStopLossType: strategyData.trailing_stop_loss_type || 'ABSOLUTE',
           entryStartTime: strategyData.entry_start_time ? dayjs(strategyData.entry_start_time) : null,
           entryEndTime: strategyData.entry_end_time ? dayjs(strategyData.entry_end_time) : null,
-          tradingDays: strategyData.trading_days || [],
+          tradingDays: mapApiTradingDaysToForm(strategyData.trading_days || []),
           startDate: strategyData.start_date ? dayjs(strategyData.start_date) : null,
           endDate: strategyData.end_date ? dayjs(strategyData.end_date) : null,
           brickSize: strategyData.brick_size?.toString() || '',
@@ -1443,6 +1482,8 @@ export const StrategyForm: React.FC<StrategyFormProps> = ({ initialData, initial
         onClose={() => setInstrumentSelectorOpen(false)}
         onSelect={handleInstrumentSelect}
         selectedInstruments={selectedInstruments}
+        segment={formData.instrumentType === 'options' || formData.instrumentType === 'futures' ? 'F&O' : 'EQ'}
+        anchor="right"
       />
       
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>

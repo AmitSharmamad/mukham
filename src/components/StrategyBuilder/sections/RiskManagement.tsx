@@ -46,6 +46,7 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
               type="number"
               value={formData.stopLoss}
               onChange={(e) => onFieldChange('stopLoss')(e.target.value)}
+              required
               error={!!(attemptedSubmit && errors.stopLoss)}
               helperText={attemptedSubmit && errors.stopLoss ? errors.stopLoss : undefined}
               inputProps={{ min: 0 }}
@@ -75,6 +76,7 @@ export const RiskManagement: React.FC<RiskManagementProps> = ({
               type="number"
               value={formData.targetProfit}
               onChange={(e) => onFieldChange('targetProfit')(e.target.value)}
+              required
               error={!!(attemptedSubmit && errors.targetProfit)}
               helperText={attemptedSubmit && errors.targetProfit ? errors.targetProfit : undefined}
               inputProps={{ min: 0 }}

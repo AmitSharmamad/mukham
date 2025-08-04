@@ -248,12 +248,12 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
               <ListItemText primary="Home" />
             </ListItemButton>
 
-            <ListItemButton onClick={() => handleNavigate('/strategy')}>
+            {/* <ListItemButton onClick={() => handleNavigate('/strategy')}>
               <ListItemIcon>
                 <BuildIcon />
               </ListItemIcon>
               <ListItemText primary="Strategy" />
-            </ListItemButton>
+            </ListItemButton> */}
 
             <ListItemButton onClick={() => handleNavigate('/deployment')}>
               <ListItemIcon>
@@ -357,12 +357,12 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
         ) : (
           <>
             {/* Non-authenticated Navigation */}
-            <ListItemButton onClick={() => handleNavigate('/strategy')}>
+            {/* <ListItemButton onClick={() => handleNavigate('/strategy')}>
               <ListItemIcon>
                 <BuildIcon />
               </ListItemIcon>
               <ListItemText primary="Strategy" />
-            </ListItemButton>
+            </ListItemButton> */}
 
             <ListItemButton onClick={() => handleNavigate('/docs')}>
               <ListItemIcon>
@@ -450,12 +450,12 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
             </ListItem>
 
             {/* Login */}
-            <ListItemButton onClick={handleLoginClick}>
+            {/* <ListItemButton onClick={handleLoginClick}>
               <ListItemIcon>
                 <LoginIcon />
               </ListItemIcon>
               <ListItemText primary="Login" />
-            </ListItemButton>
+            </ListItemButton> */}
           </>
         )}
       </List>
@@ -536,14 +536,14 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                   </Button>
 
                   {/* Strategy */}
-                  <Button 
+                  {/* <Button 
                     color="inherit" 
                     component={Link} 
                     href="/strategy"
                     sx={{ fontSize: '1.1rem' }}
                   >
                     Strategy
-                  </Button>
+                  </Button> */}
 
                   {/* Deployment */}
                   <Button 
@@ -576,14 +576,14 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                   whiteSpace: 'nowrap'
                 }}>
                   {/* Strategy - Show for non-authenticated users */}
-                  <Button 
+                  {/* <Button 
                     color="inherit" 
                     component={Link} 
                     href="/strategy"
                     sx={{ fontSize: '1.1rem' }}
                   >
                     Strategy
-                  </Button>
+                  </Button> */}
 
                   {/* Docs - Show for non-authenticated users */}
                   <Button 
@@ -633,12 +633,12 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                 <LiveClock color="#90EE90" fontSize="1.1rem" />
                 
                 {/* Tour button - show for both authenticated and non-authenticated users */}
-                <TourButton 
+                {/* <TourButton 
                   variant="icon" 
                   tooltip="Take a guided tour" 
                   size="large"
                   color="inherit"
-                />
+                /> */}
                 
                 {/* Theme button - show for both authenticated and non-authenticated users */}
                 <Tooltip title={isUsingSystemTheme ? `System theme (${mode})` : `${mode} mode`}>
@@ -699,14 +699,14 @@ export default function Navbar({ onToggleTheme, isDarkMode }: NavbarProps = {}) 
                 ) : (
                   <>
                     {/* Login button for non-authenticated users (rightmost) */}
-                    <Button 
+                    {/* <Button 
                       color="inherit"
                       onClick={handleLoginClick}
                       sx={{ fontSize: '1.1rem' }}
                       startIcon={<LoginIcon />}
                     >
                       Login
-                    </Button>
+                    </Button> */}
                   </>
                 )}
               </Box>
